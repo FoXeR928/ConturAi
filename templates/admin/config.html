@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Конфигурации</title>
+</head>
+<body>
+    <nav>
+        {% for path,name in nav.items() %}
+            <a href="{{url_for(path)}}">{{name}}</a>
+        {% endfor %}
+    </nav>
+    <table>
+        <thead>
+            <th>Конфиг</th>
+            <th>Описание</th>
+            <th>Значение</th>
+        </thead>
+        <tbody>
+            {% for config in configs %}
+                <tr>
+                    <td>{{config['name']}}</td>
+                    <td>{{config['about']}}</td>
+                    <td><form action="{{url_for('user.admin_config_api')}}" method="post">
+                        {{form.csrf_token}}
+                        {{form.config_name(value=config['name'])}}
+                        {{form.config_value(value=config['value'])}}
+                        {{form.send_config}}
+                    </form></td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

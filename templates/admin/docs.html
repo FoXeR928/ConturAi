@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Документы</title>
+    <script src="/static/js/axios.min.js"></script>
+</head>
+<body>
+    <nav>
+        {% for path,name in nav.items() %}
+            <a href="{{url_for(path)}}">{{name}}</a>
+        {% endfor %}
+    </nav>
+    <form id="form_doc">
+        <label>Файл</label>
+        <input required id="file" type="file" accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+        <button>Прочитать</button>
+    </form>
+    <form action="{{url_for('user.admin_docs_api')}}" method="post">
+        {{form_file.csrf_token}}
+        {{form_file.file_name_text}}
+        {{form_file.file_text.label}}{{form_file.file_text}}
+        {{form_file.send_text}}
+    </form>
+</body>
+</html>
+<script src="/static/read_file.js"></script>

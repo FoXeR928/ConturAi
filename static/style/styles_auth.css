@@ -1,0 +1,32 @@
+.auth_block{
+    background-color: rgb(87 175 235);
+    font-family: "Noto Sans, sans-serif";
+}
+.form_auth{
+    font-size: 14pt;
+    width: 600px;
+    margin: 20% auto;
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: -7px 12px 20px 6px rgba(0, 0, 0, 0.2), 5px 8px 9px 0px rgba(0, 0, 0, 0.24);
+}
+.-input{
+    font-size: 14pt;
+    border-radius: 20px;
+    padding: 5px 15px;
+    margin: 10px 0;
+    border: none;
+    background-color: rgb(232 243 255);
+}
+.-button{
+    font-size: 14pt;
+    border-radius: 20px;
+    padding: 5px;
+    background-color: rgb(87 175 235);
+    color: white;
+    margin-top: 10px;
+    border: none;
+}

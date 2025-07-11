@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Авторизация</title>
+    <link rel="stylesheet" href="/static/style/styles_auth.css">
+</head>
+<body class="auth_block">
+    <form class="form_auth" action="{{url_for('auth.login_api')}}" method="post">
+        {{form.csrf_token}}
+        {{form.login.label}}{{form.login(class='login_auth -input')}}
+        {{form.password.label}}{{form.password(class='pass_auth -input')}}
+        <div class="check_box">
+            {{form.remember_auth.label}}{{form.remember_auth(class='check_auth -checkbox')}}
+        </div>
+        {{form.send(class='button_auth -button')}}
+    </form>
+</body>
+</html>

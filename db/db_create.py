@@ -1,0 +1,59 @@
+from sqlalchemy.orm import mapped_column, Mapped
+from sqlalchemy import BLOB
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin
+from werkzeug.security import check_password_hash, generate_password_hash
+
+db=SQLAlchemy()
+
+
+class Users(UserMixin, db.Model):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True, unique=True, nullable=False)
+    login: Mapped[str] = mapped_column(nullable=False, unique=True)
+    password: Mapped[str] = mapped_column(nullable=True)
+    user_name: Mapped[str] = mapped_column(nullable=False)
+    user_role: Mapped[str] = mapped_column(nullable=False, default="user")
+    chat_role: Mapped[str] = mapped_column(nullable=False, default="user")
+
+    def set_password(self, password):
+        self.password = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password, password)
+
+
+class Chats(db.Model):
+    __tablename__ = "chats"
+
+    id: Mapped[int] = mapped_column(primary_key=True, unique=True, nullable=False)
+    user_login: Mapped[str] = mapped_column(nullable=False)
+    chat_name: Mapped[str] = mapped_column(nullable=False)
+
+
+class Messages(db.Model):
+    __tablename__ = "messages"
+
+    id: Mapped[int] = mapped_column(primary_key=True, unique=True, nullable=False)
+    user_login: Mapped[str] = mapped_column(nullable=False)
+    chat_id: Mapped[int] = mapped_column(nullable=False)
+    text: Mapped[str]
+
+
+class Files(db.Model):
+    __tablename__ = "files"
+
+    id: Mapped[int] = mapped_column(primary_key=True, unique=True, nullable=False)
+    file_type: Mapped[str] = mapped_column(nullable=False)
+    file_name: Mapped[int] = mapped_column(nullable=False)
+    file: Mapped[str] = mapped_column(BLOB)
+
+
+class Configs(db.Model):
+    __tablename__ = "configs"
+
+    id: Mapped[int] = mapped_column(primary_key=True, unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(unique=True, nullable=False)
+    about: Mapped[str] = mapped_column(nullable=False)
+    value: Mapped[str] = mapped_column(nullable=False)

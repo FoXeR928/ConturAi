@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Чаты</title>
+</head>
+<body>
+    <nav>
+        {% for path,name in nav.items() %}
+            <a href="{{url_for(path)}}">{{name}}</a>
+        {% endfor %}
+    </nav>
+    <h1>Чаты</h1>
+    <form action="{{url_for('user.user_get_create_chats_api')}}" method="post">
+        {{form.csrf_token}}
+        {{form.chat.label}}{{form.chat}}
+        {{form.send_chat}}
+    </form>
+    <div>
+        {% for chat_id, chat_name in chats.items() %}
+            <a href="{{url_for('user.user_get_chat_api', chat=chat_id)}}">{{chat_name}}</a>
+        {% endfor %}
+    </div>
+</body>
+</html>
