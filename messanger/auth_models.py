@@ -14,7 +14,7 @@ from loguru import logger
 from db.db_create import Users, db
 
 try:
-    logger.info("Инициализация пути /auth")
+    logger.debug("Инициализация пути /auth")
     auth_app = Blueprint("auth", __name__, url_prefix="/auth")
 except Exception as err:
     logger.error(f"Инициализация пути /auth не удалась Ошибка:{err}")

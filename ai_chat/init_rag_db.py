@@ -61,7 +61,7 @@ try:
             else "mps" if torch.backends.mps.is_available() else "cpu"
         ),
     )
-    logger.info('Инициализирована AI модель для генерации чанков')
+    logger.debug('Инициализирована AI модель для генерации чанков')
 except Exception as err:
     logger.critical(f'Не удалось инициализированть AI модель для генерации чанков Ошибка {err}')
     exit()
@@ -70,7 +70,7 @@ try:
     client = QdrantClient(
         host=RAG_HOST, port=RAG_PORT_HTTP, grpc_port=RAG_PORT_GRPC, prefer_grpc=RAG_GRPC
     )
-    logger.info('Инициализирован клиент векторной базы')
+    logger.debug('Инициализирован клиент векторной базы')
 except Exception as err:
     logger.critical(f'Не удалось инициализированть клиент векторной базы Ошибка {err}')
     exit()

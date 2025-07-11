@@ -8,7 +8,7 @@ from db.db_query_admin import add_user_status, add_file, get_config
 from ai_chat.parther import read_pdf, read_word, read_excel
 
 try:
-    logger.info("Инициализация пути /admin")
+    logger.debug("Инициализация пути /admin")
     admin_app = Blueprint("admin", __name__, url_prefix="/admin")
 except Exception as err:
     logger.error(f"Инициализация пути /admin не удалась Ошибка:{err}")

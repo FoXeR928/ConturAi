@@ -17,13 +17,13 @@ from db.db_query import (
     update_password_user,
 )
 from db.db_query_admin import get_users,reg_user, get_configs, update_config
-from db.db_query_chat import get_chats, get_messages_chat, create_chat, create_message
+from db.db_query_chat import get_chats, get_messages_chat, get_messages_ai, create_chat, create_message
 from ai_chat.ask import ask_query
 from ai_chat.query_rag_db import add_docs
 from ai_chat.parther import normalize_text, chunk_create
 
 try:
-    logger.info("Инициализация пути /users")
+    logger.debug("Инициализация пути /users")
     user_app = Blueprint("user", __name__, url_prefix="/user")
 except Exception as err:
     logger.error(f"Инициализация пути /users не удалась Ошибка:{err}")
@@ -117,8 +117,11 @@ def user_get_chat_api(chat: str):
             logger.debug("Полученно сообщения из формы чата")
         except Exception as err:
             logger.error(f"Не удалось получить поле с сообщением чата Ошибка:{err}")
-        create_message(login=current_user.login,chat_id=chat, text=text)
-        ask_query(query=text, chat_id=chat)
+        messages_history = get_messages_ai(chat)
+        if messages_history!=None:
+            create_message(login=current_user.login,chat_id=chat, text=text)
+            ask_query(query=text, chat_id=chat, messages_history=messages_history)
+        return(request.referrer)
     return render_template(
         "chats/chat.html",
         messages=messages["messages"],
