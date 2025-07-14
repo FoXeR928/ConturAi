@@ -30,6 +30,7 @@ class Chats(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True, unique=True, nullable=False)
     user_login: Mapped[str] = mapped_column(nullable=False)
     chat_name: Mapped[str] = mapped_column(nullable=False)
+    chat_del: Mapped[bool] = mapped_column(nullable=False, default=False)
 
 
 class Messages(db.Model):

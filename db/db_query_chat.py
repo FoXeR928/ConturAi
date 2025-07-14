@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select,update
 from loguru import logger
 
 from db.db_create import Users, Chats, Messages, db
@@ -31,7 +31,7 @@ def get_chats(login):
         try:
             result = dict()
             chats = session.execute(
-                select(Chats.id, Chats.chat_name).where(Chats.user_login == login)
+                select(Chats.id, Chats.chat_name).where((Chats.user_login == login) & (Chats.chat_del!=True))
             ).all()
             for chat in chats:
                 result[chat[0]] = chat[1]
@@ -72,6 +72,27 @@ def create_message(login, chat_id, text):
             logger.error(f"Не удалось записать сообщение в чат {chat_id} Ошибка {err}")
     session.close()
 
+def del_messages(chat_id):
+    session = db.session
+    try:
+        chat = session.execute(
+            select(Chats.id).where(Chats.id == chat_id)
+        ).one_or_none()
+        logger.trace(
+            f"Проверка существования чата {chat_id} прошла успешно"
+        )
+    except Exception as err:
+        logger.warning(
+            f"Не удалось проверить существование чата {chat_id} Ошибка {err}"
+        )
+    if chat!=None:
+        try:
+            session.execute(update(Chats).where(Chats.id==chat_id).values(chat_del=True))
+            session.commit()
+            logger.warning(f'Чат {chat_id} помечен как удаленный')
+        except Exception as err:
+            logger.error(f"Не удалось измеить статус чата {chat_id} Ошибка {err}")
+    session.close()
 
 def get_messages_ai(chat_id):
     session = db.session

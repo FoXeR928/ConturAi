@@ -23,6 +23,7 @@ from db.db_query_chat import (
     get_messages_ai,
     create_chat,
     create_message,
+    del_messages
 )
 from ai_chat.ask import ask_query
 from ai_chat.query_rag_db import add_docs
@@ -39,7 +40,7 @@ class Create_chat(FlaskForm):
     chat = StringField("Название чата", validators=[DataRequired(), Length(min=1)])
     send_chat = SubmitField("Создать")
 
-class Delert_chat(FlaskForm):
+class Delet_chat(FlaskForm):
     chat_id=HiddenField('ID чата', validators=[DataRequired(), Length(min=1)])
     send_del = SubmitField("Удалить")
 
@@ -106,7 +107,7 @@ def user_get_create_chats_api():
     nav = check_nav(current_user.login)
     chats = get_chats(current_user.login)
     form = Create_chat()
-    form_del=Delert_chat()
+    form_del=Delet_chat()
     if form.send_chat.data and form.validate_on_submit():
         try:
             chat = form.chat.data
@@ -117,8 +118,9 @@ def user_get_create_chats_api():
         return redirect(request.referrer)
     if form_del.send_del.data and form_del.validate_on_submit():
         try:
-            chat = form.chat.data
-            logger.debug("Полученно имя чата из формы")
+            chat = form_del.chat_id.data
+            logger.debug("Полученно ID чата из формы")
+            del_messages(chat_id=chat)
         except Exception as err:
             logger.error(f"Не удалось получить поле с именем чата Ошибка:{err}")
         return redirect(request.referrer)
