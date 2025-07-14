@@ -70,6 +70,7 @@ def create_default_users(
 
 def create_default_config(
     recreate=False,
+    promt='Привет я ассистент {name}  База знаний: {context} Вопрос: {quest} Ответь используя базу знаний',
     pdf="application/pdf",
     word="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     excel="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -84,18 +85,30 @@ def create_default_config(
             logger.error(f'Не удалось удалить строки таблицы Configs Ошибка {err}')
     add_list = list()
     try:
+        check_promt = session.execute(
+            select(Configs).where(Configs.name == "promt")
+        ).one_or_none()
         check_format_pdf = session.execute(
             select(Configs).where(Configs.name == "pdf")
-        ).first()
+        ).one_or_none()
         check_format_word = session.execute(
             select(Configs).where(Configs.name == "word")
-        ).first()
+        ).one_or_none()
         check_format_excel = session.execute(
             select(Configs).where(Configs.name == "excel")
-        ).first()
+        ).one_or_none()
         logger.trace("Проверенно существование записей в базе Configs")
     except Exception as err:
         logger.error(f'Не удалось проверить существование записей таблицы Configs Ошибка {err}')
+    if check_promt == None:
+        try:
+            config = Configs(
+                name="promt", about="Параметр отвечающий за промт для нейросети", value=promt
+            )
+            add_list.append(config)
+            logger.debug(f'Создан запрос на добавление конфига промт в базу Configs')
+        except Exception as err:
+            logger.error(f'Не удалось создать запрос на добавление промт в базу Configs Ошибка {err}')
     if check_format_pdf == None:
         try:
             config = Configs(

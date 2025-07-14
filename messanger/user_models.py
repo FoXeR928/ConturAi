@@ -71,6 +71,13 @@ class Config_update(FlaskForm):
     )
     send_config = SubmitField("Сохранить")
 
+class Config_update_textaria(FlaskForm):
+    config_name = HiddenField("Имя конфига", validators=[DataRequired(), Length(min=1)])
+    config_value = TextAreaField(
+        "Значение конфига", validators=[DataRequired(), Length(min=1)]
+    )
+    send_config = SubmitField("Сохранить")
+
 
 def check_nav(login):
     nav = {"user.user_get_create_chats_api": "Чаты"}
@@ -217,8 +224,9 @@ def admin_docs_api():
 def admin_config_api():
     nav = check_nav(current_user.login)
     form = Config_update()
+    form_textaria=Config_update_textaria()
     if (
-        form.config_value.data
+        (form.config_value.data or form_textaria.config_value.data)
         and form.validate_on_submit()
         and get_user_role(current_user.login)
     ):
@@ -235,6 +243,7 @@ def admin_config_api():
     return render_template(
         "admin/config.html",
         form=form,
+        form_textaria=form_textaria,
         configs=get_configs(),
         nav=nav,
     )

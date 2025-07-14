@@ -35,9 +35,9 @@ def get_chats(login):
             ).all()
             for chat in chats:
                 result[chat[0]] = chat[1]
-            logger.success(f"Получение чатов пользователя {login} прошло успешно")
+            logger.debug(f"Получение чатов пользователя {login} прошло успешно")
         except Exception as err:
-            logger.error(f"Не удалось получить чаты пользователя {login} Ошибка {err}")
+            logger.warning(f"Не удалось получить чаты пользователя {login} Ошибка {err}")
     else:
         result={None:None}
     session.close()

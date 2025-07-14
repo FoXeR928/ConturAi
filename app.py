@@ -53,13 +53,19 @@ except Exception as err:
 
 try:
     db.init_app(app=app)
+    with app.app_context():
+        db.create_all()
+        from db.db_create_default import create_default_users, create_default_config
+        create_default_users()
+        create_default_config()
     logger.debug(f"Инициализация SQL_FLASK")
 except Exception as err:
     logger.critical(f"Не удалось инициализировать SQL_FLASK Ошибка:{err}")
     exit()
 
-init_pages()
 
+
+init_pages()
 
 @login_manager.user_loader
 def load_user(id):

@@ -4,3 +4,4 @@
 /db/__pycache__
 *.log
 /messanger/__pycache__
+db/db.db
