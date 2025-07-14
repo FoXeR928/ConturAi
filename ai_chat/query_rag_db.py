@@ -7,7 +7,9 @@ from ai_chat.init_rag_db import model, client
 from config.config import RAG_COLLECTION
 
 
-def add_docs(chunks, doc_name, norm_text, batch_size=256,rag_collection=RAG_COLLECTION):
+def add_docs(
+    chunks, doc_name, norm_text, batch_size=256, rag_collection=RAG_COLLECTION
+):
     points = list()
     try:
         for i in range(0, len(chunks), batch_size):
@@ -27,14 +29,20 @@ def add_docs(chunks, doc_name, norm_text, batch_size=256,rag_collection=RAG_COLL
                         },
                     )
                 )
-        logger.trace(f"Сформированы данные по документу {doc_name} для выгрузки в RAG базу")
+        logger.trace(
+            f"Сформированы данные по документу {doc_name} для выгрузки в RAG базу"
+        )
     except Exception as err:
-        logger.error(f'Не удалось сгенерировать данные для загрузки в RAG базу Ошибка: {err}')
+        logger.error(
+            f"Не удалось сгенерировать данные для загрузки в RAG базу Ошибка: {err}"
+        )
     try:
         client.upsert(collection_name=rag_collection, points=points, wait=False)
-        logger.success(f'В RAG базу добавлен документ {doc_name}')
+        logger.success(f"В RAG базу добавлен документ {doc_name}")
     except Exception as err:
-        logger.error(f'Не удалось добавить документ {doc_name} в RAG базу Ошибка: {err}')
+        logger.error(
+            f"Не удалось добавить документ {doc_name} в RAG базу Ошибка: {err}"
+        )
 
 
 def search_docs(query, limit=5, rag_collection=RAG_COLLECTION):
@@ -46,8 +54,8 @@ def search_docs(query, limit=5, rag_collection=RAG_COLLECTION):
         result = str()
         for hit in result_search:
             result += hit.payload["text"][:200]
-        logger.trace(f'Выполнен поиск по RAG базе')
+        logger.trace(f"Выполнен поиск по RAG базе")
     except Exception as err:
-        logger.error(f'Не удалось выполнить поиск RAG базе Ошибка: {err}')
-        result=None
+        logger.error(f"Не удалось выполнить поиск RAG базе Ошибка: {err}")
+        result = None
     return result

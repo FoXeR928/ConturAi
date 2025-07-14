@@ -1,5 +1,5 @@
 from flask_login import login_required, current_user
-from flask import render_template, request, redirect
+from flask import render_template, request, redirect, flash
 from flask.blueprints import Blueprint
 from flask_wtf import FlaskForm
 from wtforms import (
@@ -16,8 +16,14 @@ from db.db_query import (
     get_user_role,
     update_password_user,
 )
-from db.db_query_admin import get_users,reg_user, get_configs, update_config
-from db.db_query_chat import get_chats, get_messages_chat, get_messages_ai, create_chat, create_message
+from db.db_query_admin import get_users, reg_user, get_configs, update_config
+from db.db_query_chat import (
+    get_chats,
+    get_messages_chat,
+    get_messages_ai,
+    create_chat,
+    create_message,
+)
 from ai_chat.ask import ask_query
 from ai_chat.query_rag_db import add_docs
 from ai_chat.parther import normalize_text, chunk_create
@@ -33,6 +39,9 @@ class Create_chat(FlaskForm):
     chat = StringField("Название чата", validators=[DataRequired(), Length(min=1)])
     send_chat = SubmitField("Создать")
 
+class Delert_chat(FlaskForm):
+    chat_id=HiddenField('ID чата', validators=[DataRequired(), Length(min=1)])
+    send_del = SubmitField("Удалить")
 
 class Send_message(FlaskForm):
     message = StringField("Текст", validators=[DataRequired(), Length(min=1)])
@@ -71,6 +80,7 @@ class Config_update(FlaskForm):
     )
     send_config = SubmitField("Сохранить")
 
+
 class Config_update_textaria(FlaskForm):
     config_name = HiddenField("Имя конфига", validators=[DataRequired(), Length(min=1)])
     config_value = TextAreaField(
@@ -96,7 +106,8 @@ def user_get_create_chats_api():
     nav = check_nav(current_user.login)
     chats = get_chats(current_user.login)
     form = Create_chat()
-    if form.validate_on_submit():
+    form_del=Delert_chat()
+    if form.send_chat.data and form.validate_on_submit():
         try:
             chat = form.chat.data
             logger.debug("Полученно имя чата из формы")
@@ -104,10 +115,18 @@ def user_get_create_chats_api():
             logger.error(f"Не удалось получить поле с именем чата Ошибка:{err}")
         create_chat(current_user.login, chat)
         return redirect(request.referrer)
+    if form_del.send_del.data and form_del.validate_on_submit():
+        try:
+            chat = form.chat.data
+            logger.debug("Полученно имя чата из формы")
+        except Exception as err:
+            logger.error(f"Не удалось получить поле с именем чата Ошибка:{err}")
+        return redirect(request.referrer)
     return render_template(
         "chats/user_chats.html",
         chats=chats,
         form=form,
+        form_del=form_del,
         login=current_user.login,
         nav=nav,
     )
@@ -116,7 +135,7 @@ def user_get_create_chats_api():
 @user_app.route("/chats/<chat>", methods=["GET", "POST"])
 @login_required
 def user_get_chat_api(chat: str):
-    messages = get_messages_chat(login=current_user.login,chat_id=chat)
+    messages = get_messages_chat(login=current_user.login, chat_id=chat)
     form = Send_message()
     if form.validate_on_submit():
         try:
@@ -125,10 +144,10 @@ def user_get_chat_api(chat: str):
         except Exception as err:
             logger.error(f"Не удалось получить поле с сообщением чата Ошибка:{err}")
         messages_history = get_messages_ai(chat)
-        if messages_history!=None:
-            create_message(login=current_user.login,chat_id=chat, text=text)
+        if messages_history != None:
+            create_message(login=current_user.login, chat_id=chat, text=text)
             ask_query(query=text, chat_id=chat, messages_history=messages_history)
-        return(request.referrer)
+        return request.referrer
     return render_template(
         "chats/chat.html",
         messages=messages["messages"],
@@ -162,6 +181,7 @@ def admin_users_api():
             )
         reg_user(login, password, user_name)
         return redirect(request.referrer)
+    
     if (
         form_password.send_update.data
         and form_password.validate_on_submit()
@@ -177,7 +197,21 @@ def admin_users_api():
             logger.error(
                 f"Не удалось получить данные из формы для смены пароля пользователя админом Ошибка:{err}"
             )
-        update_password_user(current_user.login, login, password)
+        try:
+            if login == current_user.login or get_user_role(current_user.login):
+                update_password_user(
+                    login=login, password=password, user_update_password=current_user.login
+                )
+                logger.trace(f"Выполнен API запрос на смену пароля пользователя {login}")
+                flash(message='Пароль изменен',category='success')
+            else:
+                logger.debug(
+                    f"Пользователь {current_user.login} не имеет право на смену пароля"
+                )
+                flash(message=f"Пользователь {current_user.login} не имеет право на смену пароля",category='warning')
+        except Exception as err:
+            logger.error(f"Невыполнен API запрос на смену пароля пользователя {login} статуса Ошибка: {err}")
+            flash(message=f"Невыполнен API запрос на смену пароля пользователя {login} статуса Ошибка: {err}",category='error')
         return redirect(request.referrer)
     return render_template(
         "admin/users.html",
@@ -224,7 +258,7 @@ def admin_docs_api():
 def admin_config_api():
     nav = check_nav(current_user.login)
     form = Config_update()
-    form_textaria=Config_update_textaria()
+    form_textaria = Config_update_textaria()
     if (
         (form.config_value.data or form_textaria.config_value.data)
         and form.validate_on_submit()

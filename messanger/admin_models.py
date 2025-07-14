@@ -5,7 +5,6 @@ from io import BytesIO
 from loguru import logger
 
 from db.db_query_admin import add_user_status, add_file, get_config
-from db.db_query import update_password_user, get_user_role
 from ai_chat.parther import read_pdf, read_word, read_excel
 
 try:
@@ -24,24 +23,6 @@ def admin_set_status_api(login: str, role: str):
     except Exception as err:
         logger.error(f"Невыполнен API запрос на смену статуса Ошибка:{err}")
     return redirect(request.referrer)
-
-
-@admin_app.patch("/update_password")
-@login_required
-def admin_set_password_api():
-    try:
-        login=request.values['login_user']
-        password=request.values['password_update']
-        logger.trace("Получены запросы")
-        if login==current_user.login or get_user_role(current_user.login):
-            update_password_user(login=login, password=password, user_update_password=current_user.login)
-            logger.trace("Выполнен API запрос на смену статуса")
-        else:
-            logger.debug(f"Пользователь {current_user.login} не имеет право на смену пароля")
-    except Exception as err:
-        logger.error(f"Невыполнен API запрос на смену статуса Ошибка:{err}")
-    return redirect(request.referrer)
-
 
 @admin_app.post("/read_file")
 @login_required

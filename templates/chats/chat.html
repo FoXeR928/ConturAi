@@ -4,21 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{chat_name}}</title>
+    <link rel="stylesheet" href="/static/style/style.css">
     <link rel="stylesheet" href="/static/style/style_chat.css">
 </head>
 <body>
     <header class="header">
-        <a class="back_link" href="{{url_for('user.user_get_create_chats_api')}}">Вернуться к чатам</a>
+        <a class="nav_link" href="{{url_for('user.user_get_create_chats_api')}}">Вернуться к чатам</a>
     </header>
-    <main class="chat">
-        {% for message in messages %}
-            <div class="{{message[0]}}" id="{{message[1]}}">{{message[2] | safe}}</div>
-        {% endfor %}
+    <main>
+        <section class="chat">
+            {% for message in messages %}
+                <div class="{{message[0]}}" id="{{message[1]}}">{{message[2] | safe}}</div>
+            {% endfor %}
+        </section>
+        <form action="{{url_for('user.user_get_chat_api', chat=chat_id)}}" method="post">
+            {{form.csrf_token}}
+            {{form.message}}
+            {{form.send_message}}
+        </form>
     </main>
-    <form action="{{url_for('user.user_get_chat_api', chat=chat_id)}}" method="post">
-        {{form.csrf_token}}
-        {{form.message}}
-        {{form.send_message}}
-    </form>
+    
 </body>
 </html>

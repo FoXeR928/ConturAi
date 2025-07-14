@@ -1,5 +1,5 @@
 from flask_login import login_required, logout_user, login_user
-from flask import render_template, redirect, url_for, request
+from flask import render_template, redirect, url_for, request,flash
 from flask.blueprints import Blueprint
 from flask_wtf import FlaskForm
 from wtforms import (
@@ -38,6 +38,7 @@ def login_api():
             logger.debug("Полученны поля формы авторизации")
         except Exception as err:
             logger.error(f"Не удалось получить поля формы авторизации Ошибка:{err}")
+            flash(message='Не удалось прочитать форму',category='error')
         try:
             login_base = db.session.query(Users).filter(Users.login == login).one()
             logger.debug("Запрос в базу для проверки наличия пользователя")
@@ -46,6 +47,7 @@ def login_api():
         if login_base.check_password(password):
             login_user(login_base, remember=remember)
             return redirect(url_for("user.user_get_create_chats_api"))
+        flash(message='Неверный логин или пароль', category='warning')
         return redirect(request.referrer)
     return render_template("auth.html", form=form)
 

@@ -1,0 +1,14 @@
+.chat{
+    display: flex;
+    align-items: center;
+    width: 98%;
+    background: rgb(127 194 239);
+    border-radius: 7px;
+    text-decoration: none;
+    color: black;
+    padding: 10px;
+    margin: 10px 0;
+}
+h3{
+    margin: 0 92% 0 0;
+}

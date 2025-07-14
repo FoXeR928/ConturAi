@@ -1,7 +1,7 @@
 from sqlalchemy import select, update
 from loguru import logger
 
-from db.db_create import Users, Files, Configs,db
+from db.db_create import Users, Files, Configs, db
 
 
 # Users
@@ -27,8 +27,10 @@ def get_users():
 
 def reg_user(login, password, user_name):
     session = db.session
-    check_user=session.execute(select(Users.login).where(Users.login==login)).one_or_none()
-    if check_user==None:
+    check_user = session.execute(
+        select(Users.login).where(Users.login == login)
+    ).one_or_none()
+    if check_user == None:
         try:
             add_user_query = Users(login=login, user_name=user_name)
             add_user_query.set_password(password)
@@ -39,7 +41,7 @@ def reg_user(login, password, user_name):
             logger.error(f"Не удалось создать пользователя {login} Ошибка {err}")
         session.close()
     else:
-        logger.info(f'Пользователь {login} не создан так как уже есть в базе')
+        logger.info(f"Пользователь {login} не создан так как уже есть в базе")
 
 
 def add_user_status(login, role):
@@ -67,15 +69,19 @@ def add_user_status(login, role):
 
 # Files
 def add_file(file, filetype, file_name):
-    session=db.session
+    session = db.session
     try:
-        check_file=session.execute(select(Files.file_name).where(file_name=file_name)).one_or_none
-        logger.trace(f'Проверино на личие файл {file_name}')
+        check_file = session.execute(
+            select(Files.file_name).where(file_name=file_name)
+        ).one_or_none
+        logger.trace(f"Проверино на личие файл {file_name}")
     except Exception as err:
         logger.warning(f"Не проверить существование файла {file_name} Ошибка {err}")
-    if check_file==None:
+    if check_file == None:
         try:
-            create_file = Files(file_name=file_name, file_type=filetype, file=file.read())
+            create_file = Files(
+                file_name=file_name, file_type=filetype, file=file.read()
+            )
             session.add(create_file)
             session.commit()
             logger.success(f"Файл {file_name} добавлен в базу")
@@ -83,7 +89,11 @@ def add_file(file, filetype, file_name):
             logger.error(f"Не удалось добавить файл {file_name} Ошибка {err}")
     else:
         try:
-            session.execute(update(Files).where(Files.file_name==file_name).values(file_type=filetype,file=file.read()))
+            session.execute(
+                update(Files)
+                .where(Files.file_name == file_name)
+                .values(file_type=filetype, file=file.read())
+            )
             session.commit
             logger.success(f"Файл {file_name} обнавлен в базе")
         except Exception as err:
@@ -129,9 +139,7 @@ def get_config(name):
 def update_config(name, value):
     session = db.session
     try:
-        session.execute(
-            update(Configs).where(Configs.name == name).values(value=value)
-        )
+        session.execute(update(Configs).where(Configs.name == name).values(value=value))
         session.commit()
         logger.success(f"Обноваление значения конфигова {name} на {value} из базы")
     except Exception as err:

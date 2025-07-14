@@ -23,10 +23,10 @@ def ask_query(query, chat_id, messages_history):
     messages_history.append({"role": "user", "content": prompt})
     try:
         response = chat(model=AI_MODEL, messages=messages_history)
-        result=response["message"]["content"]
-        logger.debug('Создан ответ нейросети на вопрос')
+        result = response["message"]["content"]
+        logger.debug("Создан ответ нейросети на вопрос")
     except Exception as err:
-        logger.error(f'Не удалось создать ответ нейросети Ошибка {err}')
+        logger.error(f"Не удалось создать ответ нейросети Ошибка {err}")
         return None
     create_message(AI_LOGIN, chat_id, response["message"]["content"])
     return result

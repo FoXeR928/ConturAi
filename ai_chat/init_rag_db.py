@@ -20,16 +20,16 @@ from config.config import (
 )
 
 
-def optimizate_base(collection = RAG_COLLECTION):
+def optimizate_base(collection=RAG_COLLECTION):
     try:
         client.create_payload_index(
             collection_name=collection,
             field_name="source",
             field_schema=PayloadSchemaType.TEXT,
         )
-        logger.debug('Произведена индексация по полю source')
+        logger.debug("Произведена индексация по полю source")
     except Exception as err:
-        logger.error(f'Не удалось индексировать по полям source Ошибка {err}')
+        logger.error(f"Не удалось индексировать по полям source Ошибка {err}")
     try:
         client.create_payload_index(
             collection_name=collection,
@@ -37,10 +37,10 @@ def optimizate_base(collection = RAG_COLLECTION):
             field_schema=PayloadSchemaType.TEXT,
             tokenizer_type="word",
         )
-        logger.debug('Произведена индексация по полю text')
+        logger.debug("Произведена индексация по полю text")
     except Exception as err:
-        logger.error(f'Не удалось индексировать по полям text Ошибка {err}')
-    
+        logger.error(f"Не удалось индексировать по полям text Ошибка {err}")
+
         client.update_collection(
             collection_name=collection,
             hnsw_config=HnswConfigDiff(
@@ -48,9 +48,10 @@ def optimizate_base(collection = RAG_COLLECTION):
                 m=16,
             ),
         )
-        logger.debug('Произведена структуризация графов')
+        logger.debug("Произведена структуризация графов")
     except Exception as err:
-        logger.error(f'Не удалось структуризировать графы Ошибка {err}')
+        logger.error(f"Не удалось структуризировать графы Ошибка {err}")
+
 
 try:
     model = SentenceTransformer(
@@ -61,39 +62,45 @@ try:
             else "mps" if torch.backends.mps.is_available() else "cpu"
         ),
     )
-    logger.debug('Инициализирована AI модель для генерации чанков')
+    logger.debug("Инициализирована AI модель для генерации чанков")
 except Exception as err:
-    logger.critical(f'Не удалось инициализированть AI модель для генерации чанков Ошибка {err}')
+    logger.critical(
+        f"Не удалось инициализированть AI модель для генерации чанков Ошибка {err}"
+    )
     exit()
 
 try:
     client = QdrantClient(
         host=RAG_HOST, port=RAG_PORT_HTTP, grpc_port=RAG_PORT_GRPC, prefer_grpc=RAG_GRPC
     )
-    logger.debug('Инициализирован клиент векторной базы')
+    logger.debug("Инициализирован клиент векторной базы")
 except Exception as err:
-    logger.critical(f'Не удалось инициализированть клиент векторной базы Ошибка {err}')
+    logger.critical(f"Не удалось инициализированть клиент векторной базы Ошибка {err}")
     exit()
 
 try:
-    check_rag_base=client.collection_exists(RAG_COLLECTION)
-    logger.trace('Проверка коллекции в векторной базы прошла успешно')
+    check_rag_base = client.collection_exists(RAG_COLLECTION)
+    logger.trace("Проверка коллекции в векторной базы прошла успешно")
 except Exception as err:
-    logger.critical(f'Не удалось проверить наличие коллекции в векторной базе Ошибка {err}')
+    logger.critical(
+        f"Не удалось проверить наличие коллекции в векторной базе Ошибка {err}"
+    )
     exit()
 
 if not check_rag_base:
     try:
         client.recreate_collection(
             collection_name=RAG_COLLECTION,
-            vectors_config=VectorParams(size=1024, distance=Distance.COSINE, on_disk=True),
+            vectors_config=VectorParams(
+                size=1024, distance=Distance.COSINE, on_disk=True
+            ),
             optimizers_config=OptimizersConfigDiff(
                 indexing_threshold=20000, memmap_threshold=20000
             ),
         )
-        logger.info(f'Создана коллекция {RAG_COLLECTION} в векторной базе')
+        logger.info(f"Создана коллекция {RAG_COLLECTION} в векторной базе")
     except Exception as err:
-        logger.critical(f'Не удалось создать коллекцию в векторной базе Ошибка {err}')
+        logger.critical(f"Не удалось создать коллекцию в векторной базе Ошибка {err}")
         exit()
 else:
-    logger.debug(f'Коллекция {RAG_COLLECTION} уже есть в векторной базе')
+    logger.debug(f"Коллекция {RAG_COLLECTION} уже есть в векторной базе")

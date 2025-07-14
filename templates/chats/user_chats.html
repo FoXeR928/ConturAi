@@ -4,23 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Чаты</title>
+    <link rel="stylesheet" href="/static/style/style.css">
+    <link rel="stylesheet" href="/static/style/style_chats.css">
 </head>
 <body>
-    <nav>
+    <nav class="header">
         {% for path,name in nav.items() %}
-            <a href="{{url_for(path)}}">{{name}}</a>
+            <a class="nav_link" href="{{url_for(path)}}">{{name}}</a>
         {% endfor %}
     </nav>
-    <h1>Чаты</h1>
-    <form action="{{url_for('user.user_get_create_chats_api')}}" method="post">
-        {{form.csrf_token}}
-        {{form.chat.label}}{{form.chat}}
-        {{form.send_chat}}
-    </form>
-    <div>
-        {% for chat_id, chat_name in chats.items() %}
-            <a href="{{url_for('user.user_get_chat_api', chat=chat_id)}}">{{chat_name}}</a>
-        {% endfor %}
-    </div>
+    <main>
+        <h1>Чаты</h1>
+        <form action="{{url_for('user.user_get_create_chats_api')}}" method="post">
+            {{form.csrf_token}}
+            {{form.chat.label}}{{form.chat}}
+            {{form.send_chat}}
+        </form>
+        <div>
+            {% for chat_id, chat_name in chats.items() %}
+                <a class="chat" href="{{url_for('user.user_get_chat_api', chat=chat_id)}}">
+                    <h3>{{chat_name}}</h3>
+                    <form action="{{url_for('user.user_get_create_chats_api')}}">
+                        <button>Удалить</button>
+                    </form>
+                </a>
+            {% endfor %}
+        </div>
+    </main>
 </body>
 </html>

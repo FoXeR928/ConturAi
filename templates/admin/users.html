@@ -4,13 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Пользователи</title>
+    <link rel="stylesheet" href="/static/style/style.css">
 </head>
 <body>
-    <nav>
+    <nav class="header">
         {% for path,name in nav.items() %}
-            <a href="{{url_for(path)}}">{{name}}</a>
+            <a class="nav_link" href="{{url_for(path)}}">{{name}}</a>
         {% endfor %}
     </nav>
+    {% for cat,msg in get_flashed_messages(True) %}
+        <div class="flash {{cat}}">{{msg}}</div>
+    {% endfor %}
     <form action="{{url_for('user.admin_users_api')}}" method="post">
         {{form_user.csrf_token}}
         {{form_user.login_reg.label}}{{form_user.login_reg}}
@@ -31,12 +35,14 @@
                     <td>{{user['login']}}</td>
                     <td>{{user['user_name']}}</td>
                     <td>{{user['user_role']}}</td>
-                    <td><form action="{{url_for('admin.admin_set_password_api')}}" method="patch">
-                        {{form_password.csrf_token(id=user['login'])}}
-                        {{form_password.login_update(value=user['login'], id='login_'+user['login'])}}
-                        {{form_password.password_update(id='password_'+user['login'])}}
-                        {{form_password.send_update(id='send_'+user['login'])}}
-                    </form></td>
+                    <td>
+                        <form action="{{url_for('user.admin_users_api')}}" method="post">
+                            {{form_password.csrf_token(id=user['login'])}}
+                            {{form_password.login_update(value=user['login'], id='login_'+user['login'])}}
+                            {{form_password.password_update(id='password_'+user['login'])}}
+                            {{form_password.send_update(id='send_'+user['login'])}}
+                        </form>
+                    </td>
                 </tr>
             {% endfor %}
         </tbody>

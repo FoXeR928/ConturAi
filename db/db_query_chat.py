@@ -1,11 +1,11 @@
 from sqlalchemy import select
 from loguru import logger
 
-from db.db_create import Users, Chats, Messages,db
+from db.db_create import Users, Chats, Messages, db
 
 
 def create_chat(login, chat):
-    session=db.session
+    session = db.session
     try:
         create_chat_query = Chats(user_login=login, chat_name=chat)
         session.add(create_chat_query)
@@ -37,9 +37,11 @@ def get_chats(login):
                 result[chat[0]] = chat[1]
             logger.debug(f"Получение чатов пользователя {login} прошло успешно")
         except Exception as err:
-            logger.warning(f"Не удалось получить чаты пользователя {login} Ошибка {err}")
+            logger.warning(
+                f"Не удалось получить чаты пользователя {login} Ошибка {err}"
+            )
     else:
-        result={None:None}
+        result = {None: None}
     session.close()
     return result
 
@@ -79,7 +81,9 @@ def get_messages_ai(chat_id):
         ).one_or_none()
         logger.trace(f"Проверка существования чата {chat_id} прошла успешно")
     except Exception as err:
-        logger.warning(f"Не удалось проверить существование чата {chat_id} Ошибка {err}")
+        logger.warning(
+            f"Не удалось проверить существование чата {chat_id} Ошибка {err}"
+        )
     if chat != None:
         result = list()
         try:
@@ -101,14 +105,14 @@ def get_messages_ai(chat_id):
             logger.error(
                 f"Не удалось получение истории чата {chat_id} и создать истории для AI Ошибка {err}"
             )
-            result=(None)
+            result = None
     else:
-        result=(None)
+        result = None
     session.close()
     return result
 
 
-def get_messages_chat(login,chat_id):
+def get_messages_chat(login, chat_id):
     session = db.session
     try:
         user = session.execute(

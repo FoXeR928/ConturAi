@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from loguru import logger
 
-from db.db_create import Users,db
+from db.db_create import Users, db
 
 
 def update_password_user(user_update_password, login, password):
@@ -17,7 +17,6 @@ def update_password_user(user_update_password, login, password):
         logger.error(f"Не удалось обновить пароль пользователя {login} Ошибка {err}")
     session.close()
 
-
 def get_user_role(login):
     session = db.session
     try:
@@ -26,9 +25,7 @@ def get_user_role(login):
         ).one_or_none()
         logger.trace(f"Получена роль пользователя {login}")
     except Exception as err:
-        logger.error(
-            f"Не удалось получение роль пользователя {login} Ошибка {err}"
-        )
+        logger.error(f"Не удалось получение роль пользователя {login} Ошибка {err}")
     if not (user_role == None) and user_role.user_role == "admin":
         result = True
     else:

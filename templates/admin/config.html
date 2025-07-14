@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Конфигурации</title>
+    <link rel="stylesheet" href="/static/style/style.css">
 </head>
 <body>
-    <nav>
+    <nav class="header">
         {% for path,name in nav.items() %}
-            <a href="{{url_for(path)}}">{{name}}</a>
+            <a class="nav_link" href="{{url_for(path)}}">{{name}}</a>
         {% endfor %}
     </nav>
     <table>

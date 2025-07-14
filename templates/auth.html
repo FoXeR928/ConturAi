@@ -7,6 +7,9 @@
     <link rel="stylesheet" href="/static/style/styles_auth.css">
 </head>
 <body class="auth_block">
+    {% for cat,msg in get_flashed_messages(True) %}
+        <div class="flash {{cat}}">{{msg}}</div>
+    {% endfor %}
     <form class="form_auth" action="{{url_for('auth.login_api')}}" method="post">
         {{form.csrf_token}}
         {{form.login.label}}{{form.login(class='login_auth -input')}}
