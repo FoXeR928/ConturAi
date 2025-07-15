@@ -89,9 +89,9 @@ def del_messages(chat_id):
         try:
             session.execute(update(Chats).where(Chats.id==chat_id).values(chat_del=True))
             session.commit()
-            logger.warning(f'Чат {chat_id} помечен как удаленный')
+            logger.debug(f'Чат {chat_id} помечен как удаленный')
         except Exception as err:
-            logger.error(f"Не удалось измеить статус чата {chat_id} Ошибка {err}")
+            logger.warning(f"Не удалось измеить статус чата {chat_id} Ошибка {err}")
     session.close()
 
 def get_messages_ai(chat_id):

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Чаты</title>
+    <link rel="stylesheet" href="/static/style/style.css">
+    <link rel="stylesheet" href="/static/style/style_chats.css">
+</head>
+<body>
+    <nav class="header">
+        {% for path,name in nav.items() %}
+            <a class="nav_link" href="{{url_for(path)}}">{{name}}</a>
+        {% endfor %}
+    </nav>
+    {% for cat,msg in get_flashed_messages(True) %}
+        <div class="flash {{cat}}">{{msg}}</div>
+    {% endfor %}
+    <main>
+        <section>
+            <h1>Чаты</h1>
+            <form>
+                <input type="text">
+                <input type="submit" value="Поиск">
+            </form>
+            {{form_del_irr.send_del_irr}}    
+        </section>
+
+        <div>
+            {% for chat_id, chat_name in chats.items() %}
+                <div class="chat">
+                    <h3>{{chat_name}}</h3>
+                </div>
+            {% endfor %}
+        </div>
+    </main>
+</body>
+</html>

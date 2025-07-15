@@ -1,30 +1,17 @@
 from flask_login import login_required, logout_user, login_user
 from flask import render_template, redirect, url_for, request,flash
 from flask.blueprints import Blueprint
-from flask_wtf import FlaskForm
-from wtforms import (
-    StringField,
-    PasswordField,
-    BooleanField,
-    SubmitField,
-)
-from wtforms.validators import DataRequired, Length
+from messanger.moduls import Auth
 from loguru import logger
 
 from db.db_create import Users, db
+
 
 try:
     logger.debug("Инициализация пути /auth")
     auth_app = Blueprint("auth", __name__, url_prefix="/auth")
 except Exception as err:
     logger.error(f"Инициализация пути /auth не удалась Ошибка:{err}")
-
-
-class Auth(FlaskForm):
-    login = StringField("Логин", validators=[DataRequired(), Length(min=1)])
-    password = PasswordField("Пароль", validators=[DataRequired(), Length(min=1)])
-    remember_auth = BooleanField("Запомнить")
-    send = SubmitField("Войти")
 
 
 @auth_app.route("/login", methods=["GET", "POST"])

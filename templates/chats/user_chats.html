@@ -13,6 +13,9 @@
             <a class="nav_link" href="{{url_for(path)}}">{{name}}</a>
         {% endfor %}
     </nav>
+    {% for cat,msg in get_flashed_messages(True) %}
+        <div class="flash {{cat}}">{{msg}}</div>
+    {% endfor %}
     <main>
         <h1>Чаты</h1>
         <form action="{{url_for('user.user_get_create_chats_api')}}" method="post">

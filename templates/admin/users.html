@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="/static/style/style.css">
 </head>
 <body>
+    
     <nav class="header">
         {% for path,name in nav.items() %}
             <a class="nav_link" href="{{url_for(path)}}">{{name}}</a>
@@ -15,7 +16,7 @@
     {% for cat,msg in get_flashed_messages(True) %}
         <div class="flash {{cat}}">{{msg}}</div>
     {% endfor %}
-    <form action="{{url_for('user.admin_users_api')}}" method="post">
+    <form action="{{url_for('admin.admin_users_api')}}" method="post">
         {{form_user.csrf_token}}
         {{form_user.login_reg.label}}{{form_user.login_reg}}
         {{form_user.user_name_reg.label}}{{form_user.user_name_reg}}
@@ -36,7 +37,7 @@
                     <td>{{user['user_name']}}</td>
                     <td>{{user['user_role']}}</td>
                     <td>
-                        <form action="{{url_for('user.admin_users_api')}}" method="post">
+                        <form action="{{url_for('admin.admin_users_api')}}" method="post">
                             {{form_password.csrf_token(id=user['login'])}}
                             {{form_password.login_update(value=user['login'], id='login_'+user['login'])}}
                             {{form_password.password_update(id='password_'+user['login'])}}

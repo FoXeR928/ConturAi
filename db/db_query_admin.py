@@ -1,7 +1,8 @@
-from sqlalchemy import select, update
+from sqlalchemy import select, update,delete
 from loguru import logger
+from flask import flash
 
-from db.db_create import Users, Files, Configs, db
+from db.db_create import Users, Chats, Files, Configs, db
 
 
 # Users
@@ -144,4 +145,32 @@ def update_config(name, value):
         logger.success(f"Обноваление значения конфигова {name} на {value} из базы")
     except Exception as err:
         logger.error(f"Не удалось обновить значения конфигова {name} Ошибка {err}")
+    session.close()
+
+def get_del_chats():
+    session = db.session
+    try:
+        result = dict()
+        chats = session.execute(
+                select(Chats.id, Chats.chat_name).where(Chats.chat_del==True)
+            ).all()
+        for chat in chats:
+            result[chat[0]] = chat[1]
+        logger.trace(f"Чаты для удаления получены из базы")
+    except Exception as err:
+        logger.error(f"Не удалось получить чаты для удаления из базы Ошибка {err}")
+    session.close()
+    return result
+
+
+def del_chats():
+    session = db.session
+    try:
+        session.execute(delete(Chats).where(Chats.chat_del==True))
+        session.commit()
+        flash(message='Чаты удалены',category='success')
+        logger.success(f"Чаты удалены из базы")
+    except Exception as err:
+        logger.error(f"Не удалось удалить чаты Ошибка {err}")
+        flash(message='Чаты не удалены',category='error')
     session.close()
