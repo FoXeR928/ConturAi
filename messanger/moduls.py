@@ -46,7 +46,7 @@ class Config_update_textaria(FlaskForm):
     send_config = SubmitField("Сохранить")
 
 class Create_chat(FlaskForm):
-    chat = StringField("Название чата", validators=[DataRequired(), Length(min=1)])
+    chat = StringField("Название чата", validators=[DataRequired(), Length(min=1)], render_kw={'placeholder':"Название чата"})
     send_chat = SubmitField("Создать")
 
 class Delet_chat(FlaskForm):

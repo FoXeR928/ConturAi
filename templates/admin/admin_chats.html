@@ -17,10 +17,10 @@
         <div class="flash {{cat}}">{{msg}}</div>
     {% endfor %}
     <main>
-        <section>
+        <section class="main_nav">
             <h1>Чаты</h1>
             <form>
-                <input type="text">
+                <input type="text" placeholder="Поиск чатов">
                 <input type="submit" value="Поиск">
             </form>
             <form action="{{url_for('admin.admin_chats_api')}}" method="post">

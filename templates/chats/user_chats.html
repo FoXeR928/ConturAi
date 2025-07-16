@@ -16,13 +16,20 @@
     {% for cat,msg in get_flashed_messages(True) %}
         <div class="flash {{cat}}">{{msg}}</div>
     {% endfor %}
+    <form action="{{url_for('user.user_get_create_chats_api')}}" method="post" class="form_add">
+        {{form.csrf_token}}
+        {{form.chat}}
+        {{form.send_chat}}
+    </form>
     <main>
-        <h1>Чаты</h1>
-        <form action="{{url_for('user.user_get_create_chats_api')}}" method="post">
-            {{form.csrf_token}}
-            {{form.chat.label}}{{form.chat}}
-            {{form.send_chat}}
-        </form>
+        <section class="main_nav">
+            <h1>Чаты</h1>
+            <form>
+                <input type="text" placeholder="Поиск чатов">
+                <input type="submit" value="Поиск">
+            </form>
+            <input type="submit" class="add" value="+">
+        </section>
         <div>
             {% for chat_id, chat_name in chats.items() %}
                 <a class="chat" href="{{url_for('user.user_get_chat_api', chat=chat_id)}}">
