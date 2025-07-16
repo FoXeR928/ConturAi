@@ -68,7 +68,7 @@ def user_get_chat_api(chat: str):
         if messages_history != None:
             create_message(login=current_user.login, chat_id=chat, text=text)
             ask_query(query=text, chat_id=chat, messages_history=messages_history)
-        return request.referrer
+        return redirect(request.referrer)
     return render_template(
         "chats/chat.html",
         messages=messages["messages"],

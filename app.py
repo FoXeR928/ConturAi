@@ -22,7 +22,7 @@ def init_pages():
 def init_log(log_level_file="INFO", log_level_std="WARNING"):
     logger.remove()
     logger.add(
-        "logs/log_{time}.log",
+        "logs/app.log",
         format="{time} | {level} | {message} | {name}",
         rotation=LOG_SIZE,
         retention=f"{LOG_DAYS} days",

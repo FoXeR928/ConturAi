@@ -2,7 +2,7 @@ from sqlalchemy import select, update,delete
 from loguru import logger
 from flask import flash
 
-from db.db_create import Users, Chats, Files, Configs, db
+from db.db_create import Users, Chats, Files, Configs, Messages, db
 
 
 # Users
@@ -166,11 +166,22 @@ def get_del_chats():
 def del_chats():
     session = db.session
     try:
-        session.execute(delete(Chats).where(Chats.chat_del==True))
-        session.commit()
-        flash(message='Чаты удалены',category='success')
-        logger.success(f"Чаты удалены из базы")
+        check_del=session.execute(select(Chats.id).where(Chats.chat_del==True)).one_or_none
+        logger.trace(f"Проверка чатов для удаления прошла успешно")
     except Exception as err:
-        logger.error(f"Не удалось удалить чаты Ошибка {err}")
-        flash(message='Чаты не удалены',category='error')
+        logger.error(f"Не удалось проверить наличие чатов для удаления Ошибка {err}")
+    if check_del!=None:
+        try:
+            del_chats=session.execute(select(Chats.id).where(Chats.chat_del==True)).all()
+            for chat in del_chats:
+                session.execute(delete(Messages).where(Messages.chat_id==chat[0]))
+            session.execute(delete(Chats).where(Chats.chat_del==True))
+            session.commit()
+            flash(message='Чаты удалены',category='success')
+            logger.success(f"Чаты удалены из базы")
+        except Exception as err:
+            logger.error(f"Не удалось удалить чаты Ошибка {err}")
+            flash(message='Чаты не удалены',category='error')
+    else:
+        flash(message='Чаты не удалены, так как чатов на удаление пуст',category='warning')
     session.close()

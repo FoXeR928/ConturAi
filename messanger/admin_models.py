@@ -24,9 +24,9 @@ def admin_chats_api():
     if form_del_irr.send_del_chats.data:
         del_chats()
         logger.debug('Отправлен запрос на удаление всех чатов')
+        return redirect(request.referrer)
     return render_template(
         "admin/admin_chats.html",
-        admin=current_user.login,
         form_del_irr=form_del_irr,
         chats=get_del_chats(),
         nav=check_nav(current_user.login),

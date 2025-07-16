@@ -12,7 +12,9 @@ LOG_SIZE = "256 MB"
 SQL_PATH = "sqlite:///../db/db.db"
 SQL_PATH_DEV = "sqlite:///../db/db_dev.db"
 AI_LOGIN = "system"
-AI_NAME = "ССН(Среднестатистический сотрудник НИТИ)"
+AI_NAME = ""
+if AI_NAME==None:
+    AI_NAME='Раги'
 
 # AI
 AI_MODEL_CHANK = "./ai_chat/models/sbert_large_nlu_ru"

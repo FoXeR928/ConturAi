@@ -24,9 +24,9 @@ def check_nav(login):
     return nav
 
 class Auth(FlaskForm):
-    login = StringField("Логин", validators=[DataRequired(), Length(min=1)])
-    password = PasswordField("Пароль", validators=[DataRequired(), Length(min=1)])
-    remember_auth = BooleanField("Запомнить")
+    login = StringField("Логин", validators=[DataRequired(), Length(min=1)],render_kw={"class":'login_auth -input'})
+    password = PasswordField("Пароль", validators=[DataRequired(), Length(min=1)],render_kw={"class":'pass_auth -input'})
+    remember_auth = BooleanField("Запомнить",render_kw={"class":'button_auth -button'})
     send = SubmitField("Войти")
 
 

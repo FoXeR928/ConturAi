@@ -37,7 +37,7 @@ class Messages(db.Model):
     __tablename__ = "messages"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True, nullable=False)
-    user_login: Mapped[str] = mapped_column(ForeignKey('users.login',ondelete='CASCADE',onupdate='CASCADE'),nullable=False)
+    user_login: Mapped[str] = mapped_column(ForeignKey('users.login',onupdate='CASCADE'),nullable=False)
     chat_id: Mapped[int] = mapped_column(ForeignKey('chats.id',ondelete='CASCADE',onupdate='CASCADE'),nullable=False)
     text: Mapped[str]
 
