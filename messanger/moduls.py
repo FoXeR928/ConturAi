@@ -6,7 +6,8 @@ from wtforms import (
     TextAreaField,
     SubmitField,
     HiddenField,
-    BooleanField
+    BooleanField,
+    SelectField
 )
 from wtforms.validators import DataRequired, Length
 
@@ -69,11 +70,15 @@ class Create_user(FlaskForm):
 
 
 class Update_password(FlaskForm):
-    login_update = HiddenField(
-        "Пользоватль", validators=[DataRequired(), Length(min=1)]
+    login_update = StringField(
+        "Пользоватль", validators=[DataRequired(), Length(min=1)], render_kw={'readonly':''},
     )
+    role_update=SelectField('Выбор роли',choices=[(None,'Выбрать роль пользователя'),('user','Пользователь'),('admin','Администратор')])
     password_update = PasswordField(
-        "Пароль", validators=[DataRequired(), Length(min=8)]
+        "Пароль", validators=[Length(min=8)]
+    )
+    password_update_check = PasswordField(
+        "Пароль повторно", validators=[Length(min=8)]
     )
     send_update = SubmitField("Изменить")
 

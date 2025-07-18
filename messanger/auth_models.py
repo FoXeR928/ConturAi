@@ -33,6 +33,7 @@ def login_api():
             logger.error(f"Не удалось проверить наличие пользователя Ошибка:{err}")
         if login_base.check_password(password):
             login_user(login_base, remember=remember)
+            flash(message='Авторизация прошла успешно', category='success')
             return redirect(url_for("user.user_get_create_chats_api"))
         flash(message='Неверный логин или пароль', category='warning')
         return redirect(request.referrer)

@@ -6,6 +6,7 @@
     <title>Чаты</title>
     <link rel="stylesheet" href="/static/style/style.css">
     <link rel="stylesheet" href="/static/style/style_chats.css">
+    <script src="/static/js/jquery-3.7.1.min.js"></script>
 </head>
 <body>
     <nav class="header">
@@ -16,19 +17,27 @@
     {% for cat,msg in get_flashed_messages(True) %}
         <div class="flash {{cat}}">{{msg}}</div>
     {% endfor %}
-    <form action="{{url_for('user.user_get_create_chats_api')}}" method="post" class="form_add">
-        {{form.csrf_token}}
-        {{form.chat}}
-        {{form.send_chat}}
-    </form>
+    <dialog class="form_block_add" id="hide_form">
+        <div class="form_add">
+            <div class="form_header">
+                <h2>Создание чата</h2>
+                <button class="close_button">X</button>
+            </div>
+            <form action="{{url_for('user.user_get_create_chats_api')}}" method="post">
+                {{form.csrf_token}}
+                {{form.chat}}
+                {{form.send_chat}}
+            </form>
+        </div>
+    </dialog>
     <main>
         <section class="main_nav">
             <h1>Чаты</h1>
             <form>
                 <input type="text" placeholder="Поиск чатов">
-                <input type="submit" value="Поиск">
+                <input type="button" value="Поиск">
             </form>
-            <input type="submit" class="add" value="+">
+            <button class="add" id="add_button">+</button>
         </section>
         <div>
             {% for chat_id, chat_name in chats.items() %}
@@ -44,4 +53,5 @@
         </div>
     </main>
 </body>
+<script src="/static/js/open_form.js"></script>
 </html>

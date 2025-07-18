@@ -56,34 +56,50 @@ def admin_users_api():
     
     if (
         form_password.send_update.data
-        and form_password.validate_on_submit()
         and get_user_role(current_user.login)
     ):
         try:
             login = form_password.login_update.data
             password = form_password.password_update.data
+            role=form_password.role_update.data
             logger.debug(
-                "Полученно из формы данных пользователя для смены пароля админом"
+                "Полученно из формы данных пользователя для обновления информации пользователя"
             )
         except Exception as err:
             logger.error(
                 f"Не удалось получить данные из формы для смены пароля пользователя админом Ошибка:{err}"
             )
-        try:
-            if login == current_user.login or get_user_role(current_user.login):
+            flash(message='Не удалось получить значения на изменение',category='warning')
+            redirect(request.referrer)
+        if password!='' and role!='None':
+            try:
                 update_password_user(
-                    login=login, password=password, user_update_password=current_user.login
+                        login=login, password=password, user_update_password=current_user.login
+                )
+                add_user_status(login=login, role=role)
+                logger.trace(f"Выполнен API запрос на смену пароля и роли пользователя {login}")
+                flash(message='Пароль и роль изменены',category='success')
+            except Exception as err:
+                logger.error(f"Невыполнен API запрос на смену пароля и роли пользователя {login} статуса Ошибка: {err}")
+                flash(message=f"Невыполнен API запрос на смену пароля и роли пользователя {login} статуса Ошибка: {err}",category='error')
+        elif password!='':
+            try:
+                update_password_user(
+                        login=login, password=password, user_update_password=current_user.login
                 )
                 logger.trace(f"Выполнен API запрос на смену пароля пользователя {login}")
                 flash(message='Пароль изменен',category='success')
-            else:
-                logger.debug(
-                    f"Пользователь {current_user.login} не имеет право на смену пароля"
-                )
-                flash(message=f"Пользователь {current_user.login} не имеет право на смену пароля",category='warning')
-        except Exception as err:
-            logger.error(f"Невыполнен API запрос на смену пароля пользователя {login} статуса Ошибка: {err}")
-            flash(message=f"Невыполнен API запрос на смену пароля пользователя {login} статуса Ошибка: {err}",category='error')
+            except Exception as err:
+                logger.error(f"Невыполнен API запрос на смену пароля пользователя {login} статуса Ошибка: {err}")
+                flash(message=f"Невыполнен API запрос на смену пароля пользователя {login} статуса Ошибка: {err}",category='error')
+        elif role!='None':
+            try:
+                add_user_status(login=login, role=role)
+                logger.debug(f"Выполнен API запрос на смену роли пользователя {login}")
+            except Exception as err:
+                logger.error(f"Невыполнен API запрос на смену роли пользователя {login} Ошибка:{err}")
+        else:
+            flash(message='Нет значений на изменение',category='warning')
         return redirect(request.referrer)
     return render_template(
         "admin/users.html",
@@ -151,16 +167,6 @@ def admin_docs_api():
         form_file=form_file,
         nav=nav,
     )
-
-@admin_app.patch("/set_status")
-@login_required
-def admin_set_status_api(login: str, role: str):
-    try:
-        add_user_status(login, role, current_user.login)
-        logger.debug("Выполнен API запрос на смену статуса")
-    except Exception as err:
-        logger.error(f"Невыполнен API запрос на смену статуса Ошибка:{err}")
-    return redirect(request.referrer)
 
 @admin_app.patch("/del_chats")
 @login_required

@@ -1,0 +1,11 @@
+$('#add_button').click(function(){
+    $("#hide_form").show();
+})
+$('.close_button').click(function(){
+    $(this).parent().parent().parent().hide();
+})
+$('.update_button').click(function(){
+    login=$(this).val()
+    $("#login_update").val(login)
+    $("#hide_form_update").show()
+})

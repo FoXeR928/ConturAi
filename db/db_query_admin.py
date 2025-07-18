@@ -37,12 +37,15 @@ def reg_user(login, password, user_name):
             add_user_query.set_password(password)
             session.add(add_user_query)
             session.commit()
+            flash(message='Пользователь создан',category='success')
             logger.success(f"Пользователь {login} создан")
         except Exception as err:
             logger.error(f"Не удалось создать пользователя {login} Ошибка {err}")
-        session.close()
+            flash(message='Пользователь не создан',category='error')
     else:
         logger.info(f"Пользователь {login} не создан так как уже есть в базе")
+        flash(message='Пользователь не создан так как уже есть в базе',category='warning')
+    session.close()
 
 
 def add_user_status(login, role):
@@ -63,8 +66,12 @@ def add_user_status(login, role):
             )
             session.commit()
             logger.success(f"Роль пользовавателя {login} обнавлена на {role}")
+            flash(message='Роль пользователя изменена',category='success')
         except Exception as err:
             logger.error(f"Не удалось изменить роль пользователя {login} Ошибка {err}")
+            flash(message='Не удалось изменить роль пользователя',category='error')
+    else:
+        logger.warning(f"Не удалось изменить роль пользователя {login} Ошибка отсутсвие пользователя")
     session.close()
 
 

@@ -1,5 +1,6 @@
 from sqlalchemy import select,update
 from loguru import logger
+from flask import flash
 
 from db.db_create import Users, Chats, Messages, db
 
@@ -10,8 +11,10 @@ def create_chat(login, chat):
         create_chat_query = Chats(user_login=login, chat_name=chat)
         session.add(create_chat_query)
         session.commit()
+        flash(message='Чат создан', category='success')
         logger.success(f"Создан чат пользователем {login}")
     except Exception as err:
+        flash(message='Чат не создан', category='error')
         logger.error(f"Не удалось создать чат пользователя {login} Ошибка {err}")
     session.close()
 
