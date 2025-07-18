@@ -20,7 +20,7 @@
                 <h2>Настройки пользователя</h2>
                 <button class="close_button">X</button>
             </div>
-            <form action="{{url_for('admin.admin_users_api')}}" class="form_users" method="post">
+            <form action="{{url_for('admin.admin_users_api')}}" id="form_update_user" class="form_users" method="post">
                 {{form_password.csrf_token}}
                 {{form_password.login_update.label}}{{form_password.login_update}}
                 {{form_password.role_update.label}}{{form_password.role_update}}
@@ -33,14 +33,15 @@
     <dialog class="form_block_add" id="hide_form">
         <div class="form_add">
             <div class="form_header">
-                <h2>Создание чата</h2>
+                <h2>Создание пользователя</h2>
                 <button class="close_button">X</button>
             </div>
-            <form action="{{url_for('admin.admin_users_api')}}" class="form_users" method="post">
+            <form action="{{url_for('admin.admin_users_api')}}" id="form_create_user" class="form_users" method="post">
                 {{form_user.csrf_token}}
                 {{form_user.login_reg.label}}{{form_user.login_reg}}
                 {{form_user.user_name_reg.label}}{{form_user.user_name_reg}}
                 {{form_user.password_reg.label}}{{form_user.password_reg}}
+                {{form_user.password_reg_check.label}}{{form_user.password_reg_check}}
                 {{form_user.send_reg}}
             </form>
         </div>

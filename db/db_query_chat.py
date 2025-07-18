@@ -1,4 +1,4 @@
-from sqlalchemy import select,update
+from sqlalchemy import select, update
 from loguru import logger
 from flask import flash
 
@@ -11,10 +11,10 @@ def create_chat(login, chat):
         create_chat_query = Chats(user_login=login, chat_name=chat)
         session.add(create_chat_query)
         session.commit()
-        flash(message='Чат создан', category='success')
+        flash(message="Чат создан", category="success")
         logger.success(f"Создан чат пользователем {login}")
     except Exception as err:
-        flash(message='Чат не создан', category='error')
+        flash(message="Чат не создан", category="error")
         logger.error(f"Не удалось создать чат пользователя {login} Ошибка {err}")
     session.close()
 
@@ -34,7 +34,9 @@ def get_chats(login):
         try:
             result = dict()
             chats = session.execute(
-                select(Chats.id, Chats.chat_name).where((Chats.user_login == login) & (Chats.chat_del!=True))
+                select(Chats.id, Chats.chat_name).where(
+                    (Chats.user_login == login) & (Chats.chat_del != True)
+                )
             ).all()
             for chat in chats:
                 result[chat[0]] = chat[1]
@@ -75,27 +77,29 @@ def create_message(login, chat_id, text):
             logger.error(f"Не удалось записать сообщение в чат {chat_id} Ошибка {err}")
     session.close()
 
+
 def del_messages(chat_id):
     session = db.session
     try:
         chat = session.execute(
             select(Chats.id).where(Chats.id == chat_id)
         ).one_or_none()
-        logger.trace(
-            f"Проверка существования чата {chat_id} прошла успешно"
-        )
+        logger.trace(f"Проверка существования чата {chat_id} прошла успешно")
     except Exception as err:
         logger.warning(
             f"Не удалось проверить существование чата {chat_id} Ошибка {err}"
         )
-    if chat!=None:
+    if chat != None:
         try:
-            session.execute(update(Chats).where(Chats.id==chat_id).values(chat_del=True))
+            session.execute(
+                update(Chats).where(Chats.id == chat_id).values(chat_del=True)
+            )
             session.commit()
-            logger.debug(f'Чат {chat_id} помечен как удаленный')
+            logger.debug(f"Чат {chat_id} помечен как удаленный")
         except Exception as err:
             logger.warning(f"Не удалось измеить статус чата {chat_id} Ошибка {err}")
     session.close()
+
 
 def get_messages_ai(chat_id):
     session = db.session

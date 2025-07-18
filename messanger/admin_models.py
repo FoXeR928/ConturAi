@@ -1,12 +1,30 @@
 from flask_login import login_required, current_user
-from flask import request, redirect, jsonify,flash,render_template
+from flask import request, redirect, jsonify, flash, render_template
 from flask.blueprints import Blueprint
 from io import BytesIO
 from loguru import logger
 
-from messanger.moduls import check_nav,Create_user,Update_password,Config_update,Config_update_textaria,File_text,Delet_chats_irrevocably
-from db.db_query_admin import add_user_status, add_file, get_config, del_chats, update_config, get_configs,get_users,reg_user, get_del_chats
-from db.db_query import get_user_role,update_password_user
+from messanger.moduls import (
+    check_nav,
+    Create_user,
+    Update_password,
+    Config_update,
+    Config_update_textaria,
+    File_text,
+    Delet_chats_irrevocably,
+)
+from db.db_query_admin import (
+    add_user_status,
+    add_file,
+    get_config,
+    del_chats,
+    update_config,
+    get_configs,
+    get_users,
+    reg_user,
+    get_del_chats,
+)
+from db.db_query import get_user_role, update_password_user
 from ai_chat.parther import read_pdf, read_word, read_excel
 from ai_chat.query_rag_db import add_docs
 from ai_chat.parther import normalize_text, chunk_create
@@ -17,13 +35,14 @@ try:
 except Exception as err:
     logger.error(f"Инициализация пути /admin не удалась Ошибка:{err}")
 
+
 @admin_app.route("/chats", methods=["GET", "POST"])
 @login_required
 def admin_chats_api():
-    form_del_irr=Delet_chats_irrevocably()
+    form_del_irr = Delet_chats_irrevocably()
     if form_del_irr.send_del_chats.data:
         del_chats()
-        logger.debug('Отправлен запрос на удаление всех чатов')
+        logger.debug("Отправлен запрос на удаление всех чатов")
         return redirect(request.referrer)
     return render_template(
         "admin/admin_chats.html",
@@ -31,6 +50,7 @@ def admin_chats_api():
         chats=get_del_chats(),
         nav=check_nav(current_user.login),
     )
+
 
 @admin_app.route("/users", methods=["GET", "POST"])
 @login_required
@@ -53,15 +73,12 @@ def admin_users_api():
             )
         reg_user(login, password, user_name)
         return redirect(request.referrer)
-    
-    if (
-        form_password.send_update.data
-        and get_user_role(current_user.login)
-    ):
+
+    if form_password.send_update.data and get_user_role(current_user.login):
         try:
             login = form_password.login_update.data
             password = form_password.password_update.data
-            role=form_password.role_update.data
+            role = form_password.role_update.data
             logger.debug(
                 "Полученно из формы данных пользователя для обновления информации пользователя"
             )
@@ -69,37 +86,59 @@ def admin_users_api():
             logger.error(
                 f"Не удалось получить данные из формы для смены пароля пользователя админом Ошибка:{err}"
             )
-            flash(message='Не удалось получить значения на изменение',category='warning')
+            flash(
+                message="Не удалось получить значения на изменение", category="warning"
+            )
             redirect(request.referrer)
-        if password!='' and role!='None':
+        if password != "" and role != "None":
             try:
                 update_password_user(
-                        login=login, password=password, user_update_password=current_user.login
+                    login=login,
+                    password=password,
+                    user_update_password=current_user.login,
                 )
                 add_user_status(login=login, role=role)
-                logger.trace(f"Выполнен API запрос на смену пароля и роли пользователя {login}")
-                flash(message='Пароль и роль изменены',category='success')
+                logger.trace(
+                    f"Выполнен API запрос на смену пароля и роли пользователя {login}"
+                )
+                flash(message="Пароль и роль изменены", category="success")
             except Exception as err:
-                logger.error(f"Невыполнен API запрос на смену пароля и роли пользователя {login} статуса Ошибка: {err}")
-                flash(message=f"Невыполнен API запрос на смену пароля и роли пользователя {login} статуса Ошибка: {err}",category='error')
-        elif password!='':
+                logger.error(
+                    f"Невыполнен API запрос на смену пароля и роли пользователя {login} статуса Ошибка: {err}"
+                )
+                flash(
+                    message=f"Невыполнен API запрос на смену пароля и роли пользователя {login} статуса Ошибка: {err}",
+                    category="error",
+                )
+        elif password != "":
             try:
                 update_password_user(
-                        login=login, password=password, user_update_password=current_user.login
+                    login=login,
+                    password=password,
+                    user_update_password=current_user.login,
                 )
-                logger.trace(f"Выполнен API запрос на смену пароля пользователя {login}")
-                flash(message='Пароль изменен',category='success')
+                logger.trace(
+                    f"Выполнен API запрос на смену пароля пользователя {login}"
+                )
+                flash(message="Пароль изменен", category="success")
             except Exception as err:
-                logger.error(f"Невыполнен API запрос на смену пароля пользователя {login} статуса Ошибка: {err}")
-                flash(message=f"Невыполнен API запрос на смену пароля пользователя {login} статуса Ошибка: {err}",category='error')
-        elif role!='None':
+                logger.error(
+                    f"Невыполнен API запрос на смену пароля пользователя {login} статуса Ошибка: {err}"
+                )
+                flash(
+                    message=f"Невыполнен API запрос на смену пароля пользователя {login} статуса Ошибка: {err}",
+                    category="error",
+                )
+        elif role != "None":
             try:
                 add_user_status(login=login, role=role)
                 logger.debug(f"Выполнен API запрос на смену роли пользователя {login}")
             except Exception as err:
-                logger.error(f"Невыполнен API запрос на смену роли пользователя {login} Ошибка:{err}")
+                logger.error(
+                    f"Невыполнен API запрос на смену роли пользователя {login} Ошибка:{err}"
+                )
         else:
-            flash(message='Нет значений на изменение',category='warning')
+            flash(message="Нет значений на изменение", category="warning")
         return redirect(request.referrer)
     return render_template(
         "admin/users.html",
@@ -109,6 +148,7 @@ def admin_users_api():
         users=get_users(),
         nav=check_nav(current_user.login),
     )
+
 
 @admin_app.route("/config", methods=["GET", "POST"])
 @login_required
@@ -139,6 +179,7 @@ def admin_config_api():
         nav=nav,
     )
 
+
 @admin_app.route("/docs", methods=["GET", "POST"])
 @login_required
 def admin_docs_api():
@@ -168,17 +209,21 @@ def admin_docs_api():
         nav=nav,
     )
 
+
 @admin_app.patch("/del_chats")
 @login_required
 def admin_del_chats_api():
-    form_del=Delet_chats_irrevocably()
+    form_del = Delet_chats_irrevocably()
     try:
         if form_del.send_del_chats.data:
             del_chats()
             logger.debug("Выполнен API запрос на безвозвратное удаление чатов")
     except Exception as err:
-        logger.error(f"Невыполнен API запрос на безвозвратное удаление чатов Ошибка:{err}")
+        logger.error(
+            f"Невыполнен API запрос на безвозвратное удаление чатов Ошибка:{err}"
+        )
     return redirect(request.referrer)
+
 
 @admin_app.post("/read_file")
 @login_required

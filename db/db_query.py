@@ -17,6 +17,7 @@ def update_password_user(user_update_password, login, password):
         logger.error(f"Не удалось обновить пароль пользователя {login} Ошибка {err}")
     session.close()
 
+
 def get_user_role(login):
     session = db.session
     try:

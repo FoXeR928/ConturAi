@@ -1,5 +1,5 @@
 from sqlalchemy.orm import mapped_column, Mapped
-from sqlalchemy import BLOB,ForeignKey
+from sqlalchemy import BLOB, ForeignKey
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -28,7 +28,10 @@ class Chats(db.Model):
     __tablename__ = "chats"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True, nullable=False)
-    user_login: Mapped[str] = mapped_column(ForeignKey('users.login',ondelete='CASCADE',onupdate='CASCADE'),nullable=False)
+    user_login: Mapped[str] = mapped_column(
+        ForeignKey("users.login", ondelete="CASCADE", onupdate="CASCADE"),
+        nullable=False,
+    )
     chat_name: Mapped[str] = mapped_column(nullable=False)
     chat_del: Mapped[bool] = mapped_column(nullable=False, default=False)
 
@@ -37,8 +40,12 @@ class Messages(db.Model):
     __tablename__ = "messages"
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True, nullable=False)
-    user_login: Mapped[str] = mapped_column(ForeignKey('users.login',onupdate='CASCADE'),nullable=False)
-    chat_id: Mapped[int] = mapped_column(ForeignKey('chats.id',ondelete='CASCADE',onupdate='CASCADE'),nullable=False)
+    user_login: Mapped[str] = mapped_column(
+        ForeignKey("users.login", onupdate="CASCADE"), nullable=False
+    )
+    chat_id: Mapped[int] = mapped_column(
+        ForeignKey("chats.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False
+    )
     text: Mapped[str]
 
 

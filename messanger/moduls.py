@@ -7,11 +7,12 @@ from wtforms import (
     SubmitField,
     HiddenField,
     BooleanField,
-    SelectField
+    SelectField,
 )
 from wtforms.validators import DataRequired, Length
 
 from db.db_query import get_user_role
+
 
 def check_nav(login):
     nav = {"user.user_get_create_chats_api": "Чаты"}
@@ -24,10 +25,21 @@ def check_nav(login):
     logger.trace("Генерация ссылок навигации")
     return nav
 
+
 class Auth(FlaskForm):
-    login = StringField("Логин", validators=[DataRequired(), Length(min=1)],render_kw={"class":'login_auth -input'})
-    password = PasswordField("Пароль", validators=[DataRequired(), Length(min=1)],render_kw={"class":'pass_auth -input'})
-    remember_auth = BooleanField("Запомнить",render_kw={"class":'button_auth -button'})
+    login = StringField(
+        "Логин",
+        validators=[DataRequired(), Length(min=1)],
+        render_kw={"class": "login_auth -input"},
+    )
+    password = PasswordField(
+        "Пароль",
+        validators=[DataRequired(), Length(min=1)],
+        render_kw={"class": "pass_auth -input"},
+    )
+    remember_auth = BooleanField(
+        "Запомнить", render_kw={"class": "button_auth -button"}
+    )
     send = SubmitField("Войти")
 
 
@@ -46,16 +58,24 @@ class Config_update_textaria(FlaskForm):
     )
     send_config = SubmitField("Сохранить")
 
+
 class Create_chat(FlaskForm):
-    chat = StringField("Название чата", validators=[DataRequired(), Length(min=1)], render_kw={'placeholder':"Название чата"})
+    chat = StringField(
+        "Название чата",
+        validators=[DataRequired(), Length(min=1)],
+        render_kw={"placeholder": "Название чата"},
+    )
     send_chat = SubmitField("Создать")
 
+
 class Delet_chat(FlaskForm):
-    chat_id=HiddenField('ID чата', validators=[DataRequired(), Length(min=1)])
+    chat_id = HiddenField("ID чата", validators=[DataRequired(), Length(min=1)])
     send_del = SubmitField("Удалить")
 
+
 class Delet_chats_irrevocably(FlaskForm):
-    send_del_chats=SubmitField('Удалить все чаты отмеченные на удаление безвозвратно')
+    send_del_chats = SubmitField("Удалить все чаты отмеченные на удаление безвозвратно")
+
 
 class Send_message(FlaskForm):
     message = StringField("Текст", validators=[DataRequired(), Length(min=1)])
@@ -65,20 +85,40 @@ class Send_message(FlaskForm):
 class Create_user(FlaskForm):
     login_reg = StringField("Логин", validators=[DataRequired(), Length(min=1)])
     user_name_reg = StringField("Имя", validators=[DataRequired(), Length(min=1)])
-    password_reg = PasswordField("Пароль", validators=[DataRequired(), Length(min=8)])
+    password_reg = PasswordField(
+        "Пароль",
+        validators=[DataRequired(), Length(min=8)],
+        render_kw=({"class": "password -input"}),
+    )
+    password_reg_check = PasswordField(
+        "Пароль повторно",
+        validators=[DataRequired(), Length(min=8)],
+        render_kw=({"class": "password_check -input"}),
+    )
     send_reg = SubmitField("Создать")
 
 
 class Update_password(FlaskForm):
     login_update = StringField(
-        "Пользоватль", validators=[DataRequired(), Length(min=1)], render_kw={'readonly':''},
+        "Пользоватль",
+        validators=[DataRequired(), Length(min=1)],
+        render_kw={"readonly": ""},
     )
-    role_update=SelectField('Выбор роли',choices=[(None,'Выбрать роль пользователя'),('user','Пользователь'),('admin','Администратор')])
+    role_update = SelectField(
+        "Выбор роли",
+        choices=[
+            (None, "Выбрать роль пользователя"),
+            ("user", "Пользователь"),
+            ("admin", "Администратор"),
+        ],
+    )
     password_update = PasswordField(
-        "Пароль", validators=[Length(min=8)]
+        "Пароль", validators=[Length(min=8)], render_kw=({"class": "password -input"})
     )
     password_update_check = PasswordField(
-        "Пароль повторно", validators=[Length(min=8)]
+        "Пароль повторно",
+        validators=[Length(min=8)],
+        render_kw=({"class": "password_check -input"}),
     )
     send_update = SubmitField("Изменить")
 

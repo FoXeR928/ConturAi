@@ -4,14 +4,14 @@ from flask.blueprints import Blueprint
 
 from loguru import logger
 
-from messanger.moduls import check_nav, Create_chat,Delet_chat,Send_message
+from messanger.moduls import check_nav, Create_chat, Delet_chat, Send_message
 from db.db_query_chat import (
     get_chats,
     get_messages_chat,
     get_messages_ai,
     create_chat,
     create_message,
-    del_messages
+    del_messages,
 )
 from ai_chat.ask import ask_query
 
@@ -26,7 +26,7 @@ except Exception as err:
 @login_required
 def user_get_create_chats_api():
     form = Create_chat()
-    form_del=Delet_chat()
+    form_del = Delet_chat()
     if form.send_chat.data and form.validate_on_submit():
         try:
             chat = form.chat.data

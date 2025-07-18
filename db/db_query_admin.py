@@ -1,4 +1,4 @@
-from sqlalchemy import select, update,delete
+from sqlalchemy import select, update, delete
 from loguru import logger
 from flask import flash
 
@@ -37,14 +37,16 @@ def reg_user(login, password, user_name):
             add_user_query.set_password(password)
             session.add(add_user_query)
             session.commit()
-            flash(message='Пользователь создан',category='success')
+            flash(message="Пользователь создан", category="success")
             logger.success(f"Пользователь {login} создан")
         except Exception as err:
             logger.error(f"Не удалось создать пользователя {login} Ошибка {err}")
-            flash(message='Пользователь не создан',category='error')
+            flash(message="Пользователь не создан", category="error")
     else:
         logger.info(f"Пользователь {login} не создан так как уже есть в базе")
-        flash(message='Пользователь не создан так как уже есть в базе',category='warning')
+        flash(
+            message="Пользователь не создан так как уже есть в базе", category="warning"
+        )
     session.close()
 
 
@@ -66,12 +68,14 @@ def add_user_status(login, role):
             )
             session.commit()
             logger.success(f"Роль пользовавателя {login} обнавлена на {role}")
-            flash(message='Роль пользователя изменена',category='success')
+            flash(message="Роль пользователя изменена", category="success")
         except Exception as err:
             logger.error(f"Не удалось изменить роль пользователя {login} Ошибка {err}")
-            flash(message='Не удалось изменить роль пользователя',category='error')
+            flash(message="Не удалось изменить роль пользователя", category="error")
     else:
-        logger.warning(f"Не удалось изменить роль пользователя {login} Ошибка отсутсвие пользователя")
+        logger.warning(
+            f"Не удалось изменить роль пользователя {login} Ошибка отсутсвие пользователя"
+        )
     session.close()
 
 
@@ -154,13 +158,14 @@ def update_config(name, value):
         logger.error(f"Не удалось обновить значения конфигова {name} Ошибка {err}")
     session.close()
 
+
 def get_del_chats():
     session = db.session
     try:
         result = dict()
         chats = session.execute(
-                select(Chats.id, Chats.chat_name).where(Chats.chat_del==True)
-            ).all()
+            select(Chats.id, Chats.chat_name).where(Chats.chat_del == True)
+        ).all()
         for chat in chats:
             result[chat[0]] = chat[1]
         logger.trace(f"Чаты для удаления получены из базы")
@@ -173,22 +178,29 @@ def get_del_chats():
 def del_chats():
     session = db.session
     try:
-        check_del=session.execute(select(Chats.id).where(Chats.chat_del==True)).one_or_none
+        check_del = session.execute(
+            select(Chats.id).where(Chats.chat_del == True)
+        ).one_or_none
         logger.trace(f"Проверка чатов для удаления прошла успешно")
     except Exception as err:
         logger.error(f"Не удалось проверить наличие чатов для удаления Ошибка {err}")
-    if check_del!=None:
+    if check_del != None:
         try:
-            del_chats=session.execute(select(Chats.id).where(Chats.chat_del==True)).all()
+            del_chats = session.execute(
+                select(Chats.id).where(Chats.chat_del == True)
+            ).all()
             for chat in del_chats:
-                session.execute(delete(Messages).where(Messages.chat_id==chat[0]))
-            session.execute(delete(Chats).where(Chats.chat_del==True))
+                session.execute(delete(Messages).where(Messages.chat_id == chat[0]))
+            session.execute(delete(Chats).where(Chats.chat_del == True))
             session.commit()
-            flash(message='Чаты удалены',category='success')
+            flash(message="Чаты удалены", category="success")
             logger.success(f"Чаты удалены из базы")
         except Exception as err:
             logger.error(f"Не удалось удалить чаты Ошибка {err}")
-            flash(message='Чаты не удалены',category='error')
+            flash(message="Чаты не удалены", category="error")
     else:
-        flash(message='Чаты не удалены, так как чатов на удаление пуст',category='warning')
+        flash(
+            message="Чаты не удалены, так как чатов на удаление пуст",
+            category="warning",
+        )
     session.close()
