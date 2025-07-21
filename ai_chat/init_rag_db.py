@@ -10,7 +10,7 @@ from sentence_transformers import SentenceTransformer
 import torch
 from loguru import logger
 
-from config.config import (
+from instance.config import (
     AI_MODEL_CHANK,
     RAG_COLLECTION,
     RAG_HOST,

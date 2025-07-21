@@ -3,7 +3,7 @@ from loguru import logger
 
 from db.db_query_chat import create_message, get_messages_ai
 from ai_chat.query_rag_db import search_docs
-from config.config import AI_MODEL, AI_LOGIN, AI_NAME
+from instance.config import AI_MODEL, AI_LOGIN, AI_NAME
 
 
 def ask_query(query, chat_id, messages_history):

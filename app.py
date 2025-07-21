@@ -2,16 +2,19 @@ from flask import Flask, render_template
 from flask_login import LoginManager
 from loguru import logger
 from sys import stdout
+from sqlalchemy import select
 
 from db.db_create import db
-from config.config import PORT, SQL_PATH, SKEY, DEBUG, HOST, LOG_DAYS, LOG_SIZE
+from instance.config import PORT, SQL_PATH, SKEY, DEBUG, HOST, LOG_DAYS, LOG_SIZE
 
 
 def init_pages():
     try:
-        from messanger import admin_models, auth_models, user_models
+        from messanger import admin_models, auth_models, user_models,admin_users_model,admin_chats_model
 
         app.register_blueprint(admin_models.admin_app)
+        app.register_blueprint(admin_users_model.admin_users_app)
+        app.register_blueprint(admin_chats_model.admin_chats_app)
         app.register_blueprint(auth_models.auth_app)
         app.register_blueprint(user_models.user_app)
     except Exception as err:
@@ -45,14 +48,6 @@ except Exception as err:
     exit()
 
 try:
-    login_manager = LoginManager(app=app)
-    login_manager.login_view = "auth.login_api"
-    logger.debug(f"Инициализация авторизации")
-except Exception as err:
-    logger.critical(f"Не удалось инициализировать авторизацию Ошибка:{err}")
-    exit()
-
-try:
     db.init_app(app=app)
     with app.app_context():
         db.create_all()
@@ -65,6 +60,14 @@ except Exception as err:
     logger.critical(f"Не удалось инициализировать SQL_FLASK Ошибка:{err}")
     exit()
 
+try:
+    login_manager = LoginManager(app=app)
+    login_manager.login_view = "auth.auth_api"
+    logger.debug(f"Инициализация авторизации")
+except Exception as err:
+    logger.critical(f"Не удалось инициализировать авторизацию Ошибка:{err}")
+    exit()
+
 
 init_pages()
 
@@ -72,8 +75,11 @@ init_pages()
 @login_manager.user_loader
 def load_user(id):
     from db.db_create import Users
-
-    return db.session.query(Users).filter(Users.id == id).one()
+    try:
+        user=db.session.scalars(select(Users).where(Users.id == id)).one()
+    except Exception as err:
+        logger.critical(f"Не удалось инициализировать авторизацию Ошибка:{err}")
+    return user
 
 
 @app.errorhandler(404)

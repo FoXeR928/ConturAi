@@ -6,6 +6,7 @@ $('.close_button').click(function(){
 })
 $('.update_button').click(function(){
     login=$(this).val()
+    $('#user_login').val(login)
     $("#login_update").val(login)
     $("#hide_form_update").show()
 })

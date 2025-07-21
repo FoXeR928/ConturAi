@@ -11,14 +11,14 @@ from wtforms import (
 )
 from wtforms.validators import DataRequired, Length
 
-from db.db_query import get_user_role
+from db.db_query_users import get_user_role
 
 
 def check_nav(login):
     nav = {"user.user_get_create_chats_api": "Чаты"}
     if get_user_role(login):
-        nav["admin.admin_chats_api"] = "Администрирование чатов"
-        nav["admin.admin_users_api"] = "Пользователи"
+        nav["admin_chats.admin_chats_api"] = "Администрирование чатов"
+        nav["admin_users.admin_users_api"] = "Пользователи"
         nav["admin.admin_docs_api"] = "Документы"
         nav["admin.admin_config_api"] = "Конфигурации"
     nav["auth.logout_api"] = "Выйти"
@@ -122,6 +122,9 @@ class Update_password(FlaskForm):
     )
     send_update = SubmitField("Изменить")
 
+class Delet_user(FlaskForm):
+    user_login=HiddenField("Логин пользователя", validators=[DataRequired(), Length(min=1)])
+    send_del=SubmitField('Удалить пользователя')
 
 class File_text(FlaskForm):
     file_name_text = StringField(

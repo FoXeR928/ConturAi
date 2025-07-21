@@ -4,7 +4,7 @@ from loguru import logger
 
 from ai_chat.init_rag_db import model, client
 
-from config.config import RAG_COLLECTION
+from instance.config import RAG_COLLECTION
 
 
 def add_docs(

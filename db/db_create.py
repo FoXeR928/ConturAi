@@ -12,16 +12,16 @@ class Users(UserMixin, db.Model):
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True, nullable=False)
     login: Mapped[str] = mapped_column(nullable=False, unique=True)
-    password: Mapped[str] = mapped_column(nullable=True)
+    password_hash: Mapped[str] = mapped_column(nullable=True)
     user_name: Mapped[str] = mapped_column(nullable=False)
     user_role: Mapped[str] = mapped_column(nullable=False, default="user")
     chat_role: Mapped[str] = mapped_column(nullable=False, default="user")
 
     def set_password(self, password):
-        self.password = generate_password_hash(password)
+        self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
-        return check_password_hash(self.password, password)
+        return check_password_hash(self.password_hash, password)
 
 
 class Chats(db.Model):

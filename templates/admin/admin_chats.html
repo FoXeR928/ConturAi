@@ -23,7 +23,8 @@
                 <input type="text" placeholder="Поиск чатов">
                 <input type="submit" value="Поиск">
             </form>
-            <form action="{{url_for('admin.admin_chats_api')}}" method="post">
+            <form action="{{url_for('admin_chats.admin_delet_chats_irrevocably_api')}}" method="post">
+                {{form_del_irr.csrf_token}}
                 {{form_del_irr.send_del_chats}}
             </form>
         </section>

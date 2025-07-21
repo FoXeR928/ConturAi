@@ -20,7 +20,12 @@
                 <h2>Настройки пользователя</h2>
                 <button class="close_button">X</button>
             </div>
-            <form action="{{url_for('admin.admin_users_api')}}" id="form_update_user" class="form_users" method="post">
+            <form action="{{url_for('admin_users.admin_user_delet_api')}}" method="post">
+                {{form_del.csrf_token}}
+                {{form_del.user_login}}
+                {{form_del.send_del}}
+            </form>
+            <form action="{{url_for('admin_users.admin_user_update_api')}}" id="form_update_user" class="form_users" method="post">
                 {{form_password.csrf_token}}
                 {{form_password.login_update.label}}{{form_password.login_update}}
                 {{form_password.role_update.label}}{{form_password.role_update}}
@@ -36,7 +41,7 @@
                 <h2>Создание пользователя</h2>
                 <button class="close_button">X</button>
             </div>
-            <form action="{{url_for('admin.admin_users_api')}}" id="form_create_user" class="form_users" method="post">
+            <form action="{{url_for('admin_users.admin_user_add_api')}}" id="form_create_user" class="form_users" method="post">
                 {{form_user.csrf_token}}
                 {{form_user.login_reg.label}}{{form_user.login_reg}}
                 {{form_user.user_name_reg.label}}{{form_user.user_name_reg}}

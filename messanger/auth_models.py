@@ -4,8 +4,7 @@ from flask.blueprints import Blueprint
 from messanger.moduls import Auth
 from loguru import logger
 
-from db.db_create import Users, db
-
+from db.db_query_auth import auth_query
 
 try:
     logger.debug("Инициализация пути /auth")
@@ -14,7 +13,13 @@ except Exception as err:
     logger.error(f"Инициализация пути /auth не удалась Ошибка:{err}")
 
 
-@auth_app.route("/login", methods=["GET", "POST"])
+@auth_app.get("")
+def auth_api():
+    form = Auth()
+    return render_template("auth.html", form=form)
+
+
+@auth_app.post("/login")
 def login_api():
     form = Auth()
     if form.send.data and form.validate_on_submit():
@@ -26,22 +31,17 @@ def login_api():
         except Exception as err:
             logger.error(f"Не удалось получить поля формы авторизации Ошибка:{err}")
             flash(message="Не удалось прочитать форму", category="error")
-        try:
-            login_base = db.session.query(Users).filter(Users.login == login).one()
-            logger.debug("Запрос в базу для проверки наличия пользователя")
-        except Exception as err:
-            logger.error(f"Не удалось проверить наличие пользователя Ошибка:{err}")
-        if login_base.check_password(password):
-            login_user(login_base, remember=remember)
-            flash(message="Авторизация прошла успешно", category="success")
+            return redirect(request.referrer)
+        auth_check=auth_query(login=login,password=password, remember=remember)
+        if auth_check:
             return redirect(url_for("user.user_get_create_chats_api"))
-        flash(message="Неверный логин или пароль", category="warning")
-        return redirect(request.referrer)
-    return render_template("auth.html", form=form)
-
-
+        else:
+            return redirect(request.referrer) 
+    flash(message="Некорректные данные, авторизация не прошла", category="warning")
+    return redirect(request.referrer)
+        
 @auth_app.get("/logout")
 @login_required
 def logout_api():
     logout_user()
-    return redirect(url_for("auth.login_api"))
+    return redirect(url_for("auth.auth_api"))

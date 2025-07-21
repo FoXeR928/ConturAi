@@ -11,7 +11,7 @@ from db.db_query_chat import (
     get_messages_ai,
     create_chat,
     create_message,
-    del_messages,
+    delet_messages,
 )
 from ai_chat.ask import ask_query
 
@@ -39,7 +39,7 @@ def user_get_create_chats_api():
         try:
             chat = form_del.chat_id.data
             logger.debug("Полученно ID чата из формы")
-            del_messages(chat_id=chat)
+            delet_messages(chat_id=chat)
         except Exception as err:
             logger.error(f"Не удалось получить поле с именем чата Ошибка:{err}")
         return redirect(request.referrer)

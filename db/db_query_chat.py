@@ -1,4 +1,4 @@
-from sqlalchemy import select, update
+from sqlalchemy import select, update,delete
 from loguru import logger
 from flask import flash
 
@@ -22,7 +22,7 @@ def create_chat(login, chat):
 def get_chats(login):
     session = db.session
     try:
-        user_chats = session.execute(
+        user_chats = session.scalars(
             select(Users.login).where(Users.login == login)
         ).one_or_none()
         logger.trace(f"Проверка существования пользователя {login} прошла успешно")
@@ -54,10 +54,10 @@ def get_chats(login):
 def create_message(login, chat_id, text):
     session = db.session
     try:
-        user = session.execute(
+        user = session.scalars(
             select(Users.login).where(Users.login == login)
         ).one_or_none()
-        chat = session.execute(
+        chat = session.scalars(
             select(Chats.id).where(Chats.id == chat_id)
         ).one_or_none()
         logger.trace(
@@ -78,10 +78,10 @@ def create_message(login, chat_id, text):
     session.close()
 
 
-def del_messages(chat_id):
+def delet_messages(chat_id):
     session = db.session
     try:
-        chat = session.execute(
+        chat = session.scalars(
             select(Chats.id).where(Chats.id == chat_id)
         ).one_or_none()
         logger.trace(f"Проверка существования чата {chat_id} прошла успешно")
@@ -104,7 +104,7 @@ def del_messages(chat_id):
 def get_messages_ai(chat_id):
     session = db.session
     try:
-        chat = session.execute(
+        chat = session.scalars(
             select(Chats.id).where(Chats.id == chat_id)
         ).one_or_none()
         logger.trace(f"Проверка существования чата {chat_id} прошла успешно")
@@ -143,10 +143,10 @@ def get_messages_ai(chat_id):
 def get_messages_chat(login, chat_id):
     session = db.session
     try:
-        user = session.execute(
+        user = session.scalars(
             select(Users.login).where(Users.login == login)
         ).one_or_none()
-        chat = session.execute(
+        chat = session.scalars(
             select(Chats.id).where(Chats.id == chat_id)
         ).one_or_none()
         logger.trace(
@@ -181,3 +181,50 @@ def get_messages_chat(login, chat_id):
         }
     session.close()
     return result
+
+
+def get_delet_chats_irrevocably():
+    session = db.session
+    try:
+        result = dict()
+        chats = session.execute(
+            select(Chats.id, Chats.chat_name).where(Chats.chat_del == True)
+        ).all()
+        for chat in chats:
+            result[chat[0]] = chat[1]
+        logger.trace(f"Чаты для удаления получены из базы")
+    except Exception as err:
+        logger.error(f"Не удалось получить чаты для удаления из базы Ошибка {err}")
+    session.close()
+    return result
+
+def delet_chats_irrevocably():
+    session = db.session
+    try:
+        check_del = session.scalars(
+            select(Chats.id).where(Chats.chat_del == True)
+        ).one_or_none()
+        print(check_del.id)
+        logger.trace(f"Проверка чатов для удаления прошла успешно")
+    except Exception as err:
+        logger.error(f"Не удалось проверить наличие чатов для удаления Ошибка {err}")
+    if check_del != None:
+        try:
+            del_chats = session.execute(
+                select(Chats.id).where(Chats.chat_del == True)
+            ).all()
+            for chat in del_chats:
+                session.execute(delete(Messages).where(Messages.chat_id == chat[0]))
+            session.execute(delete(Chats).where(Chats.chat_del == True))
+            session.commit()
+            flash(message="Чаты удалены", category="success")
+            logger.success(f"Чаты удалены из базы")
+        except Exception as err:
+            logger.error(f"Не удалось удалить чаты Ошибка {err}")
+            flash(message="Чаты не удалены", category="error")
+    else:
+        flash(
+            message="Чаты не удалены, так как чатов на удаление нет",
+            category="warning",
+        )
+    session.close()

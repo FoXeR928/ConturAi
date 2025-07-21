@@ -2,7 +2,7 @@ from sqlalchemy import select, delete
 from loguru import logger
 
 from db.db_create import Users, Configs, db
-from config.config import AI_LOGIN, AI_NAME
+from instance.config import AI_LOGIN, AI_NAME
 
 
 def create_default_users(
@@ -26,10 +26,10 @@ def create_default_users(
             logger.error(f"Не удалось удалить строки таблицы Users Ошибка {err}")
     add_list = list()
     try:
-        check_admin = session.execute(
+        check_admin = session.scalars(
             select(Users).where(Users.login == admin_login)
         ).first()
-        check_system = session.execute(
+        check_system = session.scalars(
             select(Users).where(Users.login == system_login)
         ).first()
         logger.trace("Проверенно существование записей в базе Users")
@@ -93,16 +93,16 @@ def create_default_config(
             logger.error(f"Не удалось удалить строки таблицы Configs Ошибка {err}")
     add_list = list()
     try:
-        check_promt = session.execute(
+        check_promt = session.scalars(
             select(Configs).where(Configs.name == "promt")
         ).one_or_none()
-        check_format_pdf = session.execute(
+        check_format_pdf = session.scalars(
             select(Configs).where(Configs.name == "pdf")
         ).one_or_none()
-        check_format_word = session.execute(
+        check_format_word = session.scalars(
             select(Configs).where(Configs.name == "word")
         ).one_or_none()
-        check_format_excel = session.execute(
+        check_format_excel = session.scalars(
             select(Configs).where(Configs.name == "excel")
         ).one_or_none()
         logger.trace("Проверенно существование записей в базе Configs")

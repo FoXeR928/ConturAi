@@ -1,22 +1,4 @@
-$('#form_update_user').on('submit',function(event){
-    password=$(this).children('.password').val();
-    password_check=$(this).children('.password_check').val();
-
-    if ((password!='') && ((password.length<8) || (password!=password_check))){
-        event.preventDefault();
-        if (password.length<8){
-            $(this).children('.password').css('border','1px solid red');
-        }
-        if (password!=password_check){
-            $(this).children('.password_check').css('border','1px solid red');
-        }
-    }
-    else{
-        this.submit();
-    }
-})
-
-$('#form_create_user').on('submit',function(event){
+$('.form_users').on('submit',function(event){
     password=$(this).children('.password').val();
     password_check=$(this).children('.password_check').val();
 
