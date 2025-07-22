@@ -6,15 +6,11 @@ from loguru import logger
 
 from messanger.moduls import (
     check_nav,
-    Config_update,
-    Config_update_textaria,
     File_text,
 )
 from db.db_query_admin import ( 
     add_file,
     get_config,
-    update_config,
-    get_configs,
 )
 from db.db_query_users import get_user_role
 from ai_chat.parther import read_pdf, read_word, read_excel
@@ -28,34 +24,7 @@ except Exception as err:
     logger.error(f"Инициализация пути /admin не удалась Ошибка:{err}")
 
 
-@admin_app.route("/config", methods=["GET", "POST"])
-@login_required
-def admin_config_api():
-    nav = check_nav(current_user.login)
-    form = Config_update()
-    form_textaria = Config_update_textaria()
-    if (
-        (form.config_value.data or form_textaria.config_value.data)
-        and form.validate_on_submit()
-        and get_user_role(current_user.login)
-    ):
-        try:
-            name = form.config_name.data
-            value = form.config_value.data
-            logger.debug("Полученно из формы данных для обновления конфигов в базе")
-        except Exception as err:
-            logger.error(
-                f"Не удалось получить данные из формы для обновления конфигов в базе Ошибка:{err}"
-            )
-        update_config(name, value)
-        redirect(request.referrer)
-    return render_template(
-        "admin/config.html",
-        form=form,
-        form_textaria=form_textaria,
-        configs=get_configs(),
-        nav=nav,
-    )
+
 
 
 @admin_app.route("/docs", methods=["GET", "POST"])

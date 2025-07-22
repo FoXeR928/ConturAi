@@ -1,8 +1,6 @@
-/ai_chat/__pycache__
+*/__pycache__
 /ai_chat/models/sbert_large_nlu_ru
-/config/__pycache__
-/db/__pycache__
 *.log
-/messanger/__pycache__
 *.db
 *.pyc
+__pycache__

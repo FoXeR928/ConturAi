@@ -2,7 +2,7 @@ from sqlalchemy import select, delete
 from loguru import logger
 
 from db.db_create import Users, Configs, db
-from instance.config import AI_LOGIN, AI_NAME
+from db_query_config import get_config
 
 
 def create_default_users(
@@ -11,10 +11,8 @@ def create_default_users(
     admin_password="admin",
     admin_name="админ",
     admin_role="admin",
-    system_login=AI_LOGIN,
-    system_name=AI_NAME,
-    system_role="system",
-    system_chat_role=AI_LOGIN,
+    system_login='system',
+    system_role='system'
 ):
     session = db.session
     if recreate:
@@ -25,6 +23,8 @@ def create_default_users(
         except Exception as err:
             logger.error(f"Не удалось удалить строки таблицы Users Ошибка {err}")
     add_list = list()
+    system_chat_role=get_config('ai_role')
+    system_name=get_config('ai_name')
     try:
         check_admin = session.scalars(
             select(Users).where(Users.login == admin_login)
@@ -78,6 +78,8 @@ def create_default_users(
 
 def create_default_config(
     recreate=False,
+    ai_role='system',
+    ai_name='Раги',
     promt="Привет я ассистент {name}  База знаний: {context} Вопрос: {quest} Ответь используя базу знаний",
     pdf="application/pdf",
     word="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -93,6 +95,12 @@ def create_default_config(
             logger.error(f"Не удалось удалить строки таблицы Configs Ошибка {err}")
     add_list = list()
     try:
+        check_ai_role = session.scalars(
+            select(Configs).where(Configs.name == "ai_role")
+        ).one_or_none()
+        check_ai_name = session.scalars(
+            select(Configs).where(Configs.name == "ai_name")
+        ).one_or_none()
         check_promt = session.scalars(
             select(Configs).where(Configs.name == "promt")
         ).one_or_none()
@@ -110,6 +118,32 @@ def create_default_config(
         logger.error(
             f"Не удалось проверить существование записей таблицы Configs Ошибка {err}"
         )
+    if check_ai_role == None:
+        try:
+            config = Configs(
+                name="ai_role",
+                about="Параметр отвечающий за определение роли нейросети в чате",
+                value=ai_name,
+            )
+            add_list.append(config)
+            logger.debug(f"Создан запрос на добавление конфига роли нейросети в базу Configs")
+        except Exception as err:
+            logger.error(
+                f"Не удалось создать запрос на добавление роли нейросети в базу Configs Ошибка {err}"
+            )
+    if check_ai_name == None:
+        try:
+            config = Configs(
+                name="ai_name",
+                about="Параметр отвечающий за имя нейросети",
+                value=ai_name,
+            )
+            add_list.append(config)
+            logger.debug(f"Создан запрос на добавление конфига имя нейросети в базу Configs")
+        except Exception as err:
+            logger.error(
+                f"Не удалось создать запрос на добавление имя нейросети в базу Configs Ошибка {err}"
+            )
     if check_promt == None:
         try:
             config = Configs(

@@ -6,17 +6,18 @@ from sqlalchemy import select
 
 from db.db_create import db
 from instance.config import PORT, SQL_PATH, SKEY, DEBUG, HOST, LOG_DAYS, LOG_SIZE
+from messanger import admin_chats_moduls, admin_moduls, auth_moduls, chats_moduls
 
 
 def init_pages():
     try:
-        from messanger import admin_models, auth_models, user_models,admin_users_model,admin_chats_model
+        from messanger import admin_users_moduls
 
-        app.register_blueprint(admin_models.admin_app)
-        app.register_blueprint(admin_users_model.admin_users_app)
-        app.register_blueprint(admin_chats_model.admin_chats_app)
-        app.register_blueprint(auth_models.auth_app)
-        app.register_blueprint(user_models.user_app)
+        app.register_blueprint(admin_moduls.admin_app)
+        app.register_blueprint(admin_users_moduls.admin_users_app)
+        app.register_blueprint(admin_chats_moduls.admin_chats_app)
+        app.register_blueprint(auth_moduls.auth_app)
+        app.register_blueprint(chats_moduls.user_app)
     except Exception as err:
         logger.critical(f"Не удалось инициализировать страницы Ошибка:{err}")
         exit()
@@ -53,8 +54,8 @@ try:
         db.create_all()
         from db.db_create_default import create_default_users, create_default_config
 
-        create_default_users()
         create_default_config()
+        create_default_users()
     logger.debug(f"Инициализация SQL_FLASK")
 except Exception as err:
     logger.critical(f"Не удалось инициализировать SQL_FLASK Ошибка:{err}")
