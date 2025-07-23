@@ -16,7 +16,10 @@ body{
     display: block;
     text-decoration: none;
     color: white;
-    padding: 5px 0;
+    padding: 5px 35px 5px 0;
+}
+.button_nav{
+    float: right;
 }
 main{
     margin-left: 200px;
