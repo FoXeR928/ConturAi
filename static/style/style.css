@@ -4,20 +4,24 @@ body{
 }
 .header{
     background: rgb(87 175 235);
-    padding: 20px 20px;
+    padding: 10px;
     font-size: 14pt;
-    text-align: center;
+    text-align: left;
+    height: 100%;
+    width: 160px;
+    position: fixed;
+    overflow-x: hidden;
 }
 .nav_link{
+    display: block;
     text-decoration: none;
     color: white;
-    background-color: rgb(46, 158, 233);
-    padding: 10px;
-    border-radius: 10px;
+    padding: 5px 0;
 }
 main{
-    margin: auto;
-    width: 960px;
+    margin-left: 200px;
+    width: auto;
+    padding-right: 20px;
 }
 .flash{
     background: white;

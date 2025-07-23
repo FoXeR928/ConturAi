@@ -27,19 +27,14 @@
                     <tr>
                         <td>{{config['name']}}</td>
                         <td>{{config['about']}}</td>
-                        <td><form action="{{url_for('admin.admin_config_api')}}" method="post">
-                            {% if config['name'] == 'promt' %}
-                                {{form_textaria.csrf_token}}
-                                {{form_textaria.config_name(value=config['name'], id=config['name'])}}
-                                {{form_textaria.config_value}}
-                                {{form_textaria.send_config}}
-                            {% else %}
+                        <td>
+                            <form action="{{url_for('admin_config.admin_config_update_api')}}" method="post">
                                 {{form.csrf_token}}
                                 {{form.config_name(value=config['name'])}}
                                 {{form.config_value(value=config['value'])}}
                                 {{form.send_config}}
-                            {% endif %}
-                        </form></td>
+                            </form>
+                        </td>
                     </tr>
                 {% endfor %}
             </tbody>

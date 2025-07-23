@@ -10,27 +10,34 @@ from messanger.moduls import (
 )
 from db.db_query_admin import ( 
     add_file,
-    get_config,
 )
+from db.db_query_config import get_config
 from db.db_query_users import get_user_role
 from ai_chat.parther import read_pdf, read_word, read_excel
 from ai_chat.query_rag_db import add_docs
 from ai_chat.parther import normalize_text, chunk_create
 
 try:
-    logger.debug("Инициализация пути /admin")
-    admin_app = Blueprint("admin", __name__, url_prefix="/admin")
+    logger.debug("Инициализация пути /admin/ai/")
+    admin_ai_app = Blueprint("admin_ai", __name__, url_prefix="/admin/ai/")
 except Exception as err:
-    logger.error(f"Инициализация пути /admin не удалась Ошибка:{err}")
+    logger.error(f"Инициализация пути /admin/ai/ не удалась Ошибка:{err}")
 
 
-
-
-
-@admin_app.route("/docs", methods=["GET", "POST"])
+admin_ai_app.get("/docs")
 @login_required
-def admin_docs_api():
-    nav = check_nav(current_user.login)
+def ai_docs_api():
+    form_file = File_text()
+    return render_template(
+        "admin/docs.html",
+        admin=current_user.login,
+        form_file=form_file,
+        nav = check_nav(current_user.login),
+    )
+
+admin_ai_app.post("/docs/add")
+@login_required
+def ai_add_docs_api():
     form_file = File_text()
     if (
         form_file.send_text.data
@@ -48,18 +55,11 @@ def admin_docs_api():
         chunks = chunk_create(file)
         norm_text = normalize_text(file)
         add_docs(chunks, file_name, norm_text)
-        redirect(request.referrer)
-    return render_template(
-        "admin/docs.html",
-        admin=current_user.login,
-        form_file=form_file,
-        nav=nav,
-    )
+    return redirect(request.referrer)
 
-
-@admin_app.post("/read_file")
+admin_ai_app.post("/docs/read_file")
 @login_required
-def read_file_api():
+def ai_read_file_api():
     try:
         file = request.files["file"]
         file_name = file.filename

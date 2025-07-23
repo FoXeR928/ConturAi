@@ -16,25 +16,17 @@ from db.db_query_chat import (
 from ai_chat.ask import ask_query
 
 try:
-    logger.debug("Инициализация пути /users")
-    user_app = Blueprint("user", __name__, url_prefix="/user")
+    logger.debug("Инициализация пути /chats")
+    chats_app = Blueprint("chats", __name__, url_prefix="/chats")
 except Exception as err:
-    logger.error(f"Инициализация пути /users не удалась Ошибка:{err}")
+    logger.error(f"Инициализация пути /chats не удалась Ошибка:{err}")
 
 
-@user_app.route("/chats", methods=["GET", "POST"])
+@chats_app.get("")
 @login_required
-def user_get_create_chats_api():
+def chats_get_api():
     form = Create_chat()
     form_del = Delet_chat()
-    if form.send_chat.data and form.validate_on_submit():
-        try:
-            chat = form.chat.data
-            logger.debug("Полученно имя чата из формы")
-        except Exception as err:
-            logger.error(f"Не удалось получить поле с именем чата Ошибка:{err}")
-        create_chat(current_user.login, chat)
-        return redirect(request.referrer)
     if form_del.send_del.data and form_del.validate_on_submit():
         try:
             chat = form_del.chat_id.data
@@ -52,14 +44,59 @@ def user_get_create_chats_api():
         nav=check_nav(current_user.login),
     )
 
-
-@user_app.route("/chats/<chat>", methods=["GET", "POST"])
+@chats_app.post("/create_chat")
 @login_required
-def user_get_chat_api(chat: str):
+def create_chat_api():
+    form = Create_chat()
+    if form.send_chat.data and form.validate_on_submit():
+        try:
+            chat = form.chat.data
+            logger.debug("Полученно имя чата из формы")
+        except Exception as err:
+            logger.error(f"Не удалось получить поле с именем чата Ошибка:{err}")
+        create_chat(current_user.login, chat)
+    else:
+        flash(message="Чат не создан неправельно заполнены поля", category="warning")
+    return redirect(request.referrer)
+
+@chats_app.post("/delet_chat")
+@login_required
+def delet_chat_api():
+    form_del = Delet_chat()
+    if form_del.send_del.data and form_del.validate_on_submit():
+        try:
+            chat = form_del.chat_id.data
+            logger.debug("Полученно ID чата из формы")
+        except Exception as err:
+            logger.error(f"Не удалось получить поле с именем чата Ошибка:{err}")
+        delet_messages(chat_id=chat)
+    else:
+        flash(message="Чат не удален, неправельно заполнены поля", category="warning")
+    return redirect(request.referrer)
+
+
+@chats_app.get("/<chat>")
+@login_required
+def get_chat_api(chat: str):
     messages = get_messages_chat(login=current_user.login, chat_id=chat)
     form = Send_message()
-    if form.validate_on_submit():
+    return render_template(
+        "chats/chat.html",
+        messages=messages["messages"],
+        form=form,
+        chat_name=messages["name"],
+        chat_id=chat,
+        login=current_user.login,
+        nav=check_nav(current_user.login)
+    )
+
+@chats_app.post("/create_message")
+@login_required
+def create_message_api():
+    form = Send_message()
+    if form.send_message.data and form.validate_on_submit():
         try:
+            chat=form.chat_id.data
             text = form.message.data
             logger.debug("Полученно сообщения из формы чата")
         except Exception as err:
@@ -68,12 +105,6 @@ def user_get_chat_api(chat: str):
         if messages_history != None:
             create_message(login=current_user.login, chat_id=chat, text=text)
             ask_query(query=text, chat_id=chat, messages_history=messages_history)
-        return redirect(request.referrer)
-    return render_template(
-        "chats/chat.html",
-        messages=messages["messages"],
-        form=form,
-        chat_name=messages["name"],
-        chat_id=chat,
-        login=current_user.login,
-    )
+    else:
+        flash(message="Сообщение не удален, неправельно заполнены поля", category="warning")
+    return redirect(request.referrer)

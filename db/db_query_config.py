@@ -4,11 +4,27 @@ from flask import flash
 
 from db.db_create import Configs, db
 
+def get_configs_ai():
+    session = db.session
+    try:
+        search_config = session.execute(
+            select(Configs.name, Configs.about, Configs.value).where(Configs.name.like('ai_%'))
+        ).all()
+        result = list()
+        for config in search_config:
+            result.append(
+                {"name": config.name, "about": config.about, "value": config.value}
+            )
+        logger.trace(f"Получен список конфигов для AI из базы")
+    except Exception as err:
+        logger.error(f"Не удалось получить список конфигов для AI из базы Ошибка {err}")
+    session.close
+
 def get_configs():
     session = db.session
     try:
         search_config = session.execute(
-            select(Configs.name, Configs.about, Configs.value)
+            select(Configs.name, Configs.about, Configs.value).where(Configs.name.not_like('ai_%'))
         ).all()
         result = list()
         for config in search_config:

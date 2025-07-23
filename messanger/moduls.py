@@ -15,12 +15,12 @@ from db.db_query_users import get_user_role
 
 
 def check_nav(login):
-    nav = {"user.user_get_create_chats_api": "Чаты"}
+    nav = {"chats.chats_get_api": "Чаты"}
     if get_user_role(login):
         nav["admin_chats.admin_chats_api"] = "Администрирование чатов"
         nav["admin_users.admin_users_api"] = "Пользователи"
-        nav["admin.admin_docs_api"] = "Документы"
-        nav["admin.admin_config_api"] = "Конфигурации"
+        nav["admin_chats.admin_chats_api"] = "Документы"
+        nav["admin_config.admin_config_api"] = "Конфигурации"
     nav["auth.logout_api"] = "Выйти"
     logger.trace("Генерация ссылок навигации")
     return nav
@@ -78,6 +78,7 @@ class Delet_chats_irrevocably(FlaskForm):
 
 
 class Send_message(FlaskForm):
+    chat_id=HiddenField("ID чата", validators=[DataRequired(), Length(min=1)])
     message = StringField("Текст", validators=[DataRequired(), Length(min=1)])
     send_message = SubmitField("Отправить")
 

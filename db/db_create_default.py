@@ -2,7 +2,7 @@ from sqlalchemy import select, delete
 from loguru import logger
 
 from db.db_create import Users, Configs, db
-from db_query_config import get_config
+from db.db_query_config import get_config
 
 
 def create_default_users(
@@ -102,7 +102,7 @@ def create_default_config(
             select(Configs).where(Configs.name == "ai_name")
         ).one_or_none()
         check_promt = session.scalars(
-            select(Configs).where(Configs.name == "promt")
+            select(Configs).where(Configs.name == "ai_promt")
         ).one_or_none()
         check_format_pdf = session.scalars(
             select(Configs).where(Configs.name == "pdf")
@@ -123,7 +123,7 @@ def create_default_config(
             config = Configs(
                 name="ai_role",
                 about="Параметр отвечающий за определение роли нейросети в чате",
-                value=ai_name,
+                value=ai_role,
             )
             add_list.append(config)
             logger.debug(f"Создан запрос на добавление конфига роли нейросети в базу Configs")
@@ -147,7 +147,7 @@ def create_default_config(
     if check_promt == None:
         try:
             config = Configs(
-                name="promt",
+                name="ai_promt",
                 about="Параметр отвечающий за промт для нейросети",
                 value=promt,
             )
@@ -197,19 +197,9 @@ def create_default_config(
             logger.info("Добавлены конфиги по умолчанию")
         except Exception as err:
             logger.error(
-                f"Не удалось добавить пользователей по умолчанию в базу Configs Ошибка {err}"
+                f"Не удалось добавить конфиги по умолчанию в базу Configs Ошибка {err}"
             )
             exit()
     else:
         logger.debug("Конфиги по умолчанию уже в базе есть")
     session.close()
-
-
-try:
-    db.create_all()
-    logger.info(f"Инициализация SQL подключения к базе данных")
-    create_default_users()
-    create_default_config()
-except Exception as err:
-    logger.error(f"Не удалось инициализировать подключение к базе SQL:{err}")
-    exit()

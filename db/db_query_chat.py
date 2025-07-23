@@ -14,7 +14,7 @@ def create_chat(login, chat):
         flash(message="Чат создан", category="success")
         logger.success(f"Создан чат пользователем {login}")
     except Exception as err:
-        flash(message="Чат не создан", category="error")
+        flash(message="Чат не создан из-за ошибки", category="error")
         logger.error(f"Не удалось создать чат пользователя {login} Ошибка {err}")
     session.close()
 
@@ -96,8 +96,10 @@ def delet_messages(chat_id):
             )
             session.commit()
             logger.debug(f"Чат {chat_id} помечен как удаленный")
+            flash(message="Чат удален", category="success")
         except Exception as err:
             logger.warning(f"Не удалось измеить статус чата {chat_id} Ошибка {err}")
+            flash(message="Чат не удален из-за ошибки", category="success")
     session.close()
 
 
@@ -201,10 +203,10 @@ def get_delet_chats_irrevocably():
 def delet_chats_irrevocably():
     session = db.session
     try:
-        check_del = session.scalars(
-            select(Chats.id).where(Chats.chat_del == True)
-        ).one_or_none()
-        print(check_del.id)
+        check_del = session.scalar(
+            select(Chats).where(Chats.chat_del == True)
+        )
+        print(check_del)
         logger.trace(f"Проверка чатов для удаления прошла успешно")
     except Exception as err:
         logger.error(f"Не удалось проверить наличие чатов для удаления Ошибка {err}")

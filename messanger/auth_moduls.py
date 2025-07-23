@@ -34,7 +34,7 @@ def login_api():
             return redirect(request.referrer)
         auth_check=auth_query(login=login,password=password, remember=remember)
         if auth_check:
-            return redirect(url_for("user.user_get_create_chats_api"))
+            return redirect(url_for("chats.chats_get_api"))
         else:
             return redirect(request.referrer) 
     flash(message="Некорректные данные, авторизация не прошла", category="warning")

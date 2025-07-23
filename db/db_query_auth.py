@@ -19,17 +19,15 @@ def auth_query(login, password, remember):
         try:
             auth = session.scalars(select(Users).where(Users.login==login)).one()
             check_auth = auth.check_password(password=password)
-            print(check_auth)
             logger.success(f"Авторизация пользователя {login} прошла успешно")
         except Exception as err:
             logger.error(f"Не удалось авторизировать пользователя {login} Ошибка {err}")
         if check_auth:
             login_user(user=auth,remember=remember)
-            flash(message="Неверный логин или пароль", category="warning")
-            result=True
-        else:
             flash(message="Авторизация прошла успешно", category="success")
-            result=False
+        else:
+            flash(message="Неверный логин или пароль", category="warning")
+        result=check_auth
     else:
         flash(message="Неверный логин или пароль", category="warning")
         result=True

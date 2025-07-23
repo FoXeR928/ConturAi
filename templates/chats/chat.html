@@ -8,17 +8,20 @@
     <link rel="stylesheet" href="/static/style/style_chat.css">
 </head>
 <body>
-    <header class="header">
-        <a class="nav_link" href="{{url_for('user.user_get_create_chats_api')}}">Вернуться к чатам</a>
-    </header>
+    <nav class="header">
+        {% for path,name in nav.items() %}
+            <a class="nav_link" href="{{url_for(path)}}">{{name}}</a>
+        {% endfor %}
+    </nav>
     <main>
         <section class="chat">
             {% for message in messages %}
                 <div class="{{message[0]}}" id="{{message[1]}}">{{message[2] | safe}}</div>
             {% endfor %}
         </section>
-        <form action="{{url_for('user.user_get_chat_api', chat=chat_id)}}" method="post">
+        <form action="{{url_for('chats.create_message_api', chat=chat_id)}}" method="post">
             {{form.csrf_token}}
+            {{form.chat_id(value=chat_id)}}
             {{form.message}}
             {{form.send_message}}
         </form>
