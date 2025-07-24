@@ -1,23 +1,16 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Чаты</title>
-    <link rel="stylesheet" href="/static/style/style.css">
-    <link rel="stylesheet" href="/static/style/style_chats.css">
-    <script src="/static/js/jquery-3.7.1.min.js"></script>
-</head>
-<body>
-    <nav class="header" id="header">
-        <button class="button_nav" id="button_nav">=</button>
-        {% for path,name in nav.items() %}
-            <a class="nav_link" href="{{url_for(path)}}">{{name}}</a>
-        {% endfor %}
-    </nav>
-    {% for cat,msg in get_flashed_messages(True) %}
-        <div class="flash {{cat}}">{{msg}}</div>
-    {% endfor %}
+{% if isAdmin %}
+    {% extends "sample_admin.html" %}
+{% else %}
+    {% extends "sample_user.html" %}
+{% endif %}
+
+{% block title %}Чаты{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="/static/style/style_chats.css">
+{% endblock %}
+
+{% block content %}
     <dialog class="form_block_add" id="hide_form">
         <div class="form_add">
             <div class="form_header">
@@ -31,29 +24,28 @@
             </form>
         </div>
     </dialog>
-    <main>
-        <section class="main_nav">
-            <h1>Чаты</h1>
-            <form>
-                <input type="text" placeholder="Поиск чатов">
-                <input type="button" value="Поиск">
-            </form>
-            <button class="add" id="add_button">+</button>
-        </section>
-        <div>
-            {% for chat_id, chat_name in chats.items() %}
-                <a class="chat" href="{{url_for('chats.get_chat_api', chat=chat_id)}}">
-                    <h3>{{chat_name}}</h3>
-                    <form action="{{url_for('chats.delet_chat_api')}}" method="post">
-                        {{form_del.csrf_token}}
-                        {{form_del.chat_id(value=chat_id)}}
-                        {{form_del.send_del}}
-                    </form>
-                </a>
-            {% endfor %}
-        </div>
-    </main>
-</body>
+    <section class="main_nav">
+        <h1>Чаты</h1>
+        <form>
+            <input type="text" placeholder="Поиск чатов">
+            <input type="button" value="Поиск">
+        </form>
+        <button class="add" id="add_button">+</button>
+    </section>
+    <div>
+    {% for chat_id, chat_name in chats.items() %}
+        <a class="chat" href="{{url_for('chats.get_chat_api', chat=chat_id)}}">
+            <h3>{{chat_name}}</h3>
+                <form action="{{url_for('chats.delet_chat_api')}}" method="post">
+                    {{form_del.csrf_token}}
+                    {{form_del.chat_id(value=chat_id)}}
+                    {{form_del.send_del}}
+                </form>
+        </a>
+    {% endfor %}
+    </div>
+{% endblock %}
+
+{% block scripts %}
 <script src="/static/js/open_form.js"></script>
-<script src="/static/js/open_nav.js"></script>
-</html>
+{% endblock %}

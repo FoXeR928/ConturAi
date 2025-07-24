@@ -4,7 +4,6 @@ from flask.blueprints import Blueprint
 from loguru import logger
 
 from messanger.moduls import (
-    check_nav,
     Create_user,
     Update_password,
     Delet_user
@@ -16,6 +15,7 @@ from db.db_query_users import (
     delet_user
 )
 from db.db_query_users import get_user_role, update_password_user
+from db.db_query_chat import get_chats
 
 try:
     logger.debug("Инициализация пути /admin/users")
@@ -37,7 +37,8 @@ def admin_users_api():
         form_del=form_del,
         form_password=form_password,
         users=get_users(),
-        nav=check_nav(current_user.login),
+        isAdmin=get_user_role(current_user.login),
+        chats=get_chats(login=current_user.login)
     )
 
 @admin_users_app.post("/add_user")

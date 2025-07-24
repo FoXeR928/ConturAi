@@ -4,7 +4,7 @@ from flask.blueprints import Blueprint
 
 from loguru import logger
 
-from messanger.moduls import check_nav, Create_chat, Delet_chat, Send_message
+from messanger.moduls import Create_chat, Delet_chat, Send_message
 from db.db_query_chat import (
     get_chats,
     get_messages_chat,
@@ -13,6 +13,7 @@ from db.db_query_chat import (
     create_message,
     delet_messages,
 )
+from db.db_query_users import get_user_role
 from ai_chat.ask import ask_query
 
 try:
@@ -41,7 +42,7 @@ def chats_get_api():
         form=form,
         form_del=form_del,
         login=current_user.login,
-        nav=check_nav(current_user.login),
+        isAdmin=get_user_role(current_user.login),
     )
 
 @chats_app.post("/create_chat")
@@ -87,7 +88,7 @@ def get_chat_api(chat: str):
         chat_name=messages["name"],
         chat_id=chat,
         login=current_user.login,
-        nav=check_nav(current_user.login)
+        isAdmin=get_user_role(login=current_user.login)
     )
 
 @chats_app.post("/create_message")

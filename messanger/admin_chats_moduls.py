@@ -4,7 +4,6 @@ from flask.blueprints import Blueprint
 from loguru import logger
 
 from messanger.moduls import (
-    check_nav,
     Delet_chats_irrevocably,
 )
 from db.db_query_chat import ( 
@@ -12,6 +11,7 @@ from db.db_query_chat import (
     get_delet_chats_irrevocably,
 )
 from db.db_query_users import get_user_role
+from db.db_query_chat import get_chats
 
 try:
     logger.debug("Инициализация пути /admin/chats")
@@ -27,8 +27,9 @@ def admin_chats_api():
     return render_template(
         "admin/admin_chats.html",
         form_del_irr=form_del_irr,
-        chats=get_delet_chats_irrevocably(),
-        nav=check_nav(current_user.login),
+        chats_del=get_delet_chats_irrevocably(),
+        isAdmin=get_user_role(login=current_user.login),
+        chats=get_chats(login=current_user.login)
     )
 
 @admin_chats_app.post("/delet_chats_irrevocably")

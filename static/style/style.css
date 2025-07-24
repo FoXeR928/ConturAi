@@ -8,7 +8,7 @@ body{
     font-size: 14pt;
     text-align: left;
     height: 100%;
-    width: 160px;
+    width: 255px;
     position: fixed;
     overflow-x: hidden;
 }
@@ -16,13 +16,30 @@ body{
     display: block;
     text-decoration: none;
     color: white;
-    padding: 5px 35px 5px 0;
+    width: 75%;
+}
+.nav_block{
+    display: flex;
+    width: 220px;
+    padding-right: 35px;
+}
+.nav_open{
+    display: none;
+}
+.nav_under_block{
+    display: flex;
+    flex-direction: column;
+}
+.nav_under{
+    text-decoration: none;
+    color: white;
+    padding: 0px 35px 0px 15px;
 }
 .button_nav{
     float: right;
 }
 main{
-    margin-left: 200px;
+    margin-left: 295px;
     width: auto;
     padding-right: 20px;
 }
@@ -40,12 +57,9 @@ main{
     0%{
         opacity: 1;
     }
-    40%{
-        opacity: 0;
-    }
     100%{
         opacity: 0;
-        height: 0;
+        display: none;
     }
 }
 .error{

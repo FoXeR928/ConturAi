@@ -4,7 +4,6 @@ from flask.blueprints import Blueprint
 from loguru import logger
 
 from messanger.moduls import (
-    check_nav,
     Config_update,
 )
 from db.db_query_config import ( 
@@ -12,6 +11,7 @@ from db.db_query_config import (
     get_configs,
 )
 from db.db_query_users import get_user_role
+from db.db_query_chat import get_chats
 
 try:
     logger.debug("Инициализация пути /admin/config")
@@ -27,7 +27,8 @@ def admin_config_api():
         "admin/config.html",
         form=form,
         configs=get_configs(),
-        nav=check_nav(current_user.login),
+        isAdmin=get_user_role(current_user.login),
+        chats=get_chats(login=current_user.login)
     )
 
 @admin_config_app.get("/update")

@@ -5,7 +5,6 @@ from io import BytesIO
 from loguru import logger
 
 from messanger.moduls import (
-    check_nav,
     File_text,
 )
 from db.db_query_admin import ( 
@@ -13,6 +12,7 @@ from db.db_query_admin import (
 )
 from db.db_query_config import get_config
 from db.db_query_users import get_user_role
+from db.db_query_chat import get_chats
 from ai_chat.parther import read_pdf, read_word, read_excel
 from ai_chat.query_rag_db import add_docs
 from ai_chat.parther import normalize_text, chunk_create
@@ -32,7 +32,8 @@ def ai_docs_api():
         "admin/docs.html",
         admin=current_user.login,
         form_file=form_file,
-        nav = check_nav(current_user.login),
+        isAdmin=get_user_role(current_user.login),
+        chats=get_chats(login=current_user.login)
     )
 
 admin_ai_app.post("/docs/add")

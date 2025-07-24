@@ -1,88 +1,81 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Пользователи</title>
-    <link rel="stylesheet" href="/static/style/style.css">
-    <link rel="stylesheet" href="/static/style/style_users.css">
-    <script src="/static/js/jquery-3.7.1.min.js"></script>
-</head>
-<body>
-    <nav class="header">
-        {% for path,name in nav.items() %}
-            <a class="nav_link" href="{{url_for(path)}}">{{name}}</a>
+{% if isAdmin %}
+    {% extends "sample_admin.html" %}
+{% else %}
+    {% extends "sample_user.html" %}
+{% endif %}
+
+{% block title %}Пользователи{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="/static/style/style_users.css">
+{% endblock %}
+
+{% block content %}
+<dialog class="form_block_add" id="hide_form_update">
+    <div class="form_add">
+        <div class="form_header">
+            <h2>Настройки пользователя</h2>
+            <button class="close_button">X</button>
+        </div>
+        <form action="{{url_for('admin_users.admin_user_delet_api')}}" method="post">
+            {{form_del.csrf_token}}
+            {{form_del.user_login}}
+            {{form_del.send_del}}
+        </form>
+        <form action="{{url_for('admin_users.admin_user_update_api')}}" id="form_update_user" class="form_users" method="post">
+            {{form_password.csrf_token}}
+            {{form_password.login_update.label}}{{form_password.login_update}}
+            {{form_password.role_update.label}}{{form_password.role_update}}
+            {{form_password.password_update.label}}{{form_password.password_update}}
+            {{form_password.password_update_check.label}}{{form_password.password_update_check}}
+            {{form_password.send_update}}
+        </form>
+    </div>
+</dialog>
+<dialog class="form_block_add" id="hide_form">
+    <div class="form_add">
+        <div class="form_header">
+            <h2>Создание пользователя</h2>
+            <button class="close_button">X</button>
+        </div>
+        <form action="{{url_for('admin_users.admin_user_add_api')}}" id="form_create_user" class="form_users" method="post">
+            {{form_user.csrf_token}}
+            {{form_user.login_reg.label}}{{form_user.login_reg}}
+            {{form_user.user_name_reg.label}}{{form_user.user_name_reg}}
+            {{form_user.password_reg.label}}{{form_user.password_reg}}
+            {{form_user.password_reg_check.label}}{{form_user.password_reg_check}}
+            {{form_user.send_reg}}
+        </form>
+    </div>
+</dialog>
+<section class="main_nav">
+    <h1>Пользователи</h1>
+    <form>
+        <input type="text" placeholder="Поиск пользователей">
+        <input type="button" value="Поиск">
+    </form>
+    <button class="add" id="add_button">+</button>
+</section>
+<table>
+    <thead>
+        <th>Логин</th>
+        <th>Имя</th>
+        <th>Роль</th>
+    </thead>
+    <tbody>
+        {% for user in users %}
+            <tr>
+                <td>{{user['login']}}</td>
+                <td>{{user['user_name']}}</td>
+                <td>{{user['user_role']}}</td>
+                <td><button class="update_button" value="{{user['login']}}">Изменить</button></td>
+            </tr>
         {% endfor %}
-    </nav>
-    <dialog class="form_block_add" id="hide_form_update">
-        <div class="form_add">
-            <div class="form_header">
-                <h2>Настройки пользователя</h2>
-                <button class="close_button">X</button>
-            </div>
-            <form action="{{url_for('admin_users.admin_user_delet_api')}}" method="post">
-                {{form_del.csrf_token}}
-                {{form_del.user_login}}
-                {{form_del.send_del}}
-            </form>
-            <form action="{{url_for('admin_users.admin_user_update_api')}}" id="form_update_user" class="form_users" method="post">
-                {{form_password.csrf_token}}
-                {{form_password.login_update.label}}{{form_password.login_update}}
-                {{form_password.role_update.label}}{{form_password.role_update}}
-                {{form_password.password_update.label}}{{form_password.password_update}}
-                {{form_password.password_update_check.label}}{{form_password.password_update_check}}
-                {{form_password.send_update}}
-            </form>
-        </div>
-    </dialog>
-    <dialog class="form_block_add" id="hide_form">
-        <div class="form_add">
-            <div class="form_header">
-                <h2>Создание пользователя</h2>
-                <button class="close_button">X</button>
-            </div>
-            <form action="{{url_for('admin_users.admin_user_add_api')}}" id="form_create_user" class="form_users" method="post">
-                {{form_user.csrf_token}}
-                {{form_user.login_reg.label}}{{form_user.login_reg}}
-                {{form_user.user_name_reg.label}}{{form_user.user_name_reg}}
-                {{form_user.password_reg.label}}{{form_user.password_reg}}
-                {{form_user.password_reg_check.label}}{{form_user.password_reg_check}}
-                {{form_user.send_reg}}
-            </form>
-        </div>
-    </dialog>
-    {% for cat,msg in get_flashed_messages(True) %}
-        <div class="flash {{cat}}">{{msg}}</div>
-    {% endfor %}
-    <main>
-        <section class="main_nav">
-            <h1>Пользователи</h1>
-            <form>
-                <input type="text" placeholder="Поиск пользователей">
-                <input type="button" value="Поиск">
-            </form>
-            <button class="add" id="add_button">+</button>
-        </section>
-        <table>
-            <thead>
-                <th>Логин</th>
-                <th>Имя</th>
-                <th>Роль</th>
-            </thead>
-            <tbody>
-                {% for user in users %}
-                    <tr>
-                        <td>{{user['login']}}</td>
-                        <td>{{user['user_name']}}</td>
-                        <td>{{user['user_role']}}</td>
-                        <td><button class="update_button" value="{{user['login']}}">Изменить</button></td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </main>
-    
-</body>
+    </tbody>
+</table>
+{% endblock %}
+
+{% block scripts %}
 <script src="/static/js/open_form.js"></script>
 <script src="/static/js/check_passwords.js"></script>
-</html>
+{% endblock %}

@@ -11,10 +11,11 @@ from instance.config import PORT, SQL_PATH, SKEY, DEBUG, HOST, LOG_DAYS, LOG_SIZ
 
 def init_pages():
     try:
-        from messanger import admin_chats_moduls, auth_moduls, chats_moduls,admin_users_moduls,admin_ai_moduls,admin_configs_moduls
+        from messanger import admin_chats_moduls, auth_moduls, chats_moduls,admin_users_moduls,admin_ai_moduls,admin_configs_moduls,admin_moduls
 
         app.register_blueprint(auth_moduls.auth_app)
         app.register_blueprint(chats_moduls.chats_app)
+        app.register_blueprint(admin_moduls.admin_app)
         app.register_blueprint(admin_users_moduls.admin_users_app)
         app.register_blueprint(admin_chats_moduls.admin_chats_app)
         app.register_blueprint(admin_configs_moduls.admin_config_app)
@@ -52,6 +53,8 @@ except Exception as err:
 try:
     db.init_app(app=app)
     with app.app_context():
+        
+
         db.create_all()
         from db.db_create_default import create_default_config,create_default_users
 

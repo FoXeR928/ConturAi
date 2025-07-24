@@ -1,44 +1,40 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Конфигурации</title>
-    <link rel="stylesheet" href="/static/style/style.css">
-</head>
-<body>
-    <nav class="header">
-        {% for path,name in nav.items() %}
-            <a class="nav_link" href="{{url_for(path)}}">{{name}}</a>
+{% if isAdmin %}
+    {% extends "sample_admin.html" %}
+{% else %}
+    {% extends "sample_user.html" %}
+{% endif %}
+
+{% block title %}Конфигурации{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="/static/style/style_users.css">
+{% endblock %}
+
+{% block content %}
+<table>
+    <thead>
+        <th>Конфиг</th>
+        <th>Описание</th>
+        <th>Значение</th>
+    </thead>
+    <tbody>
+        {% for config in configs %}
+            <tr>
+                <td>{{config['name']}}</td>
+                <td>{{config['about']}}</td>
+                <td>
+                    <form action="{{url_for('admin_config.admin_config_update_api')}}" method="post">
+                        {{form.csrf_token}}
+                        {{form.config_name(value=config['name'])}}
+                        {{form.config_value(value=config['value'])}}
+                        {{form.send_config}}
+                    </form>
+                </td>
+            </tr>
         {% endfor %}
-    </nav>
-    {% for cat,msg in get_flashed_messages(True) %}
-        <div class="flash {{cat}}">{{msg}}</div>
-    {% endfor %}
-    <main>
-        <table>
-            <thead>
-                <th>Конфиг</th>
-                <th>Описание</th>
-                <th>Значение</th>
-            </thead>
-            <tbody>
-                {% for config in configs %}
-                    <tr>
-                        <td>{{config['name']}}</td>
-                        <td>{{config['about']}}</td>
-                        <td>
-                            <form action="{{url_for('admin_config.admin_config_update_api')}}" method="post">
-                                {{form.csrf_token}}
-                                {{form.config_name(value=config['name'])}}
-                                {{form.config_value(value=config['value'])}}
-                                {{form.send_config}}
-                            </form>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </main>
-</body>
-</html>
+    </tbody>
+</table>
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}
