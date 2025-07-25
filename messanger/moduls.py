@@ -63,12 +63,6 @@ class Delet_chats_irrevocably(FlaskForm):
     send_del_chats = SubmitField("Удалить все чаты отмеченные на удаление безвозвратно")
 
 
-class Send_message(FlaskForm):
-    chat_id=HiddenField("ID чата", validators=[DataRequired(), Length(min=1)])
-    message = StringField("Текст", validators=[DataRequired(), Length(min=1)])
-    send_message = SubmitField("Отправить")
-
-
 class Create_user(FlaskForm):
     login_reg = StringField("Логин", validators=[DataRequired(), Length(min=1)])
     user_name_reg = StringField("Имя", validators=[DataRequired(), Length(min=1)])

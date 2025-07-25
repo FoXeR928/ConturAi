@@ -1,40 +1,35 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Чаты</title>
-    <link rel="stylesheet" href="/static/style/style.css">
-    <link rel="stylesheet" href="/static/style/style_chats.css">
-</head>
-<body>
-    <nav class="header">
-        {% for path,name in nav.items() %}
-            <a class="nav_link" href="{{url_for(path)}}">{{name}}</a>
-        {% endfor %}
-    </nav>
-    {% for cat,msg in get_flashed_messages(True) %}
-        <div class="flash {{cat}}">{{msg}}</div>
-    {% endfor %}
-    <main>
-        <section class="main_nav">
-            <h1>Чаты</h1>
-            <form>
-                <input type="text" placeholder="Поиск чатов">
-                <input type="submit" value="Поиск">
-            </form>
-            <form action="{{url_for('admin_chats.admin_delet_chats_irrevocably_api')}}" method="post">
-                {{form_del_irr.csrf_token}}
-                {{form_del_irr.send_del_chats}}
-            </form>
-        </section>
-        <div>
-            {% for chat_id, chat_name in chats.items() %}
-                <div class="chat">
-                    <h3>{{chat_name}}</h3>
-                </div>
-            {% endfor %}
+{% if isAdmin %}
+    {% extends "sample_admin.html" %}
+{% else %}
+    {% extends "sample_user.html" %}
+{% endif %}
+
+{% block title %}Чаты{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="/static/style/style_chats.css">
+{% endblock %}
+
+{% block content %}
+<section class="main_nav">
+    <h1>Чаты</h1>
+    <form>
+        <input type="text" placeholder="Поиск чатов">
+        <input type="submit" value="Поиск">
+    </form>
+    <form action="{{url_for('admin_chats.admin_delet_chats_irrevocably_api')}}" method="post">
+        {{form_del_irr.csrf_token}}
+        {{form_del_irr.send_del_chats}}
+    </form>
+</section>
+<div>
+    {% for chat_id, chat_name in chats_del.items() %}
+        <div class="chat">
+            <h3>{{chat_name}}</h3>
         </div>
-    </main>
-</body>
-</html>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}

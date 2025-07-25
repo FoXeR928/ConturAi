@@ -1,10 +1,10 @@
 from flask_login import login_required, current_user
-from flask import render_template, request, redirect, flash
+from flask import render_template, request, redirect, flash,abort
 from flask.blueprints import Blueprint
 
 from loguru import logger
 
-from messanger.moduls import Create_chat, Delet_chat, Send_message
+from messanger.moduls import Create_chat, Delet_chat
 from db.db_query_chat import (
     get_chats,
     get_messages_chat,
@@ -80,28 +80,29 @@ def delet_chat_api():
 @login_required
 def get_chat_api(chat: str):
     messages = get_messages_chat(login=current_user.login, chat_id=chat)
-    form = Send_message()
+    if messages==False:
+        abort(404)
     return render_template(
         "chats/chat.html",
         messages=messages["messages"],
-        form=form,
         chat_name=messages["name"],
         chat_id=chat,
         login=current_user.login,
-        isAdmin=get_user_role(login=current_user.login)
+        isAdmin=get_user_role(login=current_user.login),
+        chats=get_chats(login=current_user.login)
     )
 
 @chats_app.post("/create_message")
 @login_required
 def create_message_api():
-    form = Send_message()
-    if form.send_message.data and form.validate_on_submit():
+    if request.method=='POST':
         try:
-            chat=form.chat_id.data
-            text = form.message.data
+            chat=request.form['chat_id']
+            text = request.form['message']
             logger.debug("Полученно сообщения из формы чата")
         except Exception as err:
             logger.error(f"Не удалось получить поле с сообщением чата Ошибка:{err}")
+            
         messages_history = get_messages_ai(chat)
         if messages_history != None:
             create_message(login=current_user.login, chat_id=chat, text=text)

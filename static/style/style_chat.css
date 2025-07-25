@@ -1,8 +1,45 @@
 .chat{
     overflow: auto;
-    height: 50%;
+    height: 90%;
     padding: 10px;
+    margin: 0 0 10px 0;
+    border-bottom: 1px solid rgb(87, 87, 87);
 }
 .system{
     justify-content: start;
 }
+.chat_box{
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+.user{
+    text-align: right;
+}
+.message{
+    background: rgb(176, 232, 247);
+    border-radius: 20px;
+    padding: 10px;
+    margin: 0 0 10px 0;
+    max-width: 70%;
+    display: inline-block;
+}
+.loader {
+    display: none;
+    width: 48px;
+    height: 48px;
+    border: 5px solid #FFF;
+    border-bottom-color: #000000;
+    border-radius: 50%;
+    box-sizing: border-box;
+    animation: rotation 1s linear infinite;
+    }
+
+    @keyframes rotation {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+    } 
