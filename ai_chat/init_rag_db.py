@@ -47,8 +47,8 @@ def optimizate_base():
 
 
 try:
+    model_chank=get_config('model_chank')
     model = SentenceTransformer(
-        model_chank=get_config('model_chank')
         model_name_or_path=model_chank,
         device=(
             "cuda"
@@ -65,9 +65,12 @@ except Exception as err:
 
 try:
     rag_host=get_config('rag_host')
-    
+    rag_port_http=get_config('rag_port_http')
+    rag_port_grpc=get_config('rag_port_grpc')
+    rag_grpc=get_config('rag_grpc')
+    rag_collection=get_config('rag_collection')
     client = QdrantClient(
-        host=rag_host, port=RAG_PORT_HTTP, grpc_port=RAG_PORT_GRPC, prefer_grpc=RAG_GRPC
+        host=rag_host, port=rag_port_http, grpc_port=rag_port_grpc, prefer_grpc=rag_grpc
     )
     logger.debug("Инициализирован клиент векторной базы")
 except Exception as err:
@@ -75,7 +78,7 @@ except Exception as err:
     exit()
 
 try:
-    check_rag_base = client.collection_exists(RAG_COLLECTION)
+    check_rag_base = client.collection_exists(rag_collection)
     logger.trace("Проверка коллекции в векторной базы прошла успешно")
 except Exception as err:
     logger.critical(
@@ -86,7 +89,7 @@ except Exception as err:
 if not check_rag_base:
     try:
         client.recreate_collection(
-            collection_name=RAG_COLLECTION,
+            collection_name=rag_collection,
             vectors_config=VectorParams(
                 size=1024, distance=Distance.COSINE, on_disk=True
             ),
@@ -94,9 +97,9 @@ if not check_rag_base:
                 indexing_threshold=20000, memmap_threshold=20000
             ),
         )
-        logger.info(f"Создана коллекция {RAG_COLLECTION} в векторной базе")
+        logger.info(f"Создана коллекция {rag_collection} в векторной базе")
     except Exception as err:
         logger.critical(f"Не удалось создать коллекцию в векторной базе Ошибка {err}")
         exit()
 else:
-    logger.debug(f"Коллекция {RAG_COLLECTION} уже есть в векторной базе")
+    logger.debug(f"Коллекция {rag_collection} уже есть в векторной базе")
