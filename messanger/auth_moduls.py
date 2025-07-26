@@ -1,4 +1,4 @@
-from flask_login import login_required, logout_user, login_user
+from flask_login import login_required, logout_user
 from flask import render_template, redirect, url_for, request, flash
 from flask.blueprints import Blueprint
 from messanger.moduls import Auth

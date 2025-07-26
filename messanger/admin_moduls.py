@@ -7,7 +7,6 @@ from messanger.moduls import (
     Config_update,
 )
 from db.db_query_config import ( 
-    update_config,
     get_configs,
 )
 from db.db_query_users import get_user_role

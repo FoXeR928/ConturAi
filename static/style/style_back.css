@@ -1,11 +1,11 @@
 body{
     margin: 0;
 }
-.auth_block{
+.block_with_back{
     background-color: rgb(87 175 235);
     font-family: "Noto Sans, sans-serif";
 }
-.form_auth{
+.form_with_back{
     font-size: 14pt;
     width: 600px;
     margin: 20% auto;

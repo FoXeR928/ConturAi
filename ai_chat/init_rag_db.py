@@ -10,17 +10,10 @@ from sentence_transformers import SentenceTransformer
 import torch
 from loguru import logger
 
-from instance.config import (
-    AI_MODEL_CHANK,
-    RAG_COLLECTION,
-    RAG_HOST,
-    RAG_PORT_HTTP,
-    RAG_PORT_GRPC,
-    RAG_GRPC,
-)
+from db.db_query_config import get_config
 
-
-def optimizate_base(collection=RAG_COLLECTION):
+def optimizate_base():
+    collection=get_config('rag_collection')
     try:
         client.create_payload_index(
             collection_name=collection,
@@ -55,7 +48,8 @@ def optimizate_base(collection=RAG_COLLECTION):
 
 try:
     model = SentenceTransformer(
-        model_name_or_path=AI_MODEL_CHANK,
+        model_chank=get_config('model_chank')
+        model_name_or_path=model_chank,
         device=(
             "cuda"
             if torch.cuda.is_available()
@@ -70,8 +64,10 @@ except Exception as err:
     exit()
 
 try:
+    rag_host=get_config('rag_host')
+    
     client = QdrantClient(
-        host=RAG_HOST, port=RAG_PORT_HTTP, grpc_port=RAG_PORT_GRPC, prefer_grpc=RAG_GRPC
+        host=rag_host, port=RAG_PORT_HTTP, grpc_port=RAG_PORT_GRPC, prefer_grpc=RAG_GRPC
     )
     logger.debug("Инициализирован клиент векторной базы")
 except Exception as err:

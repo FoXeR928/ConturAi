@@ -1,24 +1,21 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Авторизация</title>
-    <link rel="stylesheet" href="/static/style/style.css">
-    <link rel="stylesheet" href="/static/style/styles_auth.css">
-</head>
-<body class="auth_block">
-    {% for cat,msg in get_flashed_messages(True) %}
-        <div class="flash {{cat}}">{{msg}}</div>
-    {% endfor %}
-    <form class="form_auth" action="{{url_for('auth.login_api')}}" method="post">
-        {{form.csrf_token}}
-        {{form.login.label}}{{form.login}}
-        {{form.password.label}}{{form.password}}
-        <div class="check_box">
-            {{form.remember_auth.label}}{{form.remember_auth(class='check_auth -checkbox')}}
-        </div>
-        {{form.send(class='button_auth -button')}}
-    </form>
-</body>
-</html>
+{% extends "sample_back.html" %}
+
+{% block title %}Авторизация{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="/static/style/style_auth.css">
+{% endblock %}
+
+{% block content %}
+<form class="form_with_back" action="{{url_for('auth.login_api')}}" method="post">
+    {{form.csrf_token}}
+    {{form.login.label}}{{form.login}}
+    {{form.password.label}}{{form.password}}
+    <div class="check_box">
+        {{form.remember_auth.label}}{{form.remember_auth}}
+    </div>
+    {{form.send}}
+</form>
+{% endblock %}
+
+{% block scripts %}{% endblock %}

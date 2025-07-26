@@ -1,0 +1,29 @@
+{% extends "sample_back.html" %}
+
+{% block title %}Настройки{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="/static/style/style_settings.css">
+{% endblock %}
+
+{% block content %}
+<form class="form_with_back" action="{{url_for('create_start_settings')}}" method="post">
+    {{form.csrf_token}}
+    {{form.port.label}}{{form.port}}
+    <div class="check_box">
+        {{form.debug.label}}{{form.debug}}
+    </div>
+    {{form.db_select.label}}{{form.db_select}}
+    {{form.db_server.label(class='db_server -hide -server')}}{{form.db_server}}
+    {{form.db_path.label(class='db_path -hide -local')}}{{form.db_path}}
+    {{form.db_port.label(class='db_port -hide -server')}}{{form.db_port}}
+    {{form.db_user.label(class='db_user -hide -server')}}{{form.db_user}}
+    {{form.db_password.label(class='db_password -hide -server')}}{{form.db_password}}
+    {{form.db_name.label(class='db_name -hide -server')}}{{form.db_name}}
+    {{form.send_settings}}
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/setting_db.js"></script>
+{% endblock %}

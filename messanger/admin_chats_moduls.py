@@ -1,5 +1,5 @@
 from flask_login import login_required, current_user
-from flask import request, redirect, flash, render_template
+from flask import request, redirect, render_template
 from flask.blueprints import Blueprint
 from loguru import logger
 
