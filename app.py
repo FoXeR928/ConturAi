@@ -7,7 +7,7 @@ import os
 import json
 
 from db.db_create import db
-from messanger.moduls import Settings
+from messanger.moduls import Settings,Settings_ai
 
 
 def init_db():
@@ -56,6 +56,7 @@ def init_log(log_level_file="INFO", log_level_std="WARNING"):
 if not os.path.exists('config.json'):
     data={
         'CREATE_CONFIG':True,
+        'CREATE_AI':True,
         'PORT':7000,
         'DEBUG':True
         }
@@ -70,11 +71,11 @@ try:
     DEBUG=app.config['DEBUG']
     if not app.config['CREATE_CONFIG']:
         init_db()
+    if not app.config['CREATE_AI']:
         init_pages()
     init_log()
     logger.debug("Добавление конфигов Flask")
     logger.debug(f"Инициализация Flask")
-    #app.config["SQLALCHEMY_DATABASE_URI"] = SQL_PATH
 except Exception as err:
     logger.critical(f"Не удалось инициализировать приложение Flask Ошибка:{err}")
     exit()
@@ -102,6 +103,8 @@ def load_user(id):
 def index():
     if app.config['CREATE_CONFIG']:
         return redirect(url_for('start_settings'))
+    elif app.config['CREATE_AI']:
+        return redirect(url_for('start_settings_ai'))
     else:
         return redirect(url_for('auth.auth_api'))
 
@@ -113,6 +116,11 @@ def page_not_found(e):
 def start_settings():
     form=Settings()
     return render_template('settings.html',form=form)
+
+@app.get('/start_settings_ai')
+def start_settings_ai():
+    form=Settings_ai()
+    return render_template('settings_ai.html',form=form)
 
 @app.post('/create_start_settings')
 def create_start_settings():
@@ -133,6 +141,7 @@ def create_start_settings():
             db_url=f'postgresql://{db_user}:{db_password}@{db_server}:{db_port}/{db_name}'
         data={
         'CREATE_CONFIG':False,
+        'CREATE_AI':True,
         'PORT':port,
         'DEBUG':debug,
         'SQLALCHEMY_DATABASE_URI':db_url
@@ -140,6 +149,39 @@ def create_start_settings():
         with open("config.json", "w") as file_config:
             json.dump(data,file_config,indent=4)
         flash(message='Файл конфигов создан',category='success')
+        init_db()
+    else:
+        flash(message='Файл конфигов не создан',category='warning')
+    return redirect(url_for('index'))
+
+@app.post('/create_start_settings')
+def create_start_settings_ai():
+    form=Settings()
+    if form.send_settings.data and form.validate_on_submit():
+        port=form.port.data
+        debug=form.debug.data
+        db_select=form.db_select.data
+        db_server=form.db_server.data
+        db_path=form.db_path.data
+        db_name=form.db_name.data
+        db_port=form.db_port.data
+        db_user=form.db_user.data
+        db_password=form.db_password.data
+        if db_select=='sqlite':
+            db_url=f'sqlite:///{db_path}'
+        elif db_select=='postgres':
+            db_url=f'postgresql://{db_user}:{db_password}@{db_server}:{db_port}/{db_name}'
+        data={
+        'CREATE_CONFIG':False,
+        'CREATE_AI':True,
+        'PORT':port,
+        'DEBUG':debug,
+        'SQLALCHEMY_DATABASE_URI':db_url
+        }
+        with open("config.json", "w") as file_config:
+            json.dump(data,file_config,indent=4)
+        flash(message='Файл конфигов создан',category='success')
+        init_db()
     else:
         flash(message='Файл конфигов не создан',category='warning')
     return redirect(url_for('index'))

@@ -20,11 +20,21 @@ class Settings(FlaskForm):
         ("postgres", "PostgresSQL"),])
     db_server=StringField('Хост сервера БД',validators=[DataRequired()],render_kw={"class": "db_server -input -hide -server"},)
     db_path=StringField('Путь БД',validators=[DataRequired()],render_kw={"class": "db_path -input -hide -local"},)
-    db_port=IntegerField('Порт сервера БД',validators=[DataRequired()],render_kw={"class": "db_port -input -hide -server"},)
+    db_port=IntegerField('Порт сервера БД',validators=[DataRequired()],render_kw={"class": "db_port -input -hide -server",},)
     db_user=StringField('Пользователь БД',validators=[DataRequired()],render_kw={"class": "db_login -input -hide -server"},)
     db_password=PasswordField('Пароль БД',validators=[DataRequired()], render_kw={"class": "db_password -input -hide -server"},)
     db_name=StringField('База БД',validators=[DataRequired()],render_kw={"class": "db_name -input -hide -server"},)
     send_settings=SubmitField('Сохранить',render_kw={"class": "button_send -button"})
+
+class Settings_ai(FlaskForm):
+    model_chunk=StringField('Модель для создания чанков',validators=[DataRequired()],render_kw={"class": "model_chunk -input"},)
+    model=StringField('Модель AI',validators=[DataRequired()],render_kw={"class": "model -input"},)
+    collection=StringField('Имя коллекции',validators=[DataRequired()],render_kw={"class": "collection -input",'value':'ragi_docs'},)
+    rag_host=StringField('Хост Qdrant',validators=[DataRequired()],render_kw={"class": "rag_host -input",'value':'localhost'},)
+    rag_port_http=IntegerField('Порт HTTP Qdrant',validators=[DataRequired()],render_kw={"class": "rag_port_http -input",'value':6333},)
+    rag_port_grpc=IntegerField('Порт GRPC Qdrant',validators=[DataRequired()],render_kw={"class": "rag_port_grpc -input",'value':6334},)
+    rag_grpc=BooleanField('Включить GRPC',render_kw={"class": "rag_grpc -input"},)
+    send_settings_ai=SubmitField('Сохранить',render_kw={"class": "button_send -button"})
 
 class Auth(FlaskForm):
     login = StringField(
