@@ -4,6 +4,7 @@ from flask import flash
 
 from db.db_create import Users, db
 
+
 def get_user_role(login):
     session = db.session
     try:
@@ -12,7 +13,9 @@ def get_user_role(login):
         ).one_or_none()
         logger.trace(f"Проверено существование пользователя {login}")
     except Exception as err:
-        logger.error(f"Не удалось проверить существование пользователя {login} Ошибка {err}")
+        logger.error(
+            f"Не удалось проверить существование пользователя {login} Ошибка {err}"
+        )
     if not (user_check == None):
         try:
             user_role = session.execute(
@@ -29,6 +32,7 @@ def get_user_role(login):
     session.close()
     return result
 
+
 def update_password_user(user_update_password, login, password):
     session = db.session
     try:
@@ -41,6 +45,7 @@ def update_password_user(user_update_password, login, password):
     except Exception as err:
         logger.error(f"Не удалось обновить пароль пользователя {login} Ошибка {err}")
     session.close()
+
 
 def get_users():
     session = db.session
@@ -60,6 +65,7 @@ def get_users():
         logger.error(f"Не удалось получить список пользователей системы Ошибка {err}")
     session.close()
     return result
+
 
 def reg_user(login, password, user_name):
     session = db.session
@@ -83,6 +89,7 @@ def reg_user(login, password, user_name):
             message="Пользователь не создан так как уже есть в базе", category="warning"
         )
     session.close()
+
 
 def add_user_status(login, role):
     session = db.session
@@ -113,12 +120,11 @@ def add_user_status(login, role):
         flash(message="Не удалось найти пользователя ", category="error")
     session.close()
 
+
 def delet_user(login):
     session = db.session
     try:
-        user = session.scalars(
-            select(Users).where(Users.login == login)
-        ).one_or_none()
+        user = session.scalars(select(Users).where(Users.login == login)).one_or_none()
         logger.trace(f"Проверка существование пользователя {login}")
     except Exception as err:
         logger.warning(
@@ -127,22 +133,25 @@ def delet_user(login):
     if not (user == None):
         try:
             admins = session.scalar(
-                select(func.count(Users.login)).where(Users.user_role=='admin')
+                select(func.count(Users.login)).where(Users.user_role == "admin")
             )
             print(admins)
-            if admins<=1:
-                session.execute(
-                    delete(Users).where(Users.login == login)
-                )
+            if admins <= 1:
+                session.execute(delete(Users).where(Users.login == login))
                 session.commit()
                 logger.success(f"Пользоваватель {login} удален")
                 flash(message="Пользоваватель удален", category="success")
             else:
-                flash(message="Нельзя удалить учетную запись админа, так как существует только 1 запись админа ", category="warning")
+                flash(
+                    message="Нельзя удалить учетную запись админа, так как существует только 1 запись админа ",
+                    category="warning",
+                )
         except Exception as err:
             logger.error(f"Не удалось удалить пользователя {login} Ошибка {err}")
             flash(message="Не удалось удалить пользователя", category="error")
     else:
-        logger.warning(f"Не удалось удалить пользователя {login} Ошибка отсутсвие пользователя")
+        logger.warning(
+            f"Не удалось удалить пользователя {login} Ошибка отсутсвие пользователя"
+        )
         flash(message="Не удалось найти пользователя ", category="error")
     session.close()

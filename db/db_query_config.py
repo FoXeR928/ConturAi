@@ -4,6 +4,7 @@ from flask import flash
 
 from db.db_create import Configs, Configs_ai, db
 
+
 def get_configs_ai():
     session = db.session
     try:
@@ -20,26 +21,34 @@ def get_configs_ai():
         logger.error(f"Не удалось получить список конфигов для AI из базы Ошибка {err}")
     session.close
 
-def create_config_ai_start(configs:dict):
-    session=db.session
+
+def create_config_ai_start(configs):
+    session = db.session
     try:
-        for name,value in configs.items():
-            check_conf=session.scalars(select(Configs_ai).where(Configs_ai.name==name))
-            if check_conf==None:
-                config=Configs_ai(name=name,value=value)
+        print(configs)
+        for config in configs:
+            check_conf = session.scalars(
+                select(Configs_ai).where(Configs_ai.name == config[0])
+            ).one_or_none()
+            if check_conf == None:
+                config = Configs_ai(name=config[0], about=config[1], value=config[2])
                 session.add(config)
             else:
-                session.execute(update(Configs_ai).where(Configs_ai.name==name).values(value=value))
-        session.commit()
+                session.execute(
+                    update(Configs_ai)
+                    .where(Configs_ai.name == config[0])
+                    .values(value=config[2])
+                )
+            session.commit()
         logger.success(f"Добавлены в базу конфиги для AI Ошибка {err}")
-        flash(message='Конфигии AI добавлены в базу', category='success')
+        flash(message="Конфигии AI добавлены в базу", category="success")
     except Exception as err:
-        flash(message='Не удалось добавлены в базу конфиги для AI', category='error')
+        flash(message="Не удалось добавлены в базу конфиги для AI", category="error")
         logger.error(f"Не удалось добавлены в базу конфиги для AI Ошибка {err}")
     session.close()
 
 
-def get_config_ai(name:str):
+def get_config_ai(name: str):
     session = db.session
     try:
         search_config = session.execute(
@@ -56,17 +65,20 @@ def get_config_ai(name:str):
     return result
 
 
-def update_config_ai(name:str, value):
+def update_config_ai(name: str, value):
     session = db.session
     try:
-        session.execute(update(Configs_ai).where(Configs_ai.name == name).values(value=value))
+        session.execute(
+            update(Configs_ai).where(Configs_ai.name == name).values(value=value)
+        )
         session.commit()
         logger.success(f"Обноваление значения конфигова {name} на {value} из базы")
-        flash(message='Конфиг обнавлен',category='success')
+        flash(message="Конфиг обнавлен", category="success")
     except Exception as err:
         logger.error(f"Не удалось обновить значения конфигова {name} Ошибка {err}")
-        flash(message='Конфиг не обнавлен из за ошибки',category='error')
+        flash(message="Конфиг не обнавлен из за ошибки", category="error")
     session.close()
+
 
 def get_configs():
     session = db.session
@@ -86,7 +98,7 @@ def get_configs():
     return result
 
 
-def get_config(name:str):
+def get_config(name: str):
     session = db.session
     try:
         search_config = session.execute(
@@ -103,14 +115,14 @@ def get_config(name:str):
     return result
 
 
-def update_config(name:str, value):
+def update_config(name: str, value):
     session = db.session
     try:
         session.execute(update(Configs).where(Configs.name == name).values(value=value))
         session.commit()
         logger.success(f"Обноваление значения конфигова {name} на {value} из базы")
-        flash(message='Конфиг обнавлен',category='success')
+        flash(message="Конфиг обнавлен", category="success")
     except Exception as err:
         logger.error(f"Не удалось обновить значения конфигова {name} Ошибка {err}")
-        flash(message='Конфиг не обнавлен из за ошибки',category='error')
+        flash(message="Конфиг не обнавлен из за ошибки", category="error")
     session.close()

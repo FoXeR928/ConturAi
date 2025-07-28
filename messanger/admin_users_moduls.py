@@ -3,17 +3,8 @@ from flask import request, redirect, flash, render_template
 from flask.blueprints import Blueprint
 from loguru import logger
 
-from messanger.moduls import (
-    Create_user,
-    Update_password,
-    Delet_user
-)
-from db.db_query_users import (
-    add_user_status,
-    get_users,
-    reg_user,
-    delet_user
-)
+from messanger.moduls import Create_user, Update_password, Delet_user
+from db.db_query_users import add_user_status, get_users, reg_user, delet_user
 from db.db_query_users import get_user_role, update_password_user
 from db.db_query_chat import get_chats
 
@@ -29,7 +20,7 @@ except Exception as err:
 def admin_users_api():
     form_user = Create_user()
     form_password = Update_password()
-    form_del=Delet_user()
+    form_del = Delet_user()
     return render_template(
         "admin/users.html",
         admin=current_user.login,
@@ -38,8 +29,9 @@ def admin_users_api():
         form_password=form_password,
         users=get_users(),
         isAdmin=get_user_role(current_user.login),
-        chats=get_chats(login=current_user.login)
+        chats=get_chats(login=current_user.login),
     )
+
 
 @admin_users_app.post("/add_user")
 def admin_user_add_api():
@@ -60,8 +52,9 @@ def admin_user_add_api():
             )
         reg_user(login, password, user_name)
     else:
-        flash(message='Не корректное заполнение полей',category='warning')
+        flash(message="Не корректное заполнение полей", category="warning")
     return redirect(request.referrer)
+
 
 @admin_users_app.post("/update_user")
 def admin_user_update_api():
@@ -130,13 +123,18 @@ def admin_user_update_api():
                     f"Невыполнен API запрос на смену роли пользователя {login} Ошибка:{err}"
                 )
     else:
-        flash(message='Нет прав на изменение',category='warning')
+        flash(message="Нет прав на изменение", category="warning")
     return redirect(request.referrer)
+
 
 @admin_users_app.post("/delet_user")
 def admin_user_delet_api():
-    form_del=Delet_user()
-    if form_del.send_del.data and form_del.validate_on_submit() and get_user_role(current_user.login):
+    form_del = Delet_user()
+    if (
+        form_del.send_del.data
+        and form_del.validate_on_submit()
+        and get_user_role(current_user.login)
+    ):
         try:
             login = form_del.user_login.data
             logger.trace(
@@ -151,5 +149,5 @@ def admin_user_delet_api():
             )
         delet_user(login=login)
     else:
-        flash(message='Не корректное заполнение полей',category='warning')
+        flash(message="Не корректное заполнение полей", category="warning")
     return redirect(request.referrer)

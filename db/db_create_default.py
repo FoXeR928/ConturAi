@@ -11,11 +11,11 @@ def create_default_users(
     admin_password="admin",
     admin_name="админ",
     admin_role="admin",
-    system_login='system',
-    system_role='system'
+    system_login="system",
+    system_role="system",
 ):
     session = db.session
-    base=Users
+    base = Users
     if recreate:
         try:
             session.execute(delete(base))
@@ -24,8 +24,8 @@ def create_default_users(
         except Exception as err:
             logger.error(f"Не удалось удалить строки таблицы Users Ошибка {err}")
     add_list = list()
-    system_chat_role=get_config_ai('ai_role')
-    system_name=get_config_ai('ai_name')
+    system_chat_role = get_config_ai("ai_role")
+    system_name = get_config_ai("ai_name")
     try:
         check_admin = session.scalars(
             select(base).where(base.login == admin_login)
@@ -84,7 +84,7 @@ def create_default_config(
     excel="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ):
     session = db.session
-    base=Configs
+    base = Configs
     if recreate:
         try:
             session.execute(delete(base))
@@ -155,14 +155,15 @@ def create_default_config(
         logger.debug("Конфиги по умолчанию уже в базе есть")
     session.close()
 
+
 def create_default_config_ai(
     recreate=False,
-    ai_role='system',
-    ai_name='Раги',
+    ai_role="system",
+    ai_name="Раги",
     promt="Привет я ассистент {name}  База знаний: {context} Вопрос: {quest} Ответь используя базу знаний",
 ):
     session = db.session
-    base=Configs_ai
+    base = Configs_ai
     if recreate:
         try:
             session.execute(delete(base))
@@ -194,7 +195,9 @@ def create_default_config_ai(
                 value=ai_role,
             )
             add_list.append(config)
-            logger.debug(f"Создан запрос на добавление конфига роли нейросети в базу Configs")
+            logger.debug(
+                f"Создан запрос на добавление конфига роли нейросети в базу Configs"
+            )
         except Exception as err:
             logger.error(
                 f"Не удалось создать запрос на добавление роли нейросети в базу Configs Ошибка {err}"
@@ -207,7 +210,9 @@ def create_default_config_ai(
                 value=ai_name,
             )
             add_list.append(config)
-            logger.debug(f"Создан запрос на добавление конфига имя нейросети в базу Configs")
+            logger.debug(
+                f"Создан запрос на добавление конфига имя нейросети в базу Configs"
+            )
         except Exception as err:
             logger.error(
                 f"Не удалось создать запрос на добавление имя нейросети в базу Configs Ошибка {err}"

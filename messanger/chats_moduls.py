@@ -1,5 +1,5 @@
 from flask_login import login_required, current_user
-from flask import render_template, request, redirect, flash,abort
+from flask import render_template, request, redirect, flash, abort
 from flask.blueprints import Blueprint
 
 from loguru import logger
@@ -45,6 +45,7 @@ def chats_get_api():
         isAdmin=get_user_role(current_user.login),
     )
 
+
 @chats_app.post("/create_chat")
 @login_required
 def create_chat_api():
@@ -59,6 +60,7 @@ def create_chat_api():
     else:
         flash(message="Чат не создан неправельно заполнены поля", category="warning")
     return redirect(request.referrer)
+
 
 @chats_app.post("/delet_chat")
 @login_required
@@ -80,7 +82,7 @@ def delet_chat_api():
 @login_required
 def get_chat_api(chat: str):
     messages = get_messages_chat(login=current_user.login, chat_id=chat)
-    if messages==False:
+    if messages == False:
         abort(404)
     return render_template(
         "chats/chat.html",
@@ -89,24 +91,28 @@ def get_chat_api(chat: str):
         chat_id=chat,
         login=current_user.login,
         isAdmin=get_user_role(login=current_user.login),
-        chats=get_chats(login=current_user.login)
+        chats=get_chats(login=current_user.login),
     )
+
 
 @chats_app.post("/create_message")
 @login_required
 def create_message_api():
-    if request.method=='POST':
+    if request.method == "POST":
         try:
-            chat=request.form['chat_id']
-            text = request.form['message']
+            chat = request.form["chat_id"]
+            text = request.form["message"]
             logger.debug("Полученно сообщения из формы чата")
         except Exception as err:
             logger.error(f"Не удалось получить поле с сообщением чата Ошибка:{err}")
-            
+
         messages_history = get_messages_ai(chat)
         if messages_history != None:
             create_message(login=current_user.login, chat_id=chat, text=text)
             ask_query(query=text, chat_id=chat, messages_history=messages_history)
     else:
-        flash(message="Сообщение не удален, неправельно заполнены поля", category="warning")
+        flash(
+            message="Сообщение не удален, неправельно заполнены поля",
+            category="warning",
+        )
     return redirect(request.referrer)

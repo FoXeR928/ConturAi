@@ -7,7 +7,7 @@ from loguru import logger
 from messanger.moduls import (
     File_text,
 )
-from db.db_query_admin import ( 
+from db.db_query_admin import (
     add_file,
 )
 from db.db_query_config import get_config
@@ -25,6 +25,8 @@ except Exception as err:
 
 
 admin_ai_app.get("/docs")
+
+
 @login_required
 def ai_docs_api():
     form_file = File_text()
@@ -33,10 +35,13 @@ def ai_docs_api():
         admin=current_user.login,
         form_file=form_file,
         isAdmin=get_user_role(current_user.login),
-        chats=get_chats(login=current_user.login)
+        chats=get_chats(login=current_user.login),
     )
 
+
 admin_ai_app.post("/docs/add")
+
+
 @login_required
 def ai_add_docs_api():
     form_file = File_text()
@@ -58,7 +63,10 @@ def ai_add_docs_api():
         add_docs(chunks, file_name, norm_text)
     return redirect(request.referrer)
 
+
 admin_ai_app.post("/docs/read_file")
+
+
 @login_required
 def ai_read_file_api():
     try:

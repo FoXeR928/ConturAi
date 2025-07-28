@@ -8,8 +8,8 @@ from ai_chat.query_rag_db import search_docs
 
 def ask_query(query, chat_id, messages_history):
     context = search_docs(query)
-    ai_name=get_config_ai(name='ai_name')
-    ai_model=get_config_ai(name='model')
+    ai_name = get_config_ai(name="ai_name")
+    ai_model = get_config_ai(name="model")
     prompt = f"""Тебя зовут {ai_name}, твоя задача искать информацию в базе и отвечать на вопросы на основе информации из базы.
 
 Информация из базы: {context}
@@ -28,5 +28,5 @@ def ask_query(query, chat_id, messages_history):
     except Exception as err:
         logger.error(f"Не удалось создать ответ нейросети Ошибка {err}")
         return None
-    create_message('system', chat_id, response["message"]["content"])
+    create_message("system", chat_id, response["message"]["content"])
     return result

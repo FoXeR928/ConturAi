@@ -6,7 +6,7 @@ from loguru import logger
 from messanger.moduls import (
     Config_update,
 )
-from db.db_query_config import ( 
+from db.db_query_config import (
     get_configs,
 )
 from db.db_query_users import get_user_role
@@ -18,6 +18,7 @@ try:
 except Exception as err:
     logger.error(f"Инициализация пути /admin не удалась Ошибка:{err}")
 
+
 @admin_app.get("")
 @login_required
 def admin_api():
@@ -27,5 +28,5 @@ def admin_api():
         form=form,
         configs=get_configs(),
         isAdmin=get_user_role(current_user.login),
-        chats=get_chats(login=current_user.login)
+        chats=get_chats(login=current_user.login),
     )

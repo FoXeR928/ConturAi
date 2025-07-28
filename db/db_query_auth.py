@@ -9,28 +9,25 @@ from db.db_create import Users, db
 def auth_query(login, password, remember):
     session = db.session
     try:
-        user = session.scalars(
-            select(Users).where(Users.login == login)
-        ).one_or_none()
+        user = session.scalars(select(Users).where(Users.login == login)).one_or_none()
         logger.debug(f"Проверка пользователя {login} в базе для авторизации")
     except Exception as err:
         logger.error(f"Не удалось проверить пользователя {login} Ошибка {err}")
     if not (user == None):
         try:
-            auth = session.scalars(select(Users).where(Users.login==login)).one()
+            auth = session.scalars(select(Users).where(Users.login == login)).one()
             check_auth = auth.check_password(password=password)
             logger.success(f"Авторизация пользователя {login} прошла успешно")
         except Exception as err:
             logger.error(f"Не удалось авторизировать пользователя {login} Ошибка {err}")
         if check_auth:
-            login_user(user=auth,remember=remember)
+            login_user(user=auth, remember=remember)
             flash(message="Авторизация прошла успешно", category="success")
         else:
             flash(message="Неверный логин или пароль", category="warning")
-        result=check_auth
+        result = check_auth
     else:
         flash(message="Неверный логин или пароль", category="warning")
-        result=True
+        result = True
     session.close()
     return result
-

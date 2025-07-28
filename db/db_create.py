@@ -66,6 +66,7 @@ class Configs(db.Model):
     about: Mapped[str] = mapped_column(nullable=False)
     value: Mapped[str] = mapped_column(nullable=False)
 
+
 class Configs_ai(db.Model):
     __tablename__ = "configs_ai"
 

@@ -5,7 +5,6 @@ from flask import flash
 from db.db_create import Files, db
 
 
-
 # Files
 def add_file(file, filetype, file_name):
     session = db.session

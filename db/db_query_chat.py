@@ -1,4 +1,4 @@
-from sqlalchemy import select, update,delete
+from sqlalchemy import select, update, delete
 from loguru import logger
 from flask import flash
 
@@ -165,18 +165,20 @@ def get_messages_chat(login, chat_id):
                     Users.chat_role,
                     Messages.id,
                     Messages.text,
-                ).where(Messages.chat_id == chat_id).join(Users)
+                )
+                .where(Messages.chat_id == chat_id)
+                .join(Users)
             ).all()
             get_name = session.execute(
                 select(Chats.chat_name).where(Chats.id == chat_id)
             ).one()
-            result = {"name": get_name.chat_name,"messages": messages_query}
+            result = {"name": get_name.chat_name, "messages": messages_query}
             logger.debug(f"Получена историю чата {chat_id} для пользователя {login}")
         except Exception as err:
             logger.error(
                 f"Не удалось получить историю чата {chat_id} для пользователя {login} Ошибка {err}"
             )
-            result=False
+            result = False
     else:
         result = False
     session.close()
@@ -198,12 +200,11 @@ def get_delet_chats_irrevocably():
     session.close()
     return result
 
+
 def delet_chats_irrevocably():
     session = db.session
     try:
-        check_del = session.scalar(
-            select(Chats).where(Chats.chat_del == True)
-        )
+        check_del = session.scalar(select(Chats).where(Chats.chat_del == True))
         print(check_del)
         logger.trace(f"Проверка чатов для удаления прошла успешно")
     except Exception as err:

@@ -11,30 +11,101 @@ from wtforms import (
 )
 from wtforms.validators import DataRequired, Length
 
+
 class Settings(FlaskForm):
-    port=IntegerField('Порт сервера',validators=[DataRequired()],render_kw={"class": "port -input",'value':7000},)
-    debug=BooleanField('Подробное логирование',render_kw={"class": "check_debug -checkbox"})
-    db_select=SelectField('База данных',choices=[
-        (None, "Выбор базы данных"),
-        ("sqlite", "SQLite"),
-        ("postgres", "PostgresSQL"),])
-    db_server=StringField('Хост сервера БД',validators=[DataRequired()],render_kw={"class": "db_server -input -hide -server"},)
-    db_path=StringField('Путь БД',validators=[DataRequired()],render_kw={"class": "db_path -input -hide -local"},)
-    db_port=IntegerField('Порт сервера БД',validators=[DataRequired()],render_kw={"class": "db_port -input -hide -server",},)
-    db_user=StringField('Пользователь БД',validators=[DataRequired()],render_kw={"class": "db_login -input -hide -server"},)
-    db_password=PasswordField('Пароль БД',validators=[DataRequired()], render_kw={"class": "db_password -input -hide -server"},)
-    db_name=StringField('База БД',validators=[DataRequired()],render_kw={"class": "db_name -input -hide -server"},)
-    send_settings=SubmitField('Сохранить',render_kw={"class": "button_send -button"})
+    port = IntegerField(
+        "Порт сервера",
+        validators=[DataRequired()],
+        render_kw={"class": "port -input", "value": 7000},
+    )
+    debug = BooleanField(
+        "Подробное логирование", render_kw={"class": "check_debug -checkbox"}
+    )
+    db_select = SelectField(
+        "База данных",
+        choices=[
+            (None, "Выбор базы данных"),
+            ("sqlite", "SQLite"),
+            ("postgres", "PostgresSQL"),
+        ],
+    )
+    db_server = StringField(
+        "Хост сервера БД",
+        validators=[DataRequired()],
+        render_kw={"class": "db_server -input -hide -server"},
+    )
+    db_path = StringField(
+        "Путь БД",
+        validators=[DataRequired()],
+        render_kw={"class": "db_path -input -hide -local"},
+    )
+    db_port = IntegerField(
+        "Порт сервера БД",
+        validators=[DataRequired()],
+        render_kw={
+            "class": "db_port -input -hide -server",
+        },
+    )
+    db_user = StringField(
+        "Пользователь БД",
+        validators=[DataRequired()],
+        render_kw={"class": "db_login -input -hide -server"},
+    )
+    db_password = PasswordField(
+        "Пароль БД",
+        validators=[DataRequired()],
+        render_kw={"class": "db_password -input -hide -server"},
+    )
+    db_name = StringField(
+        "База БД",
+        validators=[DataRequired()],
+        render_kw={"class": "db_name -input -hide -server"},
+    )
+    send_settings = SubmitField("Сохранить", render_kw={"class": "button_send -button"})
+
 
 class Settings_ai(FlaskForm):
-    model_chunk=StringField('Модель для создания чанков',validators=[DataRequired()],render_kw={"class": "model_chunk -input",'value':'./ai_chat/models/sbert_large_nlu_ru'},)
-    model=StringField('Модель AI',validators=[DataRequired()],render_kw={"class": "model -input", 'value':"ilyagusev/saiga_llama3"},)
-    collection=StringField('Имя коллекции',validators=[DataRequired()],render_kw={"class": "collection -input",'value':'ragi_docs'},)
-    rag_host=StringField('Хост Qdrant',validators=[DataRequired()],render_kw={"class": "rag_host -input",'value':'localhost'},)
-    rag_port_http=IntegerField('Порт HTTP Qdrant',validators=[DataRequired()],render_kw={"class": "rag_port_http -input",'value':6333},)
-    rag_port_grpc=IntegerField('Порт GRPC Qdrant',validators=[DataRequired()],render_kw={"class": "rag_port_grpc -input",'value':6334},)
-    rag_grpc=BooleanField('Включить GRPC',render_kw={"class": "rag_grpc -input"},)
-    send_settings_ai=SubmitField('Сохранить',render_kw={"class": "button_send -button"})
+    model_chunk = StringField(
+        "Модель для создания чанков",
+        validators=[DataRequired()],
+        render_kw={
+            "class": "model_chunk -input",
+            "value": "./ai_chat/models/sbert_large_nlu_ru",
+        },
+    )
+    model = StringField(
+        "Модель AI",
+        validators=[DataRequired()],
+        render_kw={"class": "model -input", "value": "ilyagusev/saiga_llama3"},
+    )
+    collection = StringField(
+        "Имя коллекции",
+        validators=[DataRequired()],
+        render_kw={"class": "collection -input", "value": "ragi_docs"},
+    )
+    rag_host = StringField(
+        "Хост Qdrant",
+        validators=[DataRequired()],
+        render_kw={"class": "rag_host -input", "value": "localhost"},
+    )
+    rag_port_http = IntegerField(
+        "Порт HTTP Qdrant",
+        validators=[DataRequired()],
+        render_kw={"class": "rag_port_http -input", "value": 6333},
+    )
+    rag_port_grpc = IntegerField(
+        "Порт GRPC Qdrant",
+        validators=[DataRequired()],
+        render_kw={"class": "rag_port_grpc -input", "value": 6334},
+    )
+    rag_grpc = BooleanField(
+        "Включить GRPC",
+        render_kw={"class": "rag_grpc -input"},
+    )
+    send_settings_ai = SubmitField(
+        "Сохранить", render_kw={"class": "button_send -button"}
+    )
+
 
 class Auth(FlaskForm):
     login = StringField(
@@ -127,9 +198,13 @@ class Update_password(FlaskForm):
     )
     send_update = SubmitField("Изменить")
 
+
 class Delet_user(FlaskForm):
-    user_login=HiddenField("Логин пользователя", validators=[DataRequired(), Length(min=1)])
-    send_del=SubmitField('Удалить пользователя')
+    user_login = HiddenField(
+        "Логин пользователя", validators=[DataRequired(), Length(min=1)]
+    )
+    send_del = SubmitField("Удалить пользователя")
+
 
 class File_text(FlaskForm):
     file_name_text = StringField(

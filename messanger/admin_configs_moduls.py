@@ -6,7 +6,7 @@ from loguru import logger
 from messanger.moduls import (
     Config_update,
 )
-from db.db_query_config import ( 
+from db.db_query_config import (
     update_config,
     get_configs,
 )
@@ -19,6 +19,7 @@ try:
 except Exception as err:
     logger.error(f"Инициализация пути /admin/config не удалась Ошибка:{err}")
 
+
 @admin_config_app.get("")
 @login_required
 def admin_config_api():
@@ -28,14 +29,16 @@ def admin_config_api():
         form=form,
         configs=get_configs(),
         isAdmin=get_user_role(current_user.login),
-        chats=get_chats(login=current_user.login)
+        chats=get_chats(login=current_user.login),
     )
+
 
 @admin_config_app.get("/update")
 @login_required
 def admin_config_update_api():
     form = Config_update()
-    if (form.config_value.data
+    if (
+        form.config_value.data
         and form.validate_on_submit()
         and get_user_role(current_user.login)
     ):
@@ -49,5 +52,5 @@ def admin_config_update_api():
             )
         update_config(name, value)
     else:
-        flash(message='Не удалось проверить прочитать знычения',category='warning')
+        flash(message="Не удалось проверить прочитать знычения", category="warning")
     return redirect(request.referrer)

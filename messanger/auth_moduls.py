@@ -32,14 +32,15 @@ def login_api():
             logger.error(f"Не удалось получить поля формы авторизации Ошибка:{err}")
             flash(message="Не удалось прочитать форму", category="error")
             return redirect(request.referrer)
-        auth_check=auth_query(login=login,password=password, remember=remember)
+        auth_check = auth_query(login=login, password=password, remember=remember)
         if auth_check:
             return redirect(url_for("chats.chats_get_api"))
         else:
-            return redirect(request.referrer) 
+            return redirect(request.referrer)
     flash(message="Некорректные данные, авторизация не прошла", category="warning")
     return redirect(request.referrer)
-        
+
+
 @auth_app.get("/logout")
 @login_required
 def logout_api():
