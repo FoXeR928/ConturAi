@@ -6,7 +6,7 @@
 {% endblock %}
 
 {% block content %}
-<form class="form_with_back" action="{{url_for('create_start_settings_ai')}}" method="post">
+<form class="form_with_back" action="{{url_for('settings.create_start_settings_ai')}}" method="post">
     {{form.csrf_token}}
     {{form.model_chunk.label}}{{form.model_chunk}}
     {{form.model.label}}{{form.model}}

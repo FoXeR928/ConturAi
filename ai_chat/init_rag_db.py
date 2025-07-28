@@ -10,10 +10,10 @@ from sentence_transformers import SentenceTransformer
 import torch
 from loguru import logger
 
-from db.db_query_config import get_config
+from db.db_query_config import get_config_ai
 
 def optimizate_base():
-    collection=get_config('rag_collection')
+    collection=get_config_ai('rag_collection')
     try:
         client.create_payload_index(
             collection_name=collection,
@@ -47,9 +47,9 @@ def optimizate_base():
 
 
 try:
-    model_chank=get_config('model_chank')
+    model_chunk=get_config_ai('model_chunk')
     model = SentenceTransformer(
-        model_name_or_path=model_chank,
+        model_name_or_path=model_chunk,
         device=(
             "cuda"
             if torch.cuda.is_available()
@@ -64,11 +64,11 @@ except Exception as err:
     exit()
 
 try:
-    rag_host=get_config('rag_host')
-    rag_port_http=get_config('rag_port_http')
-    rag_port_grpc=get_config('rag_port_grpc')
-    rag_grpc=get_config('rag_grpc')
-    rag_collection=get_config('rag_collection')
+    rag_host=get_config_ai('rag_host')
+    rag_port_http=get_config_ai('rag_port_http')
+    rag_port_grpc=get_config_ai('rag_port_grpc')
+    rag_grpc=get_config_ai('rag_grpc')
+    rag_collection=get_config_ai('rag_collection')
     client = QdrantClient(
         host=rag_host, port=rag_port_http, grpc_port=rag_port_grpc, prefer_grpc=rag_grpc
     )

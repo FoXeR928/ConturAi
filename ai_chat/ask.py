@@ -2,14 +2,14 @@ from ollama import chat
 from loguru import logger
 
 from db.db_query_chat import create_message
-from db.db_query_config import get_config
+from db.db_query_config import get_config_ai
 from ai_chat.query_rag_db import search_docs
 
 
 def ask_query(query, chat_id, messages_history):
     context = search_docs(query)
-    ai_name=get_config(name='ai_name')
-    ai_model=get_config('ai_model')
+    ai_name=get_config_ai(name='ai_name')
+    ai_model=get_config_ai(name='model')
     prompt = f"""Тебя зовут {ai_name}, твоя задача искать информацию в базе и отвечать на вопросы на основе информации из базы.
 
 Информация из базы: {context}

@@ -65,3 +65,11 @@ class Configs(db.Model):
     name: Mapped[str] = mapped_column(unique=True, nullable=False)
     about: Mapped[str] = mapped_column(nullable=False)
     value: Mapped[str] = mapped_column(nullable=False)
+
+class Configs_ai(db.Model):
+    __tablename__ = "configs_ai"
+
+    id: Mapped[int] = mapped_column(primary_key=True, unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(unique=True, nullable=False)
+    about: Mapped[str] = mapped_column(nullable=False)
+    value: Mapped[str] = mapped_column(nullable=False)

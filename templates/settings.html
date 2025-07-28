@@ -7,7 +7,7 @@
 {% endblock %}
 
 {% block content %}
-<form class="form_with_back" action="{{url_for('create_start_settings')}}" method="post">
+<form class="form_with_back" action="{{url_for('settings.create_start_settings')}}" method="post">
     {{form.csrf_token}}
     {{form.port.label}}{{form.port}}
     <div class="check_box">

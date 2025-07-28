@@ -12,7 +12,7 @@ from wtforms import (
 from wtforms.validators import DataRequired, Length
 
 class Settings(FlaskForm):
-    port=IntegerField('Порт сервера',validators=[DataRequired()],render_kw={"class": "port -input"},)
+    port=IntegerField('Порт сервера',validators=[DataRequired()],render_kw={"class": "port -input",'value':7000},)
     debug=BooleanField('Подробное логирование',render_kw={"class": "check_debug -checkbox"})
     db_select=SelectField('База данных',choices=[
         (None, "Выбор базы данных"),
@@ -27,8 +27,8 @@ class Settings(FlaskForm):
     send_settings=SubmitField('Сохранить',render_kw={"class": "button_send -button"})
 
 class Settings_ai(FlaskForm):
-    model_chunk=StringField('Модель для создания чанков',validators=[DataRequired()],render_kw={"class": "model_chunk -input"},)
-    model=StringField('Модель AI',validators=[DataRequired()],render_kw={"class": "model -input"},)
+    model_chunk=StringField('Модель для создания чанков',validators=[DataRequired()],render_kw={"class": "model_chunk -input",'value':'./ai_chat/models/sbert_large_nlu_ru'},)
+    model=StringField('Модель AI',validators=[DataRequired()],render_kw={"class": "model -input", 'value':"ilyagusev/saiga_llama3"},)
     collection=StringField('Имя коллекции',validators=[DataRequired()],render_kw={"class": "collection -input",'value':'ragi_docs'},)
     rag_host=StringField('Хост Qdrant',validators=[DataRequired()],render_kw={"class": "rag_host -input",'value':'localhost'},)
     rag_port_http=IntegerField('Порт HTTP Qdrant',validators=[DataRequired()],render_kw={"class": "rag_port_http -input",'value':6333},)
