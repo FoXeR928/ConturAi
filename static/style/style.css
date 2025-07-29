@@ -1,30 +1,52 @@
 body{
     margin: 0;
     width: 100%;
+    background: #fff;
 }
 .header{
-    background: rgb(87 175 235);
+    background: #212529!important;
     padding: 10px;
     font-size: 14pt;
     text-align: left;
     height: 100%;
-    width: 255px;
+    width: 270px;
     position: fixed;
     overflow-x: hidden;
+}
+.flex_nav{
+    margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 92vh;
 }
 .nav_link{
     display: block;
     text-decoration: none;
-    color: white;
+    color: #fff;
+    background-color: #0d6efd;
     width: 75%;
+    padding: .5rem 1rem;
+    border-radius: .25rem 0 0 .25rem;
+}
+.button_nav_open{
+    background-color: #048eff;
+    border: none;
+    color: #fff;
+    border-radius: 0 .25rem .25rem 0;
+    width: 11%;
 }
 .nav_block{
     display: flex;
     width: 220px;
     padding-right: 35px;
 }
+.nav_all_block{
+    margin-bottom: 10px;
+}
 .nav_open{
     display: none;
+    margin-left: 15px;
 }
 .nav_under_block{
     display: flex;
@@ -33,13 +55,23 @@ body{
 .nav_under{
     text-decoration: none;
     color: white;
-    padding: 0px 35px 0px 15px;
+    margin-top: 10px;
+    background: #454d55;
+    border-radius: .25rem;
+    padding: .5rem 1rem;
+    width: 173px;
 }
 .button_nav{
     float: right;
+    border: none;
+    background: none;
+}
+.-exit{
+    border-radius: .25rem;
+    width: 187px;
 }
 main{
-    margin-left: 295px;
+    margin-left: 310px;
     width: auto;
     padding-right: 20px;
 }

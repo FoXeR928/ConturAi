@@ -34,14 +34,15 @@
     </section>
     <div>
     {% for chat_id, chat_name in chats.items() %}
-        <a class="chat" href="{{url_for('chats.get_chat_api', chat=chat_id)}}">
-            <h3>{{chat_name}}</h3>
-                <form action="{{url_for('chats.delet_chat_api')}}" method="post">
-                    {{form_del.csrf_token}}
-                    {{form_del.chat_id(value=chat_id)}}
-                    {{form_del.send_del}}
-                </form>
-        </a>
+        <div class="chat">
+           <a class="chat_name" href="{{url_for('chats.get_chat_api', chat=chat_id)}}">{{chat_name}}</a>
+            <form action="{{url_for('chats.delet_chat_api')}}" method="post">
+                {{form_del.csrf_token}}
+                {{form_del.chat_id(value=chat_id)}}
+                {{form_del.send_del}}
+            </form>
+        </div>
+        
     {% endfor %}
     </div>
 {% endblock %}

@@ -39,9 +39,9 @@ def init_pages():
                 auth_moduls,
                 chats_moduls,
                 admin_users_moduls,
-                admin_ai_moduls,
                 admin_configs_moduls,
                 admin_moduls,
+                admin_ai_docs_moduls
             )
 
             app.register_blueprint(auth_moduls.auth_app)
@@ -50,7 +50,7 @@ def init_pages():
             app.register_blueprint(admin_users_moduls.admin_users_app)
             app.register_blueprint(admin_chats_moduls.admin_chats_app)
             app.register_blueprint(admin_configs_moduls.admin_config_app)
-            app.register_blueprint(admin_ai_moduls.admin_ai_app)
+            app.register_blueprint(admin_ai_docs_moduls.admin_ai_docs_app)
     except Exception as err:
         logger.critical(f"Не удалось инициализировать страницы Ошибка:{err}")
         exit()

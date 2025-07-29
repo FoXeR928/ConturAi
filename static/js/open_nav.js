@@ -6,7 +6,7 @@ $('#button_nav').click(function(){
             left:'0'
         },400)
         $('main').animate({
-            'margin-left':'295px'
+            'margin-left':'310px'
         },400)
 
     }
@@ -15,7 +15,7 @@ $('#button_nav').click(function(){
             left:left_shift,
         },400)
         $('main').animate({
-            'margin-left':'60px'
+            'margin-left':'75px'
         },400)
     }
 })

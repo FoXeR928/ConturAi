@@ -18,15 +18,13 @@ from ai_chat.query_rag_db import add_docs
 from ai_chat.parther import normalize_text, chunk_create
 
 try:
-    logger.debug("Инициализация пути /admin/ai/")
-    admin_ai_app = Blueprint("admin_ai", __name__, url_prefix="/admin/ai/")
+    logger.debug("Инициализация пути /admin/ai/docs")
+    admin_ai_docs_app = Blueprint("admin_ai_docs", __name__, url_prefix="/admin/ai/docs")
 except Exception as err:
-    logger.error(f"Инициализация пути /admin/ai/ не удалась Ошибка:{err}")
+    logger.error(f"Инициализация пути /admin/ai/docs не удалась Ошибка:{err}")
 
 
-admin_ai_app.get("/docs")
-
-
+@admin_ai_docs_app.get("")
 @login_required
 def ai_docs_api():
     form_file = File_text()
@@ -39,9 +37,7 @@ def ai_docs_api():
     )
 
 
-admin_ai_app.post("/docs/add")
-
-
+@admin_ai_docs_app.post("/add")
 @login_required
 def ai_add_docs_api():
     form_file = File_text()
@@ -64,9 +60,7 @@ def ai_add_docs_api():
     return redirect(request.referrer)
 
 
-admin_ai_app.post("/docs/read_file")
-
-
+@admin_ai_docs_app.post("/read_file")
 @login_required
 def ai_read_file_api():
     try:

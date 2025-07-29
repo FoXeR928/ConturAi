@@ -45,4 +45,4 @@ def login_api():
 @login_required
 def logout_api():
     logout_user()
-    return redirect(url_for("auth.auth_api"))
+    return redirect(url_for("index"))

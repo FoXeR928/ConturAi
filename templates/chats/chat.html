@@ -22,8 +22,10 @@
     </ul>
     <form id="form_message" role="form">
         <input id="chat_id" type="hidden" value="{{chat_id}}">
-        <textarea name="message" id="message"></textarea>
-        <button class="send_message" id="send_message">Отправить</button>
+        <div class="text_box">
+            <textarea class="text_chat" name="message" id="message"></textarea>
+            <button class="send_message" id="send_message">Отправить</button>
+        </div>
     </form>
 </div>
 {% endblock %}

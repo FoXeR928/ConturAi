@@ -17,12 +17,14 @@
     text-align: right;
 }
 .message{
-    background: rgb(176, 232, 247);
+    background: #0da2fd;
     border-radius: 20px;
     padding: 10px;
     margin: 0 0 10px 0;
     max-width: 70%;
+    color: #FFF;
     display: inline-block;
+    box-shadow: 0px 5px 10px 0px rgba(0, 0, 0, 0.2);
 }
 .loader {
     display: none;
@@ -43,3 +45,19 @@
         transform: rotate(360deg);
     }
     } 
+.text_box{
+    display: flex;
+}
+.text_chat{
+    width: 88%;
+    height: 45px;
+    resize: none;
+    background:  rgb(240, 240, 240);
+    border: none;
+}
+.send_message{
+    width: 12%;
+    border: none;
+    color: white;
+    background: #0d6efd;
+}

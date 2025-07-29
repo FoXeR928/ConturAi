@@ -16,7 +16,7 @@
     <input required id="file" type="file" accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
     <button>Прочитать</button>
 </form>
-<form action="{{url_for('admin.admin_docs_api')}}" method="post">
+<form action="{{url_for('admin_ai_docs.ai_add_docs_api')}}" method="post">
     {{form_file.csrf_token}}
     {{form_file.file_name_text}}
     {{form_file.file_text.label}}{{form_file.file_text}}

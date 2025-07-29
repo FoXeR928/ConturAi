@@ -1,16 +1,19 @@
 {% extends "sample_user.html" %}
 
 {% block admin %}
-<div class="nav_block">
-    <a class="nav_link" href="{{url_for('admin_chats.admin_chats_api')}}">Администрирование</a>
-    <button class="button_nav_open">^</button>     
-</div>
-<div class="nav_open">
-    <div class="nav_under_block">
-        <a class="nav_under" href="{{url_for('admin_chats.admin_chats_api')}}">Чаты</a>
-        <a class="nav_under" href="{{url_for('admin_users.admin_users_api')}}">Пользователи</a>
-        <a class="nav_under" href="{{url_for('admin_chats.admin_chats_api')}}">Документы</a>
-        <a class="nav_under" href="{{url_for('admin_config.admin_config_api')}}">Конфигурации</a>
+<div class="nav_all_block">
+    <div class="nav_block">
+        <a class="nav_link" href="{{url_for('admin_chats.admin_chats_api')}}">Администрирование</a>
+        <button class="button_nav_open">^</button>     
+    </div>
+    <div class="nav_open">
+        <div class="nav_under_block">
+            <a class="nav_under" href="{{url_for('admin_chats.admin_chats_api')}}">Чаты</a>
+            <a class="nav_under" href="{{url_for('admin_users.admin_users_api')}}">Пользователи</a>
+            <a class="nav_under" href="{{url_for('admin_ai_docs.ai_docs_api')}}">Документы</a>
+            <a class="nav_under" href="{{url_for('admin_config.admin_config_api')}}">Конфигурация AI</a>
+            <a class="nav_under" href="{{url_for('admin_config.admin_config_api')}}">Конфигурации</a>
+        </div>
     </div>
 </div>
 {% endblock %}

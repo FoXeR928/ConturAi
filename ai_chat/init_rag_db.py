@@ -14,7 +14,7 @@ from db.db_query_config import get_config_ai
 
 
 def optimizate_base():
-    collection = get_config_ai("rag_collection")
+    collection = get_config_ai("collection")
     try:
         client.create_payload_index(
             collection_name=collection,
@@ -69,7 +69,7 @@ try:
     rag_port_http = get_config_ai("rag_port_http")
     rag_port_grpc = get_config_ai("rag_port_grpc")
     rag_grpc = get_config_ai("rag_grpc")
-    rag_collection = get_config_ai("rag_collection")
+    rag_collection = get_config_ai("collection")
     client = QdrantClient(
         host=rag_host, port=rag_port_http, grpc_port=rag_port_grpc, prefer_grpc=rag_grpc
     )

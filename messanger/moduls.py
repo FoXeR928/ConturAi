@@ -151,11 +151,11 @@ class Create_chat(FlaskForm):
 
 class Delet_chat(FlaskForm):
     chat_id = HiddenField("ID чата", validators=[DataRequired(), Length(min=1)])
-    send_del = SubmitField("Удалить")
+    send_del = SubmitField("Удалить",render_kw={"class": "button_del"})
 
 
 class Delet_chats_irrevocably(FlaskForm):
-    send_del_chats = SubmitField("Удалить все чаты отмеченные на удаление безвозвратно")
+    send_del_chats = SubmitField("Удалить все чаты отмеченные на удаление безвозвратно",render_kw=({"class": "button_del -all"}))
 
 
 class Create_user(FlaskForm):

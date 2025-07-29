@@ -11,24 +11,26 @@
 <body>
     <header>
         <nav class="header" id="header">
-            <button class="button_nav" id="button_nav">=</button>
-            <div>
-                <div class="nav_block">
-                    <a class="nav_link" href="{{url_for('chats.chats_get_api')}}">Чаты</a>
-                    <button id="open_nav_block" class="button_nav_open">^</button>    
-                </div>
-                <div class="nav_open">
-                    <div class="nav_under_block">
-                        {% for chat_id, chat_name in chats.items() %}
-                            <a class="nav_under" href="{{url_for('chats.get_chat_api', chat=chat_id)}}">{{chat_name}}</a>
-                        {% endfor %}
+            <button class="button_nav" id="button_nav"><img src="/static/image/menu.svg" alt="Кнопка открытия меню"></button>
+            <div class="flex_nav">
+                <div class="only_nav">
+                    <div class="nav_all_block">
+                        <div class="nav_block">
+                            <a class="nav_link" href="{{url_for('chats.chats_get_api')}}">Чаты</a>
+                            <button id="open_nav_block" class="button_nav_open">^</button>    
+                        </div>
+                        <div class="nav_open">
+                            <div class="nav_under_block">
+                                {% for chat_id, chat_name in chats.items() %}
+                                    <a class="nav_under" href="{{url_for('chats.get_chat_api', chat=chat_id)}}">{{chat_name}}</a>
+                                {% endfor %}
+                            </div>
+                        </div>
                     </div>
+                    {% block admin %}{% endblock %}
                 </div>
+                <a class="nav_link -exit" href="{{url_for('auth.logout_api')}}">Выйти</a>
             </div>
-            <div>
-                {% block admin %}{% endblock %}
-            </div>
-            <a class="nav_link" href="{{'auth.logout_api'}}">Выйти</a>
         </nav>
         {% for cat,msg in get_flashed_messages(True) %}
             <div class="flash {{cat}}">{{msg}}</div>

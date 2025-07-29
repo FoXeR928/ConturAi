@@ -1,13 +1,25 @@
 .chat{
     display: flex;
-    align-items: center;
-    width: 98%;
-    background: rgb(127 194 239);
-    border-radius: 7px;
+    margin-bottom: 10px;
+}
+.chat_name{
     text-decoration: none;
-    color: black;
-    padding: 10px;
-    margin: 10px 0;
+    background: #2b9bff;
+    padding: .5rem 1rem;
+    border-radius: .25rem 0 0 .25rem;
+    color: #fff;
+    width: 90%;
+}
+.button_del{
+    border: none;
+    background: #ff2222;
+    padding: .6rem 1rem;
+    color: #fff;
+    border-radius: 0 .25rem .25rem 0;
+
+}
+.-all{
+    border-radius: .25rem;
 }
 h3{
     margin: 0 92% 0 0;

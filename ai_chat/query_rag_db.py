@@ -7,7 +7,7 @@ from db.db_query_config import get_config_ai
 
 
 def add_docs(chunks, doc_name, norm_text, batch_size=256):
-    rag_collection = get_config_ai("rag_collection")
+    rag_collection = get_config_ai("collection")
     points = list()
     try:
         for i in range(0, len(chunks), batch_size):
@@ -45,7 +45,7 @@ def add_docs(chunks, doc_name, norm_text, batch_size=256):
 
 def search_docs(query, limit=5):
     try:
-        rag_collection = get_config_ai("rag_collection")
+        rag_collection = get_config_ai("collection")
         query_embedding = model.encode(query).tolist()
         result_search = client.search(
             collection_name=rag_collection, query_vector=query_embedding, limit=limit

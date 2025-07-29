@@ -25,7 +25,6 @@ def get_configs_ai():
 def create_config_ai_start(configs):
     session = db.session
     try:
-        print(configs)
         for config in configs:
             check_conf = session.scalars(
                 select(Configs_ai).where(Configs_ai.name == config[0])
@@ -40,7 +39,7 @@ def create_config_ai_start(configs):
                     .values(value=config[2])
                 )
             session.commit()
-        logger.success(f"Добавлены в базу конфиги для AI Ошибка {err}")
+        logger.success(f"Добавлены в базу конфиги для AI")
         flash(message="Конфигии AI добавлены в базу", category="success")
     except Exception as err:
         flash(message="Не удалось добавлены в базу конфиги для AI", category="error")
