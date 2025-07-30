@@ -123,22 +123,24 @@ class Auth(FlaskForm):
     )
     send = SubmitField("Войти", render_kw={"class": "button_auth -button"})
 
+
 class Create_chat(FlaskForm):
     chat = StringField(
         "Название чата",
         validators=[DataRequired(), Length(min=1)],
-        render_kw={"placeholder": "Название чата"},
+        render_kw={"placeholder": "Название чата", "class": "name_chat -separete_main -input_separete"},
     )
-    send_chat = SubmitField("Создать")
-
-
-class Delet_chat(FlaskForm):
-    chat_id = HiddenField("ID чата", validators=[DataRequired(), Length(min=1)])
-    send_del = SubmitField("Удалить",render_kw={"class": "button_del"})
+    send_chat = SubmitField(
+        "Создать",
+        render_kw={"class": "send_message -separete_second -button_separete"},
+    )
 
 
 class Delet_chats_irrevocably(FlaskForm):
-    send_del_chats = SubmitField("Удалить все чаты отмеченные на удаление безвозвратно",render_kw=({"class": "button_del -all"}))
+    send_del_chats = SubmitField(
+        "Удалить все чаты отмеченные на удаление безвозвратно",
+        render_kw=({"class": "button_del -all"}),
+    )
 
 
 class Create_user(FlaskForm):

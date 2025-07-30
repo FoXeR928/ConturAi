@@ -1,4 +1,4 @@
-var left_shift='-235px'
+var left_shift='-245px'
 
 $('#button_nav').click(function(){
     if($('#header').css('left')==left_shift){
@@ -20,5 +20,5 @@ $('#button_nav').click(function(){
     }
 })
 $('.button_nav_open').click(function(){
-    $(this).parent().parent().children('.nav_open').slideToggle()
+    $(this).parent().parent().children('.nav_hide_block').slideToggle()
 })

@@ -33,8 +33,8 @@ def admin_config_api():
 def admin_config_update_api():
     if get_user_role(current_user.login):
         try:
-            name = request.form['config_name']
-            value = request.form['config_value']
+            name = request.form["config_name"]
+            value = request.form["config_value"]
             logger.debug("Полученно из формы данных для обновления конфигов в базе")
         except Exception as err:
             logger.error(

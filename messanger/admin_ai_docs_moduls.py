@@ -19,7 +19,9 @@ from ai_chat.parther import normalize_text, chunk_create
 
 try:
     logger.debug("Инициализация пути /admin/ai/docs")
-    admin_ai_docs_app = Blueprint("admin_ai_docs", __name__, url_prefix="/admin/ai/docs")
+    admin_ai_docs_app = Blueprint(
+        "admin_ai_docs", __name__, url_prefix="/admin/ai/docs"
+    )
 except Exception as err:
     logger.error(f"Инициализация пути /admin/ai/docs не удалась Ошибка:{err}")
 

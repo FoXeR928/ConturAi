@@ -3,16 +3,15 @@ from flask import request, redirect, flash, render_template
 from flask.blueprints import Blueprint
 from loguru import logger
 
-from db.db_query_config import (
-    get_configs_ai,
-    update_config_ai
-)
+from db.db_query_config import get_configs_ai, update_config_ai
 from db.db_query_users import get_user_role
 from db.db_query_chat import get_chats
 
 try:
     logger.debug("Инициализация пути /admin/ai/config")
-    admin_ai_config_app = Blueprint("admin_ai_config", __name__, url_prefix="/admin/ai/config")
+    admin_ai_config_app = Blueprint(
+        "admin_ai_config", __name__, url_prefix="/admin/ai/config"
+    )
 except Exception as err:
     logger.error(f"Инициализация пути /admin/ai/config не удалась Ошибка:{err}")
 
@@ -28,13 +27,14 @@ def ai_config_api():
         chats=get_chats(login=current_user.login),
     )
 
+
 @admin_ai_config_app.post("/update")
 @login_required
 def ai_config_update_api():
     if get_user_role(current_user.login):
         try:
-            name = request.form['config_name']
-            value = request.form['config_value']
+            name = request.form["config_name"]
+            value = request.form["config_value"]
             logger.debug("Полученно из формы данных для обновления конфигов в базе")
         except Exception as err:
             logger.error(

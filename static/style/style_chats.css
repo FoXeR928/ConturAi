@@ -1,26 +1,15 @@
-.chat{
-    display: flex;
+.chat_block{
     margin-bottom: 10px;
 }
 .chat_name{
+    word-wrap: break-word;
     text-decoration: none;
-    background: #2b9bff;
-    padding: .5rem 1rem;
-    border-radius: .25rem 0 0 .25rem;
-    color: #fff;
-    width: 90%;
+    background: var(--chat-block-color);
+    color: var(--button-text-color);
 }
 .button_del{
-    border: none;
-    background: #ff2222;
-    padding: .6rem 1rem;
-    color: #fff;
-    border-radius: 0 .25rem .25rem 0;
-
-}
-.-all{
-    border-radius: .25rem;
-}
-h3{
-    margin: 0 92% 0 0;
+    text-align: center;
+    text-decoration: none;
+    background: var(--delet-button-color);
+    color: var(--button-text-color);
 }

@@ -30,7 +30,11 @@
                         {% elif config['input_format']=='number' %}
                             <input type="number" name="config_value" required value="{{config['value']}}">
                         {% elif config['input_format']=='boolen' %}
-                            <input type="checkbox" name="config_value" required value="{{config['value']}}">
+                            {% if config['value']=='1' %}
+                                <input type="checkbox" name="config_value" required checked>
+                            {% else %}
+                                <input type="checkbox" name="config_value" required>
+                            {% endif %}
                         {% elif config['input_format']=='textarea' %}
                             <textarea name="config_value" required>{{config['value']}}</textarea>
                         {% endif %}

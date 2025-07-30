@@ -11,32 +11,32 @@
 <body>
     <header>
         <nav class="header" id="header">
-            <button class="button_nav" id="button_nav"><img src="/static/image/menu.svg" alt="Кнопка открытия меню"></button>
-            <div class="flex_nav">
-                <div class="only_nav">
-                    <div class="nav_all_block">
-                        <div class="nav_block">
-                            <a class="nav_link" href="{{url_for('chats.chats_get_api')}}">Чаты</a>
-                            <button id="open_nav_block" class="button_nav_open">^</button>    
+            <div class="nav_block">
+                <section class="nav_section">
+                    <article class="nav_article">
+                        <div class="nav_element -separete_block">
+                            <a class="nav_link -separete_main" href="{{url_for('chats.chats_get_api')}}">Чаты</a>
+                            <button class="button_nav_open -separete_second">^</button>    
                         </div>
-                        <div class="nav_open">
-                            <div class="nav_under_block">
+                        <div class="nav_hide_block">
+                            <div class="nav_interior_block">
                                 {% for chat_id, chat_name in chats.items() %}
-                                    <a class="nav_under" href="{{url_for('chats.get_chat_api', chat=chat_id)}}">{{chat_name}}</a>
+                                    <a class="nav_interior_element -button" href="{{url_for('chats.get_chat_api', chat=chat_id)}}">{{chat_name}}</a>
                                 {% endfor %}
                             </div>
                         </div>
-                    </div>
+                    </article>
                     {% block admin %}{% endblock %}
-                </div>
-                <a class="nav_link -exit" href="{{url_for('auth.logout_api')}}">Выйти</a>
+                </section>
+                <a class="nav_link -button" href="{{url_for('auth.logout_api')}}">Выйти</a>
             </div>
+            <button class="button_nav -button_image" id="button_nav"><img src="/static/image/menu.svg" alt="Кнопка открытия меню"></button>
         </nav>
+    </header>
+    <main>
         {% for cat,msg in get_flashed_messages(True) %}
             <div class="flash {{cat}}">{{msg}}</div>
         {% endfor %}
-    </header>
-    <main>
         {% block content %}{% endblock %}
     </main>
 </body>

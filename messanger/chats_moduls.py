@@ -4,7 +4,7 @@ from flask.blueprints import Blueprint
 
 from loguru import logger
 
-from messanger.moduls import Create_chat, Delet_chat
+from messanger.moduls import Create_chat
 from db.db_query_chat import (
     get_chats,
     get_messages_chat,
@@ -27,20 +27,10 @@ except Exception as err:
 @login_required
 def chats_get_api():
     form = Create_chat()
-    form_del = Delet_chat()
-    if form_del.send_del.data and form_del.validate_on_submit():
-        try:
-            chat = form_del.chat_id.data
-            logger.debug("Полученно ID чата из формы")
-            delet_messages(chat_id=chat)
-        except Exception as err:
-            logger.error(f"Не удалось получить поле с именем чата Ошибка:{err}")
-        return redirect(request.referrer)
     return render_template(
         "chats/user_chats.html",
         chats=get_chats(current_user.login),
         form=form,
-        form_del=form_del,
         login=current_user.login,
         isAdmin=get_user_role(current_user.login),
     )
@@ -62,19 +52,11 @@ def create_chat_api():
     return redirect(request.referrer)
 
 
-@chats_app.post("/delet_chat")
+@chats_app.get("/delet_chat/<chat>")
 @login_required
-def delet_chat_api():
-    form_del = Delet_chat()
-    if form_del.send_del.data and form_del.validate_on_submit():
-        try:
-            chat = form_del.chat_id.data
-            logger.debug("Полученно ID чата из формы")
-        except Exception as err:
-            logger.error(f"Не удалось получить поле с именем чата Ошибка:{err}")
-        delet_messages(chat_id=chat)
-    else:
-        flash(message="Чат не удален, неправельно заполнены поля", category="warning")
+def delet_chat_api(chat: str):
+    delet_messages(chat_id=chat, user=current_user.login)
+    logger.debug("Полученно ID чата из формы")
     return redirect(request.referrer)
 
 

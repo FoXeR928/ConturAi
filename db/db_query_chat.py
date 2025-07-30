@@ -3,6 +3,7 @@ from loguru import logger
 from flask import flash
 
 from db.db_create import Users, Chats, Messages, db
+from db.db_query_users import get_user_role
 
 
 def create_chat(login, chat):
@@ -78,7 +79,7 @@ def create_message(login, chat_id, text):
     session.close()
 
 
-def delet_messages(chat_id):
+def delet_messages(chat_id, user):
     session = db.session
     try:
         chat = session.scalars(
@@ -90,16 +91,24 @@ def delet_messages(chat_id):
             f"Не удалось проверить существование чата {chat_id} Ошибка {err}"
         )
     if chat != None:
-        try:
-            session.execute(
-                update(Chats).where(Chats.id == chat_id).values(chat_del=True)
-            )
-            session.commit()
-            logger.debug(f"Чат {chat_id} помечен как удаленный")
-            flash(message="Чат удален", category="success")
-        except Exception as err:
-            logger.warning(f"Не удалось измеить статус чата {chat_id} Ошибка {err}")
-            flash(message="Чат не удален из-за ошибки", category="success")
+        user = session.scalars(
+            select(Chats.user_login).where(Chats.id == chat_id)
+        ).one_or_none()
+        if user == user or get_user_role(user):
+            try:
+                session.execute(
+                    update(Chats).where(Chats.id == chat_id).values(chat_del=True)
+                )
+                session.commit()
+                logger.debug(f"Чат {chat_id} помечен как удаленный")
+                flash(message="Чат удален", category="success")
+            except Exception as err:
+                logger.warning(f"Не удалось измеить статус чата {chat_id} Ошибка {err}")
+                flash(message="Чат не удален из-за ошибки", category="error")
+        else:
+            flash(message="У вас нет права на удаление чата", category="warning")
+    else:
+        logger.warning(f"Не найден чат {chat_id} Ошибка {err}")
     session.close()
 
 

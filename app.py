@@ -41,7 +41,7 @@ def init_pages():
                 admin_users_moduls,
                 admin_configs_moduls,
                 admin_ai_config_moduls,
-                admin_ai_docs_moduls
+                admin_ai_docs_moduls,
             )
 
             app.register_blueprint(auth_moduls.auth_app)
