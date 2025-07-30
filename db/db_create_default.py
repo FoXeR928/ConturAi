@@ -111,7 +111,7 @@ def create_default_config(
     if check_format_pdf == None:
         try:
             config = base(
-                name="pdf", about="Параметр отвечающий за формат PDF", value=pdf
+                name="pdf", about="Параметр отвечающий за формат PDF", value=pdf,input_format='text'
             )
             add_list.append(config)
             logger.debug(f"Создан запрос на добавление конфига PDF в базу Configs")
@@ -122,7 +122,7 @@ def create_default_config(
     if check_format_word == None:
         try:
             config = base(
-                name="word", about="Параметр отвечающий за формат WORD", value=word
+                name="word", about="Параметр отвечающий за формат WORD", value=word,input_format='text'
             )
             add_list.append(config)
             logger.debug(f"Создан запрос на добавление конфига WORD в базу Configs")
@@ -133,7 +133,7 @@ def create_default_config(
     if check_format_excel == None:
         try:
             config = base(
-                name="excel", about="Параметр отвечающий за формат EXCEL", value=excel
+                name="excel", about="Параметр отвечающий за формат EXCEL", value=excel,input_format='text'
             )
             add_list.append(config)
             logger.debug(f"Создан запрос на добавление конфига EXCEL в базу Configs")
@@ -193,6 +193,7 @@ def create_default_config_ai(
                 name="ai_role",
                 about="Параметр отвечающий за определение роли нейросети в чате",
                 value=ai_role,
+                input_format='text'
             )
             add_list.append(config)
             logger.debug(
@@ -208,6 +209,7 @@ def create_default_config_ai(
                 name="ai_name",
                 about="Параметр отвечающий за имя нейросети",
                 value=ai_name,
+                input_format='text'
             )
             add_list.append(config)
             logger.debug(
@@ -223,6 +225,7 @@ def create_default_config_ai(
                 name="ai_promt",
                 about="Параметр отвечающий за промт для нейросети",
                 value=promt,
+                input_format='textarea'
             )
             add_list.append(config)
             logger.debug(f"Создан запрос на добавление конфига промт в базу Configs")

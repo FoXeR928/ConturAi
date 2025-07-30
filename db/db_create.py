@@ -65,6 +65,7 @@ class Configs(db.Model):
     name: Mapped[str] = mapped_column(unique=True, nullable=False)
     about: Mapped[str] = mapped_column(nullable=False)
     value: Mapped[str] = mapped_column(nullable=False)
+    input_format: Mapped[str] = mapped_column(nullable=False)
 
 
 class Configs_ai(db.Model):
@@ -74,3 +75,4 @@ class Configs_ai(db.Model):
     name: Mapped[str] = mapped_column(unique=True, nullable=False)
     about: Mapped[str] = mapped_column(nullable=False)
     value: Mapped[str] = mapped_column(nullable=False)
+    input_format: Mapped[str] = mapped_column(nullable=False)

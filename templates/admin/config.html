@@ -24,10 +24,17 @@
                 <td>{{config['about']}}</td>
                 <td>
                     <form action="{{url_for('admin_config.admin_config_update_api')}}" method="post">
-                        {{form.csrf_token}}
-                        {{form.config_name(value=config['name'])}}
-                        {{form.config_value(value=config['value'])}}
-                        {{form.send_config}}
+                        <input type="text" name="config_name" required hidden value="{{config['name']}}">
+                        {% if config['input_format']=='text' %}
+                            <input type="text" name="config_value" required value="{{config['value']}}">
+                        {% elif config['input_format']=='number' %}
+                            <input type="number" name="config_value" required value="{{config['value']}}">
+                        {% elif config['input_format']=='boolen' %}
+                            <input type="checkbox" name="config_value" required value="{{config['value']}}">
+                        {% elif config['input_format']=='textarea' %}
+                            <textarea name="config_value" required>{{config['value']}}</textarea>
+                        {% endif %}
+                        <button>Сохранить</button>
                     </form>
                 </td>
             </tr>

@@ -40,13 +40,13 @@ def init_pages():
                 chats_moduls,
                 admin_users_moduls,
                 admin_configs_moduls,
-                admin_moduls,
+                admin_ai_config_moduls,
                 admin_ai_docs_moduls
             )
 
             app.register_blueprint(auth_moduls.auth_app)
             app.register_blueprint(chats_moduls.chats_app)
-            app.register_blueprint(admin_moduls.admin_app)
+            app.register_blueprint(admin_ai_config_moduls.admin_ai_config_app)
             app.register_blueprint(admin_users_moduls.admin_users_app)
             app.register_blueprint(admin_chats_moduls.admin_chats_app)
             app.register_blueprint(admin_configs_moduls.admin_config_app)
@@ -58,9 +58,9 @@ def init_pages():
 
 def init_page_settings():
     try:
-        from messanger import config_moduls
+        from messanger import setting_moduls
 
-        app.register_blueprint(config_moduls.configs_app)
+        app.register_blueprint(setting_moduls.configs_app)
     except Exception as err:
         logger.critical(f"Не удалось инициализировать страницы настроек Ошибка:{err}")
         exit()

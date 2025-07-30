@@ -74,13 +74,13 @@ def create_start_settings_ai():
         rag_port_grpc = form.rag_port_grpc.data
         rag_grpc = form.rag_grpc.data
         config_to_add = [
-            ("model_chunk", "Модель для генерации чанков", model_chunk),
-            ("model", "Модель для генерации ответа", model),
-            ("collection", "Название векторной коллекции", collection),
-            ("rag_host", "Хост Qdrant", rag_host),
-            ("rag_port_http", "HTTP порт Qdrant", rag_port_http),
-            ("rag_port_grpc", "GRPC порт Qdrant", rag_port_grpc),
-            ("rag_grpc", "Использовать GRPC порт Qdrant", rag_grpc),
+            ("model_chunk", "Модель для генерации чанков", model_chunk,'text'),
+            ("model", "Модель для генерации ответа", model,'text'),
+            ("collection", "Название векторной коллекции", collection,'text'),
+            ("rag_host", "Хост Qdrant", rag_host,'text'),
+            ("rag_port_http", "HTTP порт Qdrant", rag_port_http,'number'),
+            ("rag_port_grpc", "GRPC порт Qdrant", rag_port_grpc,'number'),
+            ("rag_grpc", "Использовать GRPC порт Qdrant", rag_grpc,'boolen'),
         ]
         create_config_ai_start(configs=config_to_add)
         with open("./instance/config.json", "r") as file_config_read:

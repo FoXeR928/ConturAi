@@ -123,23 +123,6 @@ class Auth(FlaskForm):
     )
     send = SubmitField("Войти", render_kw={"class": "button_auth -button"})
 
-
-class Config_update(FlaskForm):
-    config_name = HiddenField("Имя конфига", validators=[DataRequired(), Length(min=1)])
-    config_value = StringField(
-        "Значение конфига", validators=[DataRequired(), Length(min=1)]
-    )
-    send_config = SubmitField("Сохранить")
-
-
-class Config_update_textaria(FlaskForm):
-    config_name = HiddenField("Имя конфига", validators=[DataRequired(), Length(min=1)])
-    config_value = TextAreaField(
-        "Значение конфига", validators=[DataRequired(), Length(min=1)]
-    )
-    send_config = SubmitField("Сохранить")
-
-
 class Create_chat(FlaskForm):
     chat = StringField(
         "Название чата",
