@@ -1,7 +1,7 @@
 $('#add_button').click(function(){
     $("#hide_form").show();
 })
-$('.close_button').click(function(){
+$('.form_close_button').click(function(){
     $(this).parent().parent().parent().hide();
 })
 $('.update_button').click(function(){

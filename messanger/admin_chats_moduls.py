@@ -3,11 +3,9 @@ from flask import request, redirect, render_template
 from flask.blueprints import Blueprint
 from loguru import logger
 
-from messanger.moduls import (
-    Delet_chats_irrevocably,
-)
 from db.db_query_chat import (
     delet_chats_irrevocably,
+    delet_chats_irrevocably_checked,
     get_delet_chats_irrevocably,
 )
 from db.db_query_users import get_user_role
@@ -23,20 +21,27 @@ except Exception as err:
 @admin_chats_app.get("")
 @login_required
 def admin_chats_api():
-    form_del_irr = Delet_chats_irrevocably()
     return render_template(
         "admin/admin_chats.html",
-        form_del_irr=form_del_irr,
         chats_del=get_delet_chats_irrevocably(),
         isAdmin=get_user_role(login=current_user.login),
         chats=get_chats(login=current_user.login),
     )
 
+@admin_chats_app.post("/delet")
+@login_required
+def admin_delet_chats_irrevocably_checked_api():
+    if get_user_role(login=current_user.login):
+        try:
+            chats=request.form.getlist('chats[]')
+            delet_chats_irrevocably_checked(chats=chats)
+        except Exception as err:
+            logger.error(f"Ошибка {err}")
+    return redirect(request.referrer)
 
-@admin_chats_app.post("/delet_chats_irrevocably")
+@admin_chats_app.get("/delet_chats_irrevocably")
 @login_required
 def admin_delet_chats_irrevocably_api():
-    form_del = Delet_chats_irrevocably()
-    if form_del.send_del_chats.data and get_user_role(login=current_user.login):
+    if get_user_role(login=current_user.login):
         delet_chats_irrevocably()
     return redirect(request.referrer)

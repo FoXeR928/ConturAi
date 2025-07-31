@@ -7,12 +7,16 @@
 
     --background-main-color:#fff;
     --background-nav-color:#212529;
-    --flash_shadow:0px 4px 8px 2px rgba(0, 0, 0, 0.2);
+    --flash_shadow:0px 4px 10px 2px rgba(0, 0, 0, 0.2);
 
     --input_background-color:#edeaea;
 
     --chat-block-color:#048eff;
     --delet-button-color:#ff2222;
+
+    --block-background-color: #212529;
+    --block-text-color:#fff;
+    --block-behind-background-color: #00000036;
 }
 
 .-separete_block{
@@ -38,6 +42,23 @@
 .-button_image{
     border: none;
     background: none;
+}
+.-element_block{
+    padding: 15px;
+    border-radius: 10px;
+}
+.-input_separete{
+    background: var(--input_background-color);
+}
+.-button_separete{
+    background: var(--button-separate-second-color);
+    color: var(--button-text-color);
+}
+.-button_del_close{
+    text-align: center;
+    text-decoration: none;
+    background: var(--delet-button-color);
+    color: var(--button-text-color);
 }
 body{
     margin: 0;
@@ -127,11 +148,4 @@ main{
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-}
-.-input_separete{
-    background: var(--input_background-color);
-}
-.-button_separete{
-    background: var(--button-separate-second-color);
-    color: var(--button-text-color);
 }

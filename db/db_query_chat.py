@@ -209,12 +209,27 @@ def get_delet_chats_irrevocably():
     session.close()
     return result
 
+def delet_chats_irrevocably_checked(chats):
+    session = db.session
+    for chat in chats:
+        try:
+            check_del = session.scalar(select(Chats).where(Chats.id == chat))
+            logger.trace(f"Проверка чатa {chat} для удаления прошла успешно")
+        except Exception as err:
+            logger.error(f"Не удалось проверить наличие чатa {chat} для удаления Ошибка {err}")
+        if check_del != None:
+            try:
+                session.execute(delete(Chats).where((Chats.chat_del==True) & (Chats.id==chat)))
+                session.commit()
+                logger.debug(f"Чат {chat} удалены из базы")
+            except Exception as err:
+                logger.error(f"Не удалось удалить чат {chat} Ошибка {err}")
+    session.close()
 
 def delet_chats_irrevocably():
     session = db.session
     try:
         check_del = session.scalar(select(Chats).where(Chats.chat_del == True))
-        print(check_del)
         logger.trace(f"Проверка чатов для удаления прошла успешно")
     except Exception as err:
         logger.error(f"Не удалось проверить наличие чатов для удаления Ошибка {err}")

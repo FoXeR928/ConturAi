@@ -11,8 +11,8 @@
 {% endblock %}
 
 {% block content %}
-<div class="chat_box">
-    <ul id="chat" class="chat">
+<div class="chat">
+    <ul id="chat" class="chat_block">
         {% for message in messages %}
             <li class="message_box {{message[0]}}" id="{{message[1]}}">
                 <p class="message">{{message[2]}}</p>
@@ -20,12 +20,10 @@
         {% endfor %}
         <span class="loader"></span>
     </ul>
-    <form id="form_message" role="form">
+    <form id="form_message" class="form_message -separete_block">
         <input id="chat_id" type="hidden" value="{{chat_id}}">
-        <div class="text_box">
-            <textarea class="text_chat" name="message" id="message"></textarea>
-            <button class="send_message" id="send_message">Отправить</button>
-        </div>
+        <textarea class="input_chat -separete_main -input_separete" name="message" id="message"></textarea>
+        <button class="send_message -separete_second -button_separete" id="send_message">Отправить</button>
     </form>
 </div>
 {% endblock %}

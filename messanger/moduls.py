@@ -135,14 +135,6 @@ class Create_chat(FlaskForm):
         render_kw={"class": "send_message -separete_second -button_separete"},
     )
 
-
-class Delet_chats_irrevocably(FlaskForm):
-    send_del_chats = SubmitField(
-        "Удалить все чаты отмеченные на удаление безвозвратно",
-        render_kw=({"class": "button_del -all"}),
-    )
-
-
 class Create_user(FlaskForm):
     login_reg = StringField("Логин", validators=[DataRequired(), Length(min=1)])
     user_name_reg = StringField("Имя", validators=[DataRequired(), Length(min=1)])

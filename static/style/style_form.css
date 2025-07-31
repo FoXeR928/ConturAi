@@ -1,25 +1,22 @@
-.form_block_add{
-    position: absolute;
+.form_background{
     display: none;
-    z-index: 10;
     width: 100%;
     height: 100%;
-    background: rgba(43, 43, 43, 0.116);
+    background: var(--block-behind-background-color);
     border: none;
 }
-.form_add{
-    margin: auto;
-    color: #fff;
-    background: #212529;
-    border-radius: 10px;
-    padding: 15px;
+.form_hide{
+    margin: 10% auto 0 auto;
+    color: var(--block-text-color);
+    background: var(--block-background-color);
     max-width: 40%;
-    margin-top: 10%;
     z-index: 11;
 }
 .form_header{
     display: flex;
-    flex-direction: row;
     justify-content: space-between;
-    align-items: center;
+    align-items: start;
+}
+.form_h{
+    margin-top: 0;
 }

@@ -6,10 +6,13 @@
     text-decoration: none;
     background: var(--chat-block-color);
     color: var(--button-text-color);
+    margin: 0;
 }
-.button_del{
-    text-align: center;
-    text-decoration: none;
-    background: var(--delet-button-color);
-    color: var(--button-text-color);
+.button_del_select{
+    margin-bottom: 10px;
+    align-self: flex-end;
+}
+.form_del_chats{
+    display: flex;
+    flex-direction: column;
 }
