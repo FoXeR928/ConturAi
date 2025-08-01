@@ -11,7 +11,7 @@ $('#button_del_select').click(function(event){
         method:'POST',
         data:{'chats':chats_id},
         success : function() {
-            window.location.reload(true);
+            location.reload()
         },
         error: function(error){
             console.log(error);

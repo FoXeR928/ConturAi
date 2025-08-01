@@ -7,38 +7,44 @@
 {% block title %}Конфигурация AI{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="/static/style/style_users.css">
+<link rel="stylesheet" href="/static/style/style_table.css">
+<link rel="stylesheet" href="/static/style/style_config.css">
 {% endblock %}
 
 {% block content %}
-<table>
+<section class="main_nav">
+    <h1>Конфигурации AI</h1>
+</section>
+<table class="table">
     <thead>
-        <th>Конфиг</th>
-        <th>Описание</th>
-        <th>Значение</th>
+        <tr class="table_header">
+            <th class="table_element -table_header_first">Конфиг</th>
+            <th class="table_element">Описание</th>
+            <th class="table_element -table_header_end -table-input">Значение</th>
+        </tr>
     </thead>
     <tbody>
         {% for config in configs %}
-            <tr>
-                <td>{{config['name']}}</td>
-                <td>{{config['about']}}</td>
-                <td>
-                    <form action="{{url_for('admin_ai_config.ai_config_update_api')}}" method="post">
+            <tr class="table_body_element_block">
+                <td class="table_element -table_body_element">{{config['name']}}</td>
+                <td class="table_element -table_body_element">{{config['about']}}</td>
+                <td class="table_element -table_body_element">
+                    <form action="{{url_for('admin_ai_config.ai_config_update_api')}}" class="form_config -separete_block" method="post">
                         <input type="text" name="config_name" required hidden value="{{config['name']}}">
                         {% if config['input_format']=='text' %}
-                            <input type="text" name="config_value" required value="{{config['value']}}">
+                            <input type="text" name="config_value" class="input_value  -separete_main -input_separete" required value="{{config['value']}}">
                         {% elif config['input_format']=='number' %}
-                            <input type="number" name="config_value" required value="{{config['value']}}">
+                            <input type="number" name="config_value" class="input_value  -separete_main -input_separete" required value="{{config['value']}}">
                         {% elif config['input_format']=='boolen' %}
                             {% if config['value']=='1' %}
-                                <input type="checkbox" name="config_value" required checked>
+                                <input type="checkbox" name="config_value" class="input_value  -separete_main -input_separete" required checked>
                             {% else %}
-                                <input type="checkbox" name="config_value" required>
+                                <input type="checkbox" name="config_value" class="input_value  -separete_main -input_separete" required>
                             {% endif %}
                         {% elif config['input_format']=='textarea' %}
-                            <textarea name="config_value" required>{{config['value']}}</textarea>
+                            <textarea name="config_value" class="textarea_value  -separete_main -input_separete" required>{{config['value']}}</textarea>
                         {% endif %}
-                        <button>Сохранить</button>
+                        <button class="button_save -separete_second -button_separete">Сохранить</button>
                     </form>
                 </td>
             </tr>

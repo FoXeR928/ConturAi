@@ -7,43 +7,57 @@
 {% block title %}Пользователи{% endblock %}
 
 {% block styles %}
+<link rel="stylesheet" href="/static/style/style_form.css">
+<link rel="stylesheet" href="/static/style/style_table.css">
 <link rel="stylesheet" href="/static/style/style_users.css">
 {% endblock %}
 
 {% block content %}
-<dialog class="form_block_add" id="hide_form_update">
-    <div class="form_add">
+<dialog class="form_background" id="hide_form_update">
+    <div class="form_hide -element_block">
         <div class="form_header">
-            <h2>Настройки пользователя</h2>
-            <button class="close_button">X</button>
+            <h2 class="form_h">Настройки пользователя</h2>
+            <button class="form_close_button -button_del_close -button">X</button>
         </div>
-        <form action="{{url_for('admin_users.admin_user_delet_api')}}" method="post">
-            {{form_del.csrf_token}}
-            {{form_del.user_login}}
-            {{form_del.send_del}}
-        </form>
-        <form action="{{url_for('admin_users.admin_user_update_api')}}" id="form_update_user" class="form_users" method="post">
-            {{form_password.csrf_token}}
-            {{form_password.login_update.label}}{{form_password.login_update}}
-            {{form_password.role_update.label}}{{form_password.role_update}}
-            {{form_password.password_update.label}}{{form_password.password_update}}
-            {{form_password.password_update_check.label}}{{form_password.password_update_check}}
+        <button id="button_del_user" class='send_del -button_del_close -button' value="">Удалить пользователя</button>
+        <form action="{{url_for('admin_users.admin_user_update_api')}}" id="form_update_user" class="form_users -form_column" method="post">
+            {{form_password.csrf_token(id='form_update_user_csrf')}}
+            <div class="input_block -separete_block">
+                {{form_password.login_update.label(class='label_input -input_label')}}{{form_password.login_update}}
+            </div>
+            <div class="input_block -separete_block">
+                {{form_password.role_update.label(class='label_input -input_label')}}{{form_password.role_update}}
+            </div>
+            <div class="input_block -separete_block">
+                {{form_password.password_update.label(class='label_input -input_label')}}{{form_password.password_update}}
+            </div>
+            <div class="input_block -separete_block">
+                {{form_password.password_update_check.label(class='label_input -input_label')}}{{form_password.password_update_check}}
+            </div>
             {{form_password.send_update}}
         </form>
     </div>
 </dialog>
-<dialog class="form_block_add" id="hide_form">
-    <div class="form_add">
+<dialog class="form_background" id="hide_form">
+    <div class="form_hide -element_block">
         <div class="form_header">
-            <h2>Создание пользователя</h2>
-            <button class="close_button">X</button>
+            <h2 class="form_h">Создание пользователя</h2>
+            <button class="form_close_button -button_del_close -button">X</button>
         </div>
-        <form action="{{url_for('admin_users.admin_user_add_api')}}" id="form_create_user" class="form_users" method="post">
-            {{form_user.csrf_token}}
-            {{form_user.login_reg.label}}{{form_user.login_reg}}
-            {{form_user.user_name_reg.label}}{{form_user.user_name_reg}}
-            {{form_user.password_reg.label}}{{form_user.password_reg}}
-            {{form_user.password_reg_check.label}}{{form_user.password_reg_check}}
+        <form action="{{url_for('admin_users.admin_user_add_api')}}" id="form_create_user" class="form_users -form_column" method="post">
+            {{form_user.csrf_token(id='form_create_user_csrf')}}
+            <div class="input_block -separete_block">
+                {{form_user.login_reg.label(class='label_input -input_label')}}{{form_user.login_reg}}
+            </div>
+            <div class="input_block -separete_block">
+                {{form_user.user_name_reg.label(class='label_input -input_label')}}{{form_user.user_name_reg}}
+            </div>
+            <div class="input_block -separete_block">
+                {{form_user.password_reg.label(class='label_input -input_label')}}{{form_user.password_reg}}
+            </div>
+            <div class="input_block -separete_block">
+                {{form_user.password_reg_check.label(class='label_input -input_label')}}{{form_user.password_reg_check}}
+            </div>
             {{form_user.send_reg}}
         </form>
     </div>
@@ -54,21 +68,24 @@
         <input type="text" class="search_input -separete_main -input_separete" placeholder="Поиск пользователей">
         <input type="button" class="search_button -separete_second -button_separete" value="Поиск">
     </form>
-    <button class="add" id="button_add_user -button_image">"><img src="/static/image/add.svg" alt="Добавить пользователя"></button>
+    <button class="button_add_user -button_image" id="add_button"><img src="/static/image/add.svg" alt="Добавить пользователя"></button>
 </section>
-<table>
+<table class="table">
     <thead>
-        <th>Логин</th>
-        <th>Имя</th>
-        <th>Роль</th>
+        <tr class="table_header">
+            <th class="table_element -table_header_first">Логин</th>
+            <th class="table_element">Имя</th>
+            <th class="table_element">Роль</th>
+            <th class="table_element -table_header_end -table-button"></th>
+        </tr>
     </thead>
     <tbody>
         {% for user in users %}
-            <tr>
-                <td>{{user['login']}}</td>
-                <td>{{user['user_name']}}</td>
-                <td>{{user['user_role']}}</td>
-                <td><button class="update_button" value="{{user['login']}}">Изменить</button></td>
+            <tr class="table_body_element_block">
+                <td class="table_element -table_body_element">{{user['login']}}</td>
+                <td class="table_element -table_body_element">{{user['user_name']}}</td>
+                <td class="table_element -table_body_element">{{user['user_role']}}</td>
+                <td class="table_element_button -table_body_element"><button class="update_button -button" value="{{user['login']}}">Изменить</button></td>
             </tr>
         {% endfor %}
     </tbody>
@@ -78,4 +95,5 @@
 {% block scripts %}
 <script src="/static/js/open_form.js"></script>
 <script src="/static/js/check_passwords.js"></script>
+<script src="/static/js/delet_user.js"></script>
 {% endblock %}

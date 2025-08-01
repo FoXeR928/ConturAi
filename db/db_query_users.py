@@ -94,16 +94,27 @@ def reg_user(login, password, user_name):
 def add_user_status(login, role):
     session = db.session
     try:
-        user_role = session.execute(
-            select(Users.login).where(Users.login == login)
+        user_role = session.scalars(
+            select(Users.user_role).where(Users.login == login)
         ).one_or_none()
         logger.trace(f"Проверка существование пользователя {login}")
     except Exception as err:
         logger.warning(
             f"Не удалось проверить существование пользователя {login} Ошибка {err}"
         )
-    if not (user_role == None):
+    if user_role != None:
         try:
+            admins = session.scalar(
+                select(func.count(Users.login)).where(Users.user_role == "admin")
+            )
+            if user_role=='admin':
+                if admins <= 1:
+                    logger.warning(f"У администратора {login} нельзя изменить роль, так как существует только 1 запись админа")
+                    flash(
+                        message="Нельзя изменить роль учетной запис, так как существует только 1 запись админа",
+                        category="warning",
+                    )
+                    return False
             session.execute(
                 update(Users).where(Users.login == login).values(user_role=role)
             )
@@ -124,7 +135,7 @@ def add_user_status(login, role):
 def delet_user(login):
     session = db.session
     try:
-        user = session.scalars(select(Users).where(Users.login == login)).one_or_none()
+        user = session.scalars(select(Users.user_role).where(Users.login == login)).one_or_none()
         logger.trace(f"Проверка существование пользователя {login}")
     except Exception as err:
         logger.warning(
@@ -135,17 +146,20 @@ def delet_user(login):
             admins = session.scalar(
                 select(func.count(Users.login)).where(Users.user_role == "admin")
             )
-            print(admins)
-            if admins <= 1:
-                session.execute(delete(Users).where(Users.login == login))
-                session.commit()
-                logger.success(f"Пользоваватель {login} удален")
-                flash(message="Пользоваватель удален", category="success")
-            else:
-                flash(
-                    message="Нельзя удалить учетную запись админа, так как существует только 1 запись админа ",
-                    category="warning",
-                )
+            if user=='admin':
+                if admins <= 1:
+                    logger.warning(f"Администратора {login} нельзя удалить, так как существует только 1 запись админа")
+                    flash(
+                        message="Нельзя удалить учетную запись админа, так как существует только 1 запись админа",
+                        category="warning",
+                    )
+                    return False
+                else:
+                    logger.info(f"Администратора {login} отправлен на удаление")
+            session.execute(delete(Users).where(Users.login == login))
+            session.commit()
+            logger.success(f"Пользоваватель {login} удален")
+            flash(message="Пользоваватель удален", category="success")
         except Exception as err:
             logger.error(f"Не удалось удалить пользователя {login} Ошибка {err}")
             flash(message="Не удалось удалить пользователя", category="error")

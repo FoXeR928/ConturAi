@@ -60,6 +60,23 @@
     background: var(--delet-button-color);
     color: var(--button-text-color);
 }
+.-form_column{
+    display: flex;
+    flex-direction: column;
+}
+.-input_label{
+    width: 30%;
+    padding: .5rem 1rem;
+    border-radius: .25rem 0 0 .25rem;
+    background-color: var(--button-separate-second-color);
+    color:var(--button-text-color)
+}
+.-input_with_label{
+    width: 70%;
+    border-radius: 0 .25rem .25rem 0;
+    background-color: var(--input_background-color);
+    border: none;
+}
 body{
     margin: 0;
     width: 100%;
@@ -113,12 +130,12 @@ body{
     background: var(--background-nav-color);
     color: var(--button-text-color);
     margin: auto;
-    width: 20%;
+    width: 40%;
     text-align: center;
     padding: 10px;
     border-radius: 0 0 20px 20px;
     box-shadow: var(--flash_shadow);
-    animation: fade 1s 1.2s forwards;
+    animation: fade 1s 3s forwards;
 }
 @keyframes fade{
     0%{
@@ -149,3 +166,21 @@ main{
     justify-content: space-between;
     align-items: center;
 }
+.loader {
+    display: none;
+    width: 48px;
+    height: 48px;
+    border: 5px solid var(--background-main-color);
+    border-bottom-color: var(--background-nav-color);
+    border-radius: 50%;
+    box-sizing: border-box;
+    animation: rotation 1s linear infinite;
+}
+@keyframes rotation {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+} 

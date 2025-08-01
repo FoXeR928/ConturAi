@@ -71,7 +71,7 @@ def ai_read_file_api():
         file_dytes = BytesIO(file.read())
         logger.debug("Получена информация из файла для парсинга")
     except Exception as err:
-        logger.error(f"Невыполнен API запрос на смену статуса Ошибка:{err}")
+        logger.error(f"Невыполнен API запрос на чтение файла Ошибка:{err}")
         return jsonify(
             {
                 "name": "Ошибка получения информации файла",

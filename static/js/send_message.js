@@ -10,9 +10,10 @@ $('#send_message').click(function(event){
             method:'POST',
             data:{chat_id:chat_send,message:message_send},
             success : function() {
-                window.location.reload(true);
+                location.reload()
             },
             error: function(error){
+                alert('Ошибка '+error)
                 console.log(error);
                 $('.loader').removeAttr('style');
             }

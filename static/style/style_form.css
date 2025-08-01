@@ -20,3 +20,9 @@
 .form_h{
     margin-top: 0;
 }
+.label_input{
+    background-color: var(--chat-block-color);
+}
+.button_send{
+    background-color: var(--chat-block-color);
+}
