@@ -1,5 +1,5 @@
 [project]
-name = "ragi-ai"
+name = "Ragi_AI"
 version = "0.3.4"
 description = "AI integrator ollama and qdrant"
 authors = [
