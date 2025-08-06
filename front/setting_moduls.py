@@ -3,7 +3,7 @@ from flask.blueprints import Blueprint
 import json
 from loguru import logger
 
-from messanger.moduls import Settings, Settings_ai
+from front.moduls import Settings, Settings_ai
 from db.db_query_config import create_config_ai_start
 
 try:

@@ -7,6 +7,7 @@ import os
 import json
 
 from db.db_create import db
+from front import admin_ai_config_moduls
 
 
 def init_db():
@@ -34,13 +35,12 @@ def init_pages():
     try:
         app.config.from_file("instance/config.json", load=json.load)
         with app.app_context():
-            from messanger import (
+            from front import (
                 admin_chats_moduls,
                 auth_moduls,
                 chats_moduls,
                 admin_users_moduls,
                 admin_configs_moduls,
-                admin_ai_config_moduls,
                 admin_ai_docs_moduls,
             )
             from ai_chat.init_rag_db import model,client
@@ -54,8 +54,8 @@ def init_pages():
             app.register_blueprint(admin_ai_docs_moduls.admin_ai_docs_app)
             
             if model!=False and client!=False:
-                from messanger import ai_api
-                app.register_blueprint(ai_api.api_ai_app)
+                from front import ai_api_user
+                app.register_blueprint(ai_api_user.api_ai_user_app)
     except Exception as err:
         logger.critical(f"Не удалось инициализировать страницы Ошибка:{err}")
         exit()
@@ -63,7 +63,7 @@ def init_pages():
 
 def init_page_settings():
     try:
-        from messanger import setting_moduls
+        from front import setting_moduls
 
         app.register_blueprint(setting_moduls.configs_app)
     except Exception as err:
@@ -148,7 +148,7 @@ def index():
 @app.errorhandler(404)
 def page_not_found(e):
     if not (app.config["CREATE_CONFIG"] and app.config["CREATE_AI"]):
-        return render_template("not_found.html"), 404
+        return render_template("cod_pages/not_found.html"), 404
     else:
         return redirect(url_for("index"))
 

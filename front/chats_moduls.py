@@ -3,7 +3,7 @@ from flask import render_template, request, redirect, flash, abort
 from flask.blueprints import Blueprint
 from loguru import logger
 
-from messanger.moduls import Create_chat
+from front.moduls import Create_chat
 from db.db_query_chat import (
     get_chats,
     get_messages_chat,

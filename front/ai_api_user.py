@@ -11,15 +11,14 @@ from ai_chat.ask import ask_query
 from ai_chat.query_rag_db import add_docs
 from ai_chat.parther import normalize_text, chunk_create
 from db.db_query_users import get_user_role
-from messanger.moduls import File_text
 
 try:
     logger.debug("Инициализация пути /api/ai")
-    api_ai_app = Blueprint("api_ai", __name__, url_prefix="/api/ai")
+    api_ai_user_app = Blueprint("api_ai", __name__, url_prefix="/api/ai")
 except Exception as err:
     logger.error(f"Инициализация пути /api/ai не удалась Ошибка:{err}")
 
-@api_ai_app.post("/create_message")
+@api_ai_user_app.post("/create_message")
 @login_required
 def create_message_api():
     if request.method == "POST":
@@ -41,7 +40,7 @@ def create_message_api():
         )
     return redirect(request.referrer)
 
-@api_ai_app.post("/add_docs")
+@api_ai_user_app.post("/add_docs")
 @login_required
 def ai_add_docs_api():
     if get_user_role(current_user.login):

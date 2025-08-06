@@ -3,9 +3,7 @@ from wtforms import (
     StringField,
     IntegerField,
     PasswordField,
-    TextAreaField,
     SubmitField,
-    HiddenField,
     BooleanField,
     SelectField,
 )

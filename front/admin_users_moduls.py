@@ -3,7 +3,7 @@ from flask import request, redirect, flash, render_template
 from flask.blueprints import Blueprint
 from loguru import logger
 
-from messanger.moduls import Create_user, Update_password
+from front.moduls import Create_user, Update_password
 from db.db_query_users import add_user_status, get_users, reg_user, delet_user
 from db.db_query_users import get_user_role, update_password_user
 from db.db_query_chat import get_chats

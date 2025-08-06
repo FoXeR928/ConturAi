@@ -1,7 +1,7 @@
 from flask_login import login_required, logout_user
 from flask import render_template, redirect, url_for, request, flash
 from flask.blueprints import Blueprint
-from messanger.moduls import Auth
+from front.moduls import Auth
 from loguru import logger
 
 from db.db_query_auth import auth_query

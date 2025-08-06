@@ -6,7 +6,7 @@ from loguru import logger
 from db.db_query_config import get_configs_ai, update_config_ai
 from db.db_query_users import get_user_role
 from db.db_query_chat import get_chats
-from messanger.moduls import Settings_ai
+from front.moduls import Settings_ai
 
 try:
     logger.debug("Инициализация пути /admin/ai/config")
