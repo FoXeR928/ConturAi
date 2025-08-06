@@ -7,13 +7,51 @@
 {% block title %}Конфигурация AI{% endblock %}
 
 {% block styles %}
+<link rel="stylesheet" href="/static/style/style_form.css">
 <link rel="stylesheet" href="/static/style/style_table.css">
 <link rel="stylesheet" href="/static/style/style_config.css">
 {% endblock %}
 
 {% block content %}
+<dialog class="form_background" id="hide_form">
+    <div class="form_hide -element_block">
+        <div class="form_header">
+            <h2 class="form_h">Настройки пользователя</h2>
+            <button class="form_close_button -button_del_close -button">X</button>
+        </div>
+        <form id="form_ai" class="form_ai -form_column" action="{{url_for('settings.create_start_settings_ai')}}" method="post">
+            {{form.csrf_token}}
+            <div class="input_block -separete_block">
+                {{form.model_chunk.label(class='label_input -input_label')}}{{form.model_chunk}}
+            </div>
+            <div class="input_block -separete_block">
+                {{form.model.label(class='label_input -input_label')}}{{form.model}}
+            </div>
+            <div class="input_block -separete_block">
+                {{form.collection.label(class='label_input -input_label')}}{{form.collection}}
+            </div>
+            <div class="input_block -separete_block">
+                {{form.collection.label(class='label_input -input_label')}}{{form.collection}}
+            </div>
+            <div class="input_block -separete_block">
+                {{form.rag_host.label(class='label_input -input_label')}}{{form.rag_host}}
+            </div>
+            <div class="input_block -separete_block">
+                {{form.rag_port_http.label(class='label_input -input_label')}}{{form.rag_port_http}}
+            </div>
+            <div class="input_block -separete_block">
+                {{form.rag_port_grpc.label(class='label_input -input_label')}}{{form.rag_port_grpc}}
+            </div>
+            <div class="input_block -separete_block">
+                {{form.rag_grpc.label(class='label_input -input_label')}}{{form.rag_grpc}}
+            </div>
+            {{form.send_settings_ai}}
+        </form>
+    </div>
+</dialog>
 <section class="main_nav">
     <h1>Конфигурации AI</h1>
+    <button class="button_add_ai -button" id="add_button">Настройка AI</button>
 </section>
 <table class="table">
     <thead>
@@ -54,4 +92,5 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="/static/js/open_form.js"></script>
 {% endblock %}

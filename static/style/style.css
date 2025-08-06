@@ -64,6 +64,9 @@
     display: flex;
     flex-direction: column;
 }
+.input_block{
+    margin-bottom: 10px;
+}
 .-input_label{
     width: 30%;
     padding: .5rem 1rem;
@@ -89,12 +92,12 @@ body{
     padding: 10px;
     font-size: 14pt;
     height: 100%;
-    width: 270px;
     position: fixed;
     overflow-x: hidden;
 }
 .nav_block{
     margin-top: 30px;
+    margin-right: 10px;
     width: 100%;
     display: flex;
     flex-direction: column;
@@ -156,7 +159,7 @@ body{
     border-bottom: 3px solid rgb(0, 165, 0);
 }
 main{
-    margin-left: 310px;
+    margin-left: 19.3%;
     width: auto;
     padding-right: 20px;
 }

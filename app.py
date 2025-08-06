@@ -43,6 +43,7 @@ def init_pages():
                 admin_ai_config_moduls,
                 admin_ai_docs_moduls,
             )
+            from ai_chat.init_rag_db import model,client
 
             app.register_blueprint(auth_moduls.auth_app)
             app.register_blueprint(chats_moduls.chats_app)
@@ -51,6 +52,10 @@ def init_pages():
             app.register_blueprint(admin_chats_moduls.admin_chats_app)
             app.register_blueprint(admin_configs_moduls.admin_config_app)
             app.register_blueprint(admin_ai_docs_moduls.admin_ai_docs_app)
+            
+            if model!=False and client!=False:
+                from messanger import ai_api
+                app.register_blueprint(ai_api.api_ai_app)
     except Exception as err:
         logger.critical(f"Не удалось инициализировать страницы Ошибка:{err}")
         exit()
@@ -80,7 +85,7 @@ def init_log(log_level_file="INFO", log_level_std="WARNING"):
     logger.add(stdout, level=log_level_std)
 
 
-if not os.path.exists("instance/config.json"):
+if not os.path.exists("./instance/config.json"):
     data = {
         "CREATE_CONFIG": True,
         "CREATE_AI": True,
@@ -88,14 +93,14 @@ if not os.path.exists("instance/config.json"):
         "DEBUG": False,
         "DEBUG_FLASK": True,
     }
-    with open("instance/config.json", "w") as file_config:
+    with open("./instance/config.json", "w") as file_config:
         json.dump(data, file_config, indent=4)
     logger.debug("Добавление конфигов Flask")
 
 try:
     app = Flask(__name__)
     app.secret_key = os.urandom(24)
-    app.config.from_file("instance/config.json", load=json.load)
+    app.config.from_file("./instance/config.json", load=json.load)
     PORT = app.config["PORT"]
     DEBUG = app.config["DEBUG"]
     init_log()
@@ -103,8 +108,7 @@ try:
         init_db()
     if app.config["CREATE_AI"] == False:
         init_pages()
-    if app.config["CREATE_CONFIG"] == True or app.config["CREATE_AI"] == True:
-        init_page_settings()
+    init_page_settings()
     logger.debug(f"Инициализация Flask")
 except Exception as err:
     logger.critical(f"Не удалось инициализировать приложение Flask Ошибка:{err}")
@@ -132,7 +136,7 @@ def load_user(id):
 
 @app.get("/")
 def index():
-    app.config.from_file("instance/config.json", load=json.load)
+    app.config.from_file("./instance/config.json", load=json.load)
     if app.config["CREATE_CONFIG"]:
         return redirect(url_for("settings.start_settings"))
     elif app.config["CREATE_AI"]:

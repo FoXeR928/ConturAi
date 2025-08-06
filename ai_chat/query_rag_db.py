@@ -1,10 +1,42 @@
 from uuid import uuid4
-from qdrant_client.http.models import PointStruct
+from qdrant_client.http.models import PointStruct,PayloadSchemaType,HnswConfigDiff
 from loguru import logger
 
-from ai_chat.init_rag_db import model, client
 from db.db_query_config import get_config_ai
+from app import model,client
 
+def optimizate_base():
+    collection = get_config_ai("collection")
+    try:
+        client.create_payload_index(
+            collection_name=collection,
+            field_name="source",
+            field_schema=PayloadSchemaType.TEXT,
+        )
+        logger.debug("Произведена индексация по полю source")
+    except Exception as err:
+        logger.error(f"Не удалось индексировать по полям source Ошибка {err}")
+    try:
+        client.create_payload_index(
+            collection_name=collection,
+            field_name="text",
+            field_schema=PayloadSchemaType.TEXT,
+            tokenizer_type="word",
+        )
+        logger.debug("Произведена индексация по полю text")
+    except Exception as err:
+        logger.error(f"Не удалось индексировать по полям text Ошибка {err}")
+
+        client.update_collection(
+            collection_name=collection,
+            hnsw_config=HnswConfigDiff(
+                ef_consruct=256,
+                m=16,
+            ),
+        )
+        logger.debug("Произведена структуризация графов")
+    except Exception as err:
+        logger.error(f"Не удалось структуризировать графы Ошибка {err}")
 
 def add_docs(chunks, doc_name, norm_text, batch_size=256):
     rag_collection = get_config_ai("collection")

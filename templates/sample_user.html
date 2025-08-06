@@ -33,7 +33,7 @@
             <button class="button_nav -button_image" id="button_nav"><img src="/static/image/menu.svg" alt="Кнопка открытия меню"></button>
         </nav>
     </header>
-    <main>
+    <main id="main">
         {% for cat,msg in get_flashed_messages(True) %}
             <div class="flash {{cat}}">{{msg}}</div>
         {% endfor %}

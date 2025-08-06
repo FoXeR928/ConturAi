@@ -10,19 +10,11 @@ def ask_query(query, chat_id, messages_history):
     context = search_docs(query)
     ai_name = get_config_ai(name="ai_name")
     ai_model = get_config_ai(name="model")
-    prompt = f"""Тебя зовут {ai_name}, твоя задача искать информацию в базе и отвечать на вопросы на основе информации из базы.
-
-Информация из базы: {context}
-
-Вопрос или сообщение от пользователя: {query}
-
-Равернутый ответ на русском, используя информацию из базы выше или сгенеринуй самостоятельно
-Добавлять таблицу только если нужно
-Если ответа на вопрос сгенерирован без информации из базы добавь Информация сгенерирована нейросетью, без использования информации из базы знаний.
-"""
+    system_promt=str(get_config_ai(name='system_promt')).format(name=ai_name)
+    prompt = str(get_config_ai(name='pront')).format(context=context,quest=query)
     messages_history.append({"role": "user", "content": prompt})
     try:
-        response = chat(model=ai_model, messages=messages_history)
+        response = chat(model=ai_model,system=system_promt, messages=messages_history,stream=False)
         result = response["message"]["content"]
         logger.debug("Создан ответ нейросети на вопрос")
     except Exception as err:

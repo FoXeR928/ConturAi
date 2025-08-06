@@ -1,6 +1,3 @@
-.input_block{
-    margin-bottom: 10px;
-}
 .-separete_column_main{
     border-radius: 10px 10px 0 0;
     background-color: var(--input_background-color);
@@ -14,7 +11,7 @@
     border: none;
     color: var(--button-text-color);
 }
-.textarea_text{
+.file_text{
     resize: none;
     height: 80vh;
 }

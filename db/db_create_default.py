@@ -169,7 +169,8 @@ def create_default_config_ai(
     recreate=False,
     ai_role="system",
     ai_name="Раги",
-    promt="Привет я ассистент {name}  База знаний: {context} Вопрос: {quest} Ответь используя базу знаний",
+    system_promt="Ты - {name}, твоя задача отвечать на вопросы используя информации из базы, а если информации нет генерировать ответ самостоятельно и добавлять 'Ответ сгенерирован самостоятельно'",
+    promt="Контекст: {context} Вопрос: {quest}",
 ):
     session = db.session
     base = Configs_ai
@@ -188,8 +189,11 @@ def create_default_config_ai(
         check_ai_name = session.scalars(
             select(base).where(base.name == "ai_name")
         ).one_or_none()
+        check_system_promt = session.scalars(
+            select(base).where(base.name == "system_promt")
+        ).one_or_none()
         check_promt = session.scalars(
-            select(base).where(base.name == "ai_promt")
+            select(base).where(base.name == "promt")
         ).one_or_none()
         logger.trace("Проверенно существование записей в базе Configs")
     except Exception as err:
@@ -228,11 +232,25 @@ def create_default_config_ai(
             logger.error(
                 f"Не удалось создать запрос на добавление имя нейросети в базу Configs Ошибка {err}"
             )
+    if check_system_promt == None:
+        try:
+            config = base(
+                name="system_promt",
+                about="Параметр отвечающий за промт для нейросети",
+                value=system_promt,
+                input_format="textarea",
+            )
+            add_list.append(config)
+            logger.debug(f"Создан запрос на добавление конфига промт в базу Configs")
+        except Exception as err:
+            logger.error(
+                f"Не удалось создать запрос на добавление промт в базу Configs Ошибка {err}"
+            )
     if check_promt == None:
         try:
             config = base(
-                name="ai_promt",
-                about="Параметр отвечающий за промт для нейросети",
+                name="promt",
+                about="Параметр отвечающий за промт вопроса для нейросети",
                 value=promt,
                 input_format="textarea",
             )

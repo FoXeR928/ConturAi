@@ -69,38 +69,38 @@ class Settings_ai(FlaskForm):
         "Модель для создания чанков",
         validators=[DataRequired()],
         render_kw={
-            "class": "model_chunk -input",
+            "class": "model_chunk -input_with_label",
             "value": "./ai_chat/models/sbert_large_nlu_ru",
         },
     )
     model = StringField(
         "Модель AI",
         validators=[DataRequired()],
-        render_kw={"class": "model -input", "value": "ilyagusev/saiga_llama3"},
+        render_kw={"class": "model -input_with_label", "value": "ilyagusev/saiga_llama3"},
     )
     collection = StringField(
         "Имя коллекции",
         validators=[DataRequired()],
-        render_kw={"class": "collection -input", "value": "ragi_docs"},
+        render_kw={"class": "collection -input_with_label", "value": "ragi_docs"},
     )
     rag_host = StringField(
         "Хост Qdrant",
         validators=[DataRequired()],
-        render_kw={"class": "rag_host -input", "value": "localhost"},
+        render_kw={"class": "rag_host -input_with_label", "value": "localhost"},
     )
     rag_port_http = IntegerField(
         "Порт HTTP Qdrant",
         validators=[DataRequired()],
-        render_kw={"class": "rag_port_http -input", "value": 6333},
+        render_kw={"class": "rag_port_http -input_with_label", "value": 6333},
     )
     rag_port_grpc = IntegerField(
         "Порт GRPC Qdrant",
         validators=[DataRequired()],
-        render_kw={"class": "rag_port_grpc -input", "value": 6334},
+        render_kw={"class": "rag_port_grpc -input_with_label", "value": 6334},
     )
     rag_grpc = BooleanField(
         "Включить GRPC",
-        render_kw={"class": "rag_grpc -input"},
+        render_kw={"class": "rag_grpc -input_with_label"},
     )
     send_settings_ai = SubmitField(
         "Сохранить", render_kw={"class": "button_send -button"}
@@ -175,11 +175,3 @@ class Update_password(FlaskForm):
         render_kw=({"class": "password_check -input_with_label"}),
     )
     send_update = SubmitField("Изменить", render_kw=({"class": "button_send -button"}),)
-
-
-class File_text(FlaskForm):
-    file_name_text = StringField(
-        "Имя файла", validators=[DataRequired(), Length(min=1)], render_kw=({'class':'input_name -input_with_label'})
-    )
-    file_text = TextAreaField("Текст файла", validators=[DataRequired(), Length(min=1)], render_kw=({'class':'textarea_text -separete_column_main'}))
-    send_text = SubmitField("Загрузить", render_kw=({'class':'send_text -separete_column_second'}))

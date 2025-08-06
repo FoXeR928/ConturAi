@@ -17,13 +17,13 @@
     <label for="file"><img src="/static/image/add.svg" alt="Добавить пользователя"></label>
 </section>
 <span class="loader"></span>
-<form action="{{url_for('admin_ai_docs.ai_add_docs_api')}}" class="form_text_file -form_column" method="post">
-    {{form_file.csrf_token}}
+<form class="form_text_file -form_column">
     <div class="input_block -separete_block">
-        {{form_file.file_name_text.label(class='label -input_label')}}{{form_file.file_name_text}}
+        <label class='label -input_label' for="">Название документа</label>
+        <input type="text" id="file_name_text" class="file_name_text -input_with_label">  
     </div>
-    {{form_file.file_text}}
-    {{form_file.send_text}}
+    <textarea name="file_text" id="file_text" class="file_text -separete_column_main"></textarea>
+    <button id="send_text" class="send_text -separete_column_second">Сохранить</button>
 </form>
 {% endblock %}
 

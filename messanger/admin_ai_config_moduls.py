@@ -6,6 +6,7 @@ from loguru import logger
 from db.db_query_config import get_configs_ai, update_config_ai
 from db.db_query_users import get_user_role
 from db.db_query_chat import get_chats
+from messanger.moduls import Settings_ai
 
 try:
     logger.debug("Инициализация пути /admin/ai/config")
@@ -19,10 +20,11 @@ except Exception as err:
 @admin_ai_config_app.get("")
 @login_required
 def ai_config_api():
-    print(get_configs_ai())
+    form=Settings_ai()
     return render_template(
         "admin/config_ai.html",
         configs=get_configs_ai(),
+        form=form,
         isAdmin=get_user_role(current_user.login),
         chats=get_chats(login=current_user.login),
     )

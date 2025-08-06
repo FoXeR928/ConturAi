@@ -1,20 +1,16 @@
 from flask_login import login_required, current_user
 from flask import render_template, request, redirect, flash, abort
 from flask.blueprints import Blueprint
-
 from loguru import logger
 
 from messanger.moduls import Create_chat
 from db.db_query_chat import (
     get_chats,
     get_messages_chat,
-    get_messages_ai,
     create_chat,
-    create_message,
     delet_messages,
 )
 from db.db_query_users import get_user_role
-from ai_chat.ask import ask_query
 
 try:
     logger.debug("Инициализация пути /chats")
@@ -75,26 +71,3 @@ def get_chat_api(chat: str):
         isAdmin=get_user_role(login=current_user.login),
         chats=get_chats(login=current_user.login),
     )
-
-
-@chats_app.post("/create_message")
-@login_required
-def create_message_api():
-    if request.method == "POST":
-        try:
-            chat = request.form["chat_id"]
-            text = request.form["message"]
-            logger.debug("Полученно сообщения из формы чата")
-        except Exception as err:
-            logger.error(f"Не удалось получить поле с сообщением чата Ошибка:{err}")
-
-        messages_history = get_messages_ai(chat)
-        if messages_history != None:
-            create_message(login=current_user.login, chat_id=chat, text=text)
-            ask_query(query=text, chat_id=chat, messages_history=messages_history)
-    else:
-        flash(
-            message="Сообщение не удален, неправельно заполнены поля",
-            category="warning",
-        )
-    return redirect(request.referrer)

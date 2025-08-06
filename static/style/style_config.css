@@ -2,3 +2,6 @@
     resize: none;
     height: 15vh;
 }
+.button_add_ai{
+    background-color:var(--button-separate-second-color);
+}
