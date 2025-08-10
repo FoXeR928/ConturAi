@@ -8,9 +8,20 @@
     color: var(--button-text-color);
     margin: 0;
 }
-.button_del_select{
+.text_block{
+    background: var(--chat-block-color);
+    color: var(--button-text-color);
+    margin: 0;
+    display: flex;
+    justify-content: space-between;
+    padding-right: 45%;
+}
+.button_left{
     margin-bottom: 10px;
     align-self: flex-end;
+}
+.button_recov_select{
+    background: green;
 }
 .form_del_chats{
     display: flex;

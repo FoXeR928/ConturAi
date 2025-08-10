@@ -7,6 +7,7 @@ from db.db_query_chat import (
     delet_chats_irrevocably,
     delet_chats_irrevocably_checked,
     get_delet_chats_irrevocably,
+    recovery_chats_checked,
 )
 from db.db_query_users import get_user_role
 from db.db_query_chat import get_chats
@@ -44,4 +45,15 @@ def admin_delet_chats_irrevocably_checked_api():
 def admin_delet_chats_irrevocably_api():
     if get_user_role(login=current_user.login):
         delet_chats_irrevocably()
+    return redirect(request.referrer)
+
+@admin_chats_app.post("/recovery")
+@login_required
+def admin_recovery_chats_checked_api():
+    if get_user_role(login=current_user.login):
+        try:
+            chats=request.form.getlist('chats[]')
+            recovery_chats_checked(chats=chats)
+        except Exception as err:
+            logger.error(f"Ошибка {err}")
     return redirect(request.referrer)

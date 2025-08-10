@@ -1,15 +1,16 @@
 $('#file').change(function(event){
     event.preventDefault();
-    var formData = new FormData();
     file_send=$(this)[0].files;
     if (file_send.length>0){
-        formData.append('file',file_send[0]);
+        formdata=new FormData()
+        formdata.append('file',file_send[0])
         $('.loader').css({'display': 'inline-block'});
         $.ajax({
             url:'/admin/ai/docs/read_file',
             method:'POST',
-            data:formData,
+            data:formdata,
             processData: false,
+            contentType: false,
             success : function(result) {
                 $('#file_name_text').val(result['name'])
                 $('#file_text').val(result['text'])

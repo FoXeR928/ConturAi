@@ -65,7 +65,7 @@
 <section class="main_nav">
     <h1>Пользователи</h1>
     <form class="search_form -separete_block">
-        <input type="text" class="search_input -separete_main -input_separete" placeholder="Поиск пользователей">
+        <input type="text" class="search_input -separete_main -input_separete" id="search" placeholder="Поиск пользователей">
         <input type="button" class="search_button -separete_second -button_separete" value="Поиск">
     </form>
     <button class="button_add_user -button_image" id="add_button"><img src="/static/image/add.svg" alt="Добавить пользователя"></button>
@@ -82,7 +82,7 @@
     <tbody>
         {% for user in users %}
             <tr class="table_body_element_block">
-                <td class="table_element -table_body_element">{{user['login']}}</td>
+                <td class="table_element -table_body_element search_element">{{user['login']}}</td>
                 <td class="table_element -table_body_element">{{user['user_name']}}</td>
                 <td class="table_element -table_body_element">{{user['user_role']}}</td>
                 <td class="table_element_button -table_body_element"><button class="update_button -button" value="{{user['login']}}">Изменить</button></td>
@@ -96,4 +96,5 @@
 <script src="/static/js/open_form.js"></script>
 <script src="/static/js/check_passwords.js"></script>
 <script src="/static/js/delet_user.js"></script>
+<script src="/static/js/search.js"></script>
 {% endblock %}

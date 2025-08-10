@@ -9,8 +9,8 @@ from db.db_create import Files, db
 def add_file(file, filetype, file_name):
     session = db.session
     try:
-        check_file = session.execute(
-            select(Files.file_name).where(file_name=file_name)
+        check_file = session.scalars(
+            select(Files).where(Files.file_name==file_name)
         ).one_or_none
         logger.trace(f"Проверино на личие файл {file_name}")
     except Exception as err:

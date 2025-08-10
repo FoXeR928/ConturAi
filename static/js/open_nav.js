@@ -1,4 +1,4 @@
-var left_shift='-15.3%'
+var left_shift='-283px'
 
 $('#button_nav').click(function(){
     if($('#header').css('left')!='0px'){
@@ -6,7 +6,7 @@ $('#button_nav').click(function(){
             left:'0'
         },400)
         $('main').animate({
-            'margin-left':'19.3%'
+            'margin-left':'360px'
         },400)
 
     }
