@@ -1,0 +1,34 @@
+from fastapi import FastAPI
+import uvicorn
+from loguru import logger
+from sys import stdout
+
+from instance.config_read import config
+from api.api_auth import auth_app
+from db_modules.db_create_default import create_default_users,create_default_config,create_default_config_ai
+
+def init_log(log_level_file="INFO", log_level_std="WARNING"):
+    logger.remove()
+    logger.add(
+        "logs/app.log",
+        format="{time} | {level} | {message} | {name}",
+        rotation="256 MB",
+        retention=f"10 days",
+        level=log_level_file,
+    )
+    if config['DEBUG']==True:
+        log_level_std = "TRACE"
+    logger.add(stdout, level=log_level_std)
+
+init_log()
+
+app=FastAPI()
+
+create_default_config()
+create_default_config_ai()
+create_default_users()
+
+app.include_router(router=auth_app)
+
+if __name__=='__main__':
+    uvicorn.run(app=app,host='0.0.0.0',port=config['PORT'])

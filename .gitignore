@@ -1,5 +1,5 @@
-*/__pycache__/
-/ai_chat/models/sbert_large_nlu_ru/
+__pycache__/
+*/sbert_large_nlu_ru/
 *.log
 *.db
 /venv
