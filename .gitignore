@@ -1,9 +1,8 @@
-*/__pycache__
+*/__pycache__/
 /ai_chat/models/sbert_large_nlu_ru/
 *.log
 *.db
-*.pyc
-__pycache__
 /venv
 config.json
 poetry.lock
+dist/

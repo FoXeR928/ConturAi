@@ -13,6 +13,7 @@ def create_default_users(
     admin_role="admin",
     system_login="system",
     system_role="system",
+    system_chat_role='assistant'
 ):
     session = db.session
     base = Users
@@ -24,8 +25,6 @@ def create_default_users(
         except Exception as err:
             logger.error(f"Не удалось удалить строки таблицы Users Ошибка {err}")
     add_list = list()
-    system_chat_role = get_config_ai("ai_role")
-    system_name = get_config_ai("ai_name")
     try:
         check_admin = session.scalars(
             select(base).where(base.login == admin_login)
@@ -52,7 +51,6 @@ def create_default_users(
         try:
             system = base(
                 login=system_login,
-                user_name=system_name,
                 user_role=system_role,
                 chat_role=system_chat_role,
             )

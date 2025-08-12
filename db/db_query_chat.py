@@ -4,6 +4,7 @@ from flask import flash
 
 from db.db_create import Users, Chats, Messages, db
 from db.db_query_users import get_user_role
+from db.db_query_config import get_config_ai
 
 
 def create_chat(login, chat):
@@ -124,7 +125,9 @@ def get_messages_ai(chat_id):
             f"Не удалось проверить существование чата {chat_id} Ошибка {err}"
         )
     if chat != None:
-        result = list()
+        ai_name = get_config_ai(name="ai_name")
+        system_promt=str(get_config_ai(name='system_promt')).format(name=ai_name)
+        result = [{"role":"system","content":system_promt}]
         try:
             messages_query = session.execute(
                 select(
