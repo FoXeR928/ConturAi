@@ -35,10 +35,13 @@ class Users(Base):
         self.token=secrets.token_hex(32)
     
     def check_token(self,check_token):
-        if self.token==check_token:
-            return True
-        else:
-            return False
+        return self.token==check_token
+    
+    def check_admin(self,token_to_check):
+        check_role=(self.user_role=='admin')
+        check_token=(self.token==token_to_check)
+        return check_role and check_token
+
 
 class Chats(Base):
     __tablename__ = "chats"
@@ -92,6 +95,21 @@ class Configs_ai(Base):
     about: Mapped[str] = mapped_column(nullable=False)
     value: Mapped[str] = mapped_column(nullable=False)
     input_format: Mapped[str] = mapped_column(nullable=False)
+
+class Token_API(Base):
+    __tablename__ = "token_api"
+
+    id: Mapped[int] = mapped_column(primary_key=True, unique=True, nullable=False)
+    token: Mapped[str] = mapped_column(unique=True, nullable=True)
+
+    def generate_token(self):
+        self.token=secrets.token_hex(64)
+    
+    def check_token(self,check_token):
+        if self.token==check_token:
+            return True
+        else:
+            return False
 
 try:
     engine=create_engine(config['SQLALCHEMY_DATABASE_URI'])
