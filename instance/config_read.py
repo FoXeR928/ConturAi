@@ -15,10 +15,10 @@ def json_update_config():
 def init_confg():
     if not os.path.exists("./instance/config.json"):
         data = {
-            "CREATE_CONFIG": True,
-            "CREATE_AI": True,
+            "CREATE_CONFIG": False,
+            "CREATE_AI": False,
             "PORT": 7000,
-            "DEBUG": False,
+            "DEBUG": True,
         }
         with open("./instance/config.json", "w") as file_config:
             json.dump(data, file_config, indent=4)

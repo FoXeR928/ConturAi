@@ -70,15 +70,6 @@ class Messages(Base):
     text: Mapped[str]
 
 
-class Files(Base):
-    __tablename__ = "files"
-
-    id: Mapped[int] = mapped_column(primary_key=True, unique=True, nullable=False)
-    file_type: Mapped[str] = mapped_column(nullable=False)
-    file_name: Mapped[int] = mapped_column(nullable=False)
-    file: Mapped[str] = mapped_column(BLOB)
-
-
 class Configs(Base):
     __tablename__ = "configs"
 

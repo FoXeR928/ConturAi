@@ -14,7 +14,7 @@ class UserToken(BaseModel):
     login:str
     user_token:str
 
-@auth_app.patch('/',summary='Авторизация для получения токена')
+@auth_app.post('/',summary='Авторизация для получения токена')
 async def auth_api(auth_data:Auth,response:Response):
     user=check_user(login=auth_data.login)
     if user==True:
@@ -25,7 +25,7 @@ async def auth_api(auth_data:Auth,response:Response):
     del result['cod']
     return result
 
-@auth_app.delete('/logout',summary='Выход из учетной записи')
+@auth_app.post('/logout',summary='Выход из учетной записи')
 async def auth_api(token_data:UserToken,response:Response):
     auth=user_auth_check(login=token_data.login,token=token_data.user_token)
     if auth==True:

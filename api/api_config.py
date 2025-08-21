@@ -1,12 +1,17 @@
 from fastapi import APIRouter,Response
 from pydantic import BaseModel
 from typing import Any
+from loguru import logger
 
 from api.api_auth import UserToken
 from db_modules.db_query import admin_auth_check
 from db_modules.db_query_config import get_configs_ai_query,get_configs_query,update_config_ai_query,update_config_query,create_config_ai_start
 
-config_app=APIRouter(prefix='/configs',tags=['Конфиги'])
+try:
+    config_app=APIRouter(prefix='/configs',tags=['Конфиги'])
+    logger.debug('Инициализирован API конфигов')
+except Exception as err:
+    logger.error(f'Ошибка инициализации API: {err}')
 
 class ConfigUpdate(BaseModel):
     name:str
@@ -43,7 +48,7 @@ async def get_configs_ai_api(token_data:UserToken,response:Response):
     del result['cod']
     return result
 
-@config_app.put('/ai/update',summary='Обновление конфига AI')
+@config_app.patch('/ai/update',summary='Обновление конфига AI')
 async def get_configs_ai_api(token_data:UserToken,config_data:ConfigUpdate,response:Response):
     auth=admin_auth_check(login=token_data.login,token=token_data.user_token)
     if auth==True:
@@ -54,7 +59,7 @@ async def get_configs_ai_api(token_data:UserToken,config_data:ConfigUpdate,respo
     del result['cod']
     return result
 
-@config_app.put('/app/update',summary='Обновление конфига приложения')
+@config_app.patch('/app/update',summary='Обновление конфига приложения')
 async def get_configs_ai_api(token_data:UserToken,config_data:ConfigUpdate,response:Response):
     auth=admin_auth_check(login=token_data.login,token=token_data.user_token)
     if auth==True:
@@ -65,7 +70,7 @@ async def get_configs_ai_api(token_data:UserToken,config_data:ConfigUpdate,respo
     del result['cod']
     return result
 
-@config_app.post('/app/start',summary='Создание установочных конфигов AI')
+@config_app.post('/ai/start',summary='Создание установочных конфигов AI')
 async def start_configs_ai_api(token_data:UserToken,configs_data:ConfigStart,response:Response):
     auth=admin_auth_check(login=token_data.login,token=token_data.user_token)
     if auth==True:

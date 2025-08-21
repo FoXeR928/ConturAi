@@ -111,13 +111,13 @@ def create_default_config(
                     name=configs[0],
                     about=configs[1],
                     value=configs[2],
-                    input_format=[3],
+                    input_format=configs[3],
                 )
                 add_list.append(config)
-                logger.debug(f"Создан запрос на добавление конфига PDF в базу Configs")
+                logger.debug(f"Создан запрос на добавление конфига в базу Configs")
             except Exception as err:
                 logger.error(
-                    f"Не удалось создать запрос на добавление PDF в базу Configs Ошибка {err}"
+                    f"Не удалось создать запрос на добавление в базу Configs Ошибка {err}"
                 )
     if len(add_list) != 0:
         try:
@@ -151,19 +151,19 @@ def create_default_config_ai(
         try:
             session.execute(delete(base))
             session.commit()
-            logger.info("Удалены строки таблицы Configs")
+            logger.info("Удалены строки таблицы Configs_ai")
         except Exception as err:
-            logger.error(f"Не удалось удалить строки таблицы Configs Ошибка {err}")
+            logger.error(f"Не удалось удалить строки таблицы Configs_ai Ошибка {err}")
     add_list = list()
     for configs in configs_list:
         try:
             check_config = session.scalars(
                 select(base).where(base.name == configs[0])
             ).one_or_none()
-            logger.trace("Проверенно существование записей в базе Configs")
+            logger.trace("Проверенно существование записей в базе Configs_ai")
         except Exception as err:
             logger.error(
-                f"Не удалось проверить существование записей таблицы Configs Ошибка {err}"
+                f"Не удалось проверить существование записей таблицы Configs_ai Ошибка {err}"
             )
         if check_config == None:
             try:
@@ -171,22 +171,22 @@ def create_default_config_ai(
                     name=configs[0],
                     about=configs[1],
                     value=configs[2],
-                    input_format=[3],
+                    input_format=configs[3],
                 )
                 add_list.append(config)
-                logger.debug(f"Создан запрос на добавление конфига PDF в базу Configs")
+                logger.debug(f"Создан запрос на добавление конфига в базу Configs_ai")
             except Exception as err:
                 logger.error(
-                    f"Не удалось создать запрос на добавление PDF в базу Configs Ошибка {err}"
+                    f"Не удалось создать запрос на добавление в базу Configs_ai Ошибка {err}"
                 )
     if len(add_list) != 0:
         try:
             session.add_all(add_list)
             session.commit()
-            logger.info("Добавлены конфиги по умолчанию")
+            logger.info("Добавлены конфиги AI по умолчанию")
         except Exception as err:
             logger.error(
-                f"Не удалось добавить конфиги по умолчанию в базу Configs Ошибка {err}"
+                f"Не удалось добавить конфиги по умолчанию в базу Configs_ai Ошибка {err}"
             )
             exit()
     else:
