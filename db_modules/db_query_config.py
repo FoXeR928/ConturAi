@@ -122,19 +122,28 @@ def get_config(name: str):
         session.close()
     return result
 
-def create_config_ai_start(configs):
-    session = db.session
+def create_config_ai_start(model_chunk:str,model:str,collection:str='ragi_db',rag_host:str='localhost',rag_port_http:int=6333,rag_port_grpc:int=6333,rag_grpc:bool=False):
+    configs_list=(
+        ("model_chunk", "Модель для генерации чанков", model_chunk, "text"),
+        ("model", "Модель для генерации ответа", model, "text"),
+        ("collection", "Название векторной коллекции", collection, "text"),
+        ("rag_host", "Хост Qdrant", rag_host, "text"),
+        ("rag_port_http", "HTTP порт Qdrant", rag_port_http, "number"),
+        ("rag_port_grpc", "GRPC порт Qdrant", rag_port_grpc, "number"),
+        ("rag_grpc", "Использовать GRPC порт Qdrant", rag_grpc, "boolen"),
+    )
+    session = session_create()
     try:
-        for config in configs:
+        for configs in configs_list:
             check_conf = session.scalars(
-                select(Configs_ai).where(Configs_ai.name == config[0])
+                select(Configs_ai).where(Configs_ai.name == configs[0])
             ).one_or_none()
             if check_conf == None:
                 config = Configs_ai(
-                    name=config[0],
-                    about=config[1],
-                    value=config[2],
-                    input_format=config[3],
+                    name=configs[0],
+                    about=configs[1],
+                    value=configs[2],
+                    input_format=configs[3],
                 )
                 session.add(config)
             else:
@@ -145,11 +154,13 @@ def create_config_ai_start(configs):
                 )
             session.commit()
         logger.success(f"Добавлены в базу конфиги для AI")
-        flash(message="Конфигии AI добавлены в базу", category="success")
+        result={'result':True,'message':"Стартовый конфиг AI задан", 'category':"success",'cod':200}
     except Exception as err:
-        flash(message="Не удалось добавлены в базу конфиги для AI", category="error")
-        logger.error(f"Не удалось добавлены в базу конфиги для AI Ошибка {err}")
-    session.close()
+        logger.error(f"Не удалось задать стартовые конфиги AI Ошибка {err}")
+        result={'result':False,'message':"Ошибка сервера стартовый конфиг AI не задан", 'category':"error",'cod':500}
+    finally:
+        session.close()
+    return result
 
 
 

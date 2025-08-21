@@ -80,6 +80,11 @@ def create_default_config(
     word="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     excel="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ):
+    configs_list=(
+        ("pdf","Параметр отвечающий за формат PDF",pdf,"text"),
+        ("word","Параметр отвечающий за формат WORD",word,"text"),
+        ("excel","Параметр отвечающий за формат EXCEL",excel,"text"),
+    )
     session = session_create()
     base = Configs
     if recreate:
@@ -90,63 +95,30 @@ def create_default_config(
         except Exception as err:
             logger.error(f"Не удалось удалить строки таблицы Configs Ошибка {err}")
     add_list = list()
-    try:
-        check_format_pdf = session.scalars(
-            select(base).where(base.name == "pdf")
-        ).one_or_none()
-        check_format_word = session.scalars(
-            select(base).where(base.name == "word")
-        ).one_or_none()
-        check_format_excel = session.scalars(
-            select(base).where(base.name == "excel")
-        ).one_or_none()
-        logger.trace("Проверенно существование записей в базе Configs")
-    except Exception as err:
-        logger.error(
-            f"Не удалось проверить существование записей таблицы Configs Ошибка {err}"
-        )
-    if check_format_pdf == None:
+    for configs in configs_list:
         try:
-            config = base(
-                name="pdf",
-                about="Параметр отвечающий за формат PDF",
-                value=pdf,
-                input_format="text",
-            )
-            add_list.append(config)
-            logger.debug(f"Создан запрос на добавление конфига PDF в базу Configs")
+            check_config = session.scalars(
+                select(base).where(base.name == configs[0])
+            ).one_or_none()
+            logger.trace("Проверенно существование записей в базе Configs")
         except Exception as err:
             logger.error(
-                f"Не удалось создать запрос на добавление PDF в базу Configs Ошибка {err}"
+                f"Не удалось проверить существование записей таблицы Configs Ошибка {err}"
             )
-    if check_format_word == None:
-        try:
-            config = base(
-                name="word",
-                about="Параметр отвечающий за формат WORD",
-                value=word,
-                input_format="text",
-            )
-            add_list.append(config)
-            logger.debug(f"Создан запрос на добавление конфига WORD в базу Configs")
-        except Exception as err:
-            logger.error(
-                f"Не удалось создать запрос на добавление WORD в базу Configs Ошибка {err}"
-            )
-    if check_format_excel == None:
-        try:
-            config = base(
-                name="excel",
-                about="Параметр отвечающий за формат EXCEL",
-                value=excel,
-                input_format="text",
-            )
-            add_list.append(config)
-            logger.debug(f"Создан запрос на добавление конфига EXCEL в базу Configs")
-        except Exception as err:
-            logger.error(
-                f"Не удалось создать запрос на добавление EXCEL в базу Configs Ошибка {err}"
-            )
+        if check_config == None:
+            try:
+                config = base(
+                    name=configs[0],
+                    about=configs[1],
+                    value=configs[2],
+                    input_format=[3],
+                )
+                add_list.append(config)
+                logger.debug(f"Создан запрос на добавление конфига PDF в базу Configs")
+            except Exception as err:
+                logger.error(
+                    f"Не удалось создать запрос на добавление PDF в базу Configs Ошибка {err}"
+                )
     if len(add_list) != 0:
         try:
             session.add_all(add_list)
@@ -168,6 +140,11 @@ def create_default_config_ai(
     system_promt="Ты - {name}, твоя задача отвечать на вопросы используя информации из базы, а если информации нет генерировать ответ самостоятельно и добавлять 'Ответ сгенерирован самостоятельно'",
     promt="Контекст: {context} Вопрос: {quest}",
 ):
+    configs_list=(
+        ("ai_name","Параметр отвечающий за имя нейросети",ai_name,"text"),
+        ("system_promt","Параметр отвечающий за промт для нейросети",system_promt,"textarea"),
+        ("promt","Параметр отвечающий за промт вопроса для нейросети",promt,"textextarea"),
+    )
     session = session_create()
     base = Configs_ai
     if recreate:
@@ -178,65 +155,30 @@ def create_default_config_ai(
         except Exception as err:
             logger.error(f"Не удалось удалить строки таблицы Configs Ошибка {err}")
     add_list = list()
-    try:
-        check_ai_name = session.scalars(
-            select(base).where(base.name == "ai_name")
-        ).one_or_none()
-        check_system_promt = session.scalars(
-            select(base).where(base.name == "system_promt")
-        ).one_or_none()
-        check_promt = session.scalars(
-            select(base).where(base.name == "promt")
-        ).one_or_none()
-        logger.trace("Проверенно существование записей в базе Configs")
-    except Exception as err:
-        logger.error(
-            f"Не удалось проверить существование записей таблицы Configs Ошибка {err}"
-        )
-    if check_ai_name == None:
+    for configs in configs_list:
         try:
-            config = base(
-                name="ai_name",
-                about="Параметр отвечающий за имя нейросети",
-                value=ai_name,
-                input_format="text",
-            )
-            add_list.append(config)
-            logger.debug(
-                f"Создан запрос на добавление конфига имя нейросети в базу Configs"
-            )
+            check_config = session.scalars(
+                select(base).where(base.name == configs[0])
+            ).one_or_none()
+            logger.trace("Проверенно существование записей в базе Configs")
         except Exception as err:
             logger.error(
-                f"Не удалось создать запрос на добавление имя нейросети в базу Configs Ошибка {err}"
+                f"Не удалось проверить существование записей таблицы Configs Ошибка {err}"
             )
-    if check_system_promt == None:
-        try:
-            config = base(
-                name="system_promt",
-                about="Параметр отвечающий за промт для нейросети",
-                value=system_promt,
-                input_format="textarea",
-            )
-            add_list.append(config)
-            logger.debug(f"Создан запрос на добавление конфига промт в базу Configs")
-        except Exception as err:
-            logger.error(
-                f"Не удалось создать запрос на добавление промт в базу Configs Ошибка {err}"
-            )
-    if check_promt == None:
-        try:
-            config = base(
-                name="promt",
-                about="Параметр отвечающий за промт вопроса для нейросети",
-                value=promt,
-                input_format="textarea",
-            )
-            add_list.append(config)
-            logger.debug(f"Создан запрос на добавление конфига промт в базу Configs")
-        except Exception as err:
-            logger.error(
-                f"Не удалось создать запрос на добавление промт в базу Configs Ошибка {err}"
-            )
+        if check_config == None:
+            try:
+                config = base(
+                    name=configs[0],
+                    about=configs[1],
+                    value=configs[2],
+                    input_format=[3],
+                )
+                add_list.append(config)
+                logger.debug(f"Создан запрос на добавление конфига PDF в базу Configs")
+            except Exception as err:
+                logger.error(
+                    f"Не удалось создать запрос на добавление PDF в базу Configs Ошибка {err}"
+                )
     if len(add_list) != 0:
         try:
             session.add_all(add_list)

@@ -4,7 +4,9 @@ import secrets
 import bcrypt
 from loguru import logger
 
-from instance.config_read import config
+from instance.config_read import init_confg
+
+config=init_confg()
 
 def session_create():
     session=Session(bind=engine)
