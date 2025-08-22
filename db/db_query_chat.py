@@ -126,8 +126,8 @@ def get_messages_ai(chat_id):
         )
     if chat != None:
         ai_name = get_config_ai(name="ai_name")
-        system_promt=str(get_config_ai(name='system_promt')).format(name=ai_name)
-        result = [{"role":"system","content":system_promt}]
+        system_promt = str(get_config_ai(name="system_promt")).format(name=ai_name)
+        result = [{"role": "system", "content": system_promt}]
         try:
             messages_query = session.execute(
                 select(
@@ -202,16 +202,19 @@ def get_delet_chats_irrevocably():
     try:
         result = list()
         chats = session.execute(
-            select(Chats.id, Chats.chat_name,Chats.user_login).where(Chats.chat_del == True)
+            select(Chats.id, Chats.chat_name, Chats.user_login).where(
+                Chats.chat_del == True
+            )
         ).all()
         for chat in chats:
-            chat_dict={'chat_id':chat[0],'chat_name':chat[1],'user':chat[2]}
+            chat_dict = {"chat_id": chat[0], "chat_name": chat[1], "user": chat[2]}
             result.append(chat_dict)
         logger.trace(f"Чаты для удаления получены из базы")
     except Exception as err:
         logger.error(f"Не удалось получить чаты для удаления из базы Ошибка {err}")
     session.close()
     return result
+
 
 def delet_chats_irrevocably_checked(chats):
     session = db.session
@@ -220,15 +223,20 @@ def delet_chats_irrevocably_checked(chats):
             check_del = session.scalar(select(Chats).where(Chats.id == chat))
             logger.trace(f"Проверка чатa {chat} для удаления прошла успешно")
         except Exception as err:
-            logger.error(f"Не удалось проверить наличие чатa {chat} для удаления Ошибка {err}")
+            logger.error(
+                f"Не удалось проверить наличие чатa {chat} для удаления Ошибка {err}"
+            )
         if check_del != None:
             try:
-                session.execute(delete(Chats).where((Chats.chat_del==True) & (Chats.id==chat)))
+                session.execute(
+                    delete(Chats).where((Chats.chat_del == True) & (Chats.id == chat))
+                )
                 session.commit()
                 logger.debug(f"Чат {chat} удалены из базы")
             except Exception as err:
                 logger.error(f"Не удалось удалить чат {chat} Ошибка {err}")
     session.close()
+
 
 def recovery_chats_checked(chats):
     session = db.session
@@ -237,15 +245,22 @@ def recovery_chats_checked(chats):
             check_del = session.scalar(select(Chats).where(Chats.id == chat))
             logger.trace(f"Проверка чатa {chat} для удаления прошла успешно")
         except Exception as err:
-            logger.error(f"Не удалось проверить наличие чатa {chat} для удаления Ошибка {err}")
+            logger.error(
+                f"Не удалось проверить наличие чатa {chat} для удаления Ошибка {err}"
+            )
         if check_del != None:
             try:
-                session.execute(update(Chats).where((Chats.chat_del==True) & (Chats.id==chat)).values(chat_del=False))
+                session.execute(
+                    update(Chats)
+                    .where((Chats.chat_del == True) & (Chats.id == chat))
+                    .values(chat_del=False)
+                )
                 session.commit()
                 logger.debug(f"Чат {chat} удалены из базы")
             except Exception as err:
                 logger.error(f"Не удалось удалить чат {chat} Ошибка {err}")
     session.close()
+
 
 def delet_chats_irrevocably():
     session = db.session

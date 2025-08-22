@@ -30,6 +30,7 @@ def init_ai_chunk():
         )
         return False
 
+
 def init_rag():
     try:
         rag_host = get_config_ai("rag_host")
@@ -38,7 +39,10 @@ def init_rag():
         rag_grpc = bool(get_config_ai("rag_grpc"))
         rag_collection = get_config_ai("collection")
         client = QdrantClient(
-            host=rag_host, port=rag_port_http, grpc_port=rag_port_grpc, prefer_grpc=rag_grpc
+            host=rag_host,
+            port=rag_port_http,
+            grpc_port=rag_port_grpc,
+            prefer_grpc=rag_grpc,
         )
         try:
             check_rag_base = client.collection_exists(rag_collection)
@@ -62,15 +66,20 @@ def init_rag():
                 logger.info(f"Создана коллекция {rag_collection} в векторной базе")
                 return client
             except Exception as err:
-                logger.critical(f"Не удалось создать коллекцию в векторной базе Ошибка {err}")
+                logger.critical(
+                    f"Не удалось создать коллекцию в векторной базе Ошибка {err}"
+                )
                 return False
         else:
             logger.debug(f"Коллекция {rag_collection} уже есть в векторной базе")
             logger.debug("Инициализирован клиент векторной базы")
             return client
     except Exception as err:
-        logger.critical(f"Не удалось инициализированть клиент векторной базы Ошибка {err}")
+        logger.critical(
+            f"Не удалось инициализированть клиент векторной базы Ошибка {err}"
+        )
         return False
-    
-model=init_ai_chunk()
-client=init_rag()
+
+
+model = init_ai_chunk()
+client = init_rag()

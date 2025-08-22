@@ -1,9 +1,10 @@
 from uuid import uuid4
-from qdrant_client.http.models import PointStruct,PayloadSchemaType,HnswConfigDiff
+from qdrant_client.http.models import PointStruct, PayloadSchemaType, HnswConfigDiff
 from loguru import logger
 
 from db.db_query_config import get_config_ai
-from app import model,client
+from app import model, client
+
 
 def optimizate_base():
     collection = get_config_ai("collection")
@@ -37,6 +38,7 @@ def optimizate_base():
         logger.debug("Произведена структуризация графов")
     except Exception as err:
         logger.error(f"Не удалось структуризировать графы Ошибка {err}")
+
 
 def add_docs(chunks, doc_name, norm_text, batch_size=256):
     rag_collection = get_config_ai("collection")

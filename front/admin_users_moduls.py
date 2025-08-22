@@ -126,8 +126,8 @@ def admin_user_update_api():
 
 
 @admin_users_app.get("/delet_user/<login>")
-def admin_user_delet_api(login:str):
-    if  get_user_role(current_user.login):
+def admin_user_delet_api(login: str):
+    if get_user_role(current_user.login):
         try:
             logger.trace(
                 "Полученно из формы данных пользователя для удаления пользователя"

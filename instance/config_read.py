@@ -3,14 +3,18 @@ import json
 
 from loguru import logger
 
+
 def json_install_config():
     pass
+
 
 def json_install_config_ai():
     pass
 
+
 def json_update_config():
     pass
+
 
 def init_confg():
     if not os.path.exists("./instance/config.json"):
@@ -24,7 +28,7 @@ def init_confg():
             json.dump(data, file_config, indent=4)
         logger.debug("Добавлен файл конфигов")
 
-    with open('./instance/config.json') as c:
-        config=json.load(c)
-    
+    with open("./instance/config.json") as c:
+        config = json.load(c)
+
     return config

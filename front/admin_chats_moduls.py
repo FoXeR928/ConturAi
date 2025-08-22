@@ -29,16 +29,18 @@ def admin_chats_api():
         chats=get_chats(login=current_user.login),
     )
 
+
 @admin_chats_app.post("/delet")
 @login_required
 def admin_delet_chats_irrevocably_checked_api():
     if get_user_role(login=current_user.login):
         try:
-            chats=request.form.getlist('chats[]')
+            chats = request.form.getlist("chats[]")
             delet_chats_irrevocably_checked(chats=chats)
         except Exception as err:
             logger.error(f"Ошибка {err}")
     return redirect(request.referrer)
+
 
 @admin_chats_app.get("/delet_chats_irrevocably")
 @login_required
@@ -47,12 +49,13 @@ def admin_delet_chats_irrevocably_api():
         delet_chats_irrevocably()
     return redirect(request.referrer)
 
+
 @admin_chats_app.post("/recovery")
 @login_required
 def admin_recovery_chats_checked_api():
     if get_user_role(login=current_user.login):
         try:
-            chats=request.form.getlist('chats[]')
+            chats = request.form.getlist("chats[]")
             recovery_chats_checked(chats=chats)
         except Exception as err:
             logger.error(f"Ошибка {err}")

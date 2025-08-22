@@ -107,9 +107,11 @@ def add_user_status(login, role):
             admins = session.scalar(
                 select(func.count(Users.login)).where(Users.user_role == "admin")
             )
-            if user_role=='admin':
+            if user_role == "admin":
                 if admins <= 1:
-                    logger.warning(f"У администратора {login} нельзя изменить роль, так как существует только 1 запись админа")
+                    logger.warning(
+                        f"У администратора {login} нельзя изменить роль, так как существует только 1 запись админа"
+                    )
                     flash(
                         message="Нельзя изменить роль учетной запис, так как существует только 1 запись админа",
                         category="warning",
@@ -135,7 +137,9 @@ def add_user_status(login, role):
 def delet_user(login):
     session = db.session
     try:
-        user = session.scalars(select(Users.user_role).where(Users.login == login)).one_or_none()
+        user = session.scalars(
+            select(Users.user_role).where(Users.login == login)
+        ).one_or_none()
         logger.trace(f"Проверка существование пользователя {login}")
     except Exception as err:
         logger.warning(
@@ -146,9 +150,11 @@ def delet_user(login):
             admins = session.scalar(
                 select(func.count(Users.login)).where(Users.user_role == "admin")
             )
-            if user=='admin':
+            if user == "admin":
                 if admins <= 1:
-                    logger.warning(f"Администратора {login} нельзя удалить, так как существует только 1 запись админа")
+                    logger.warning(
+                        f"Администратора {login} нельзя удалить, так как существует только 1 запись админа"
+                    )
                     flash(
                         message="Нельзя удалить учетную запись админа, так как существует только 1 запись админа",
                         category="warning",

@@ -74,7 +74,10 @@ class Settings_ai(FlaskForm):
     model = StringField(
         "Модель AI",
         validators=[DataRequired()],
-        render_kw={"class": "model -input_with_label", "value": "ilyagusev/saiga_llama3"},
+        render_kw={
+            "class": "model -input_with_label",
+            "value": "ilyagusev/saiga_llama3",
+        },
     )
     collection = StringField(
         "Имя коллекции",
@@ -126,16 +129,28 @@ class Create_chat(FlaskForm):
     chat = StringField(
         "Название чата",
         validators=[DataRequired(), Length(min=1)],
-        render_kw={"placeholder": "Название чата", "class": "name_chat -separete_main -input_separete"},
+        render_kw={
+            "placeholder": "Название чата",
+            "class": "name_chat -separete_main -input_separete",
+        },
     )
     send_chat = SubmitField(
         "Создать",
         render_kw={"class": "send_message -separete_second -button_separete"},
     )
 
+
 class Create_user(FlaskForm):
-    login_reg = StringField("Логин", validators=[DataRequired(), Length(min=1)],render_kw=({"class": "login -input_with_label"}),)
-    user_name_reg = StringField("Имя", validators=[DataRequired(), Length(min=1)],render_kw=({"class": "name -input_with_label"}),)
+    login_reg = StringField(
+        "Логин",
+        validators=[DataRequired(), Length(min=1)],
+        render_kw=({"class": "login -input_with_label"}),
+    )
+    user_name_reg = StringField(
+        "Имя",
+        validators=[DataRequired(), Length(min=1)],
+        render_kw=({"class": "name -input_with_label"}),
+    )
     password_reg = PasswordField(
         "Пароль",
         validators=[DataRequired(), Length(min=8)],
@@ -146,14 +161,14 @@ class Create_user(FlaskForm):
         validators=[DataRequired(), Length(min=8)],
         render_kw=({"class": "password_check -input_with_label"}),
     )
-    send_reg = SubmitField("Создать",render_kw=({"class": "button_send -button"}))
+    send_reg = SubmitField("Создать", render_kw=({"class": "button_send -button"}))
 
 
 class Update_password(FlaskForm):
     login_update = StringField(
         "Пользоватль",
         validators=[DataRequired(), Length(min=1)],
-        render_kw={"readonly": "","class": "login -input_with_label"},
+        render_kw={"readonly": "", "class": "login -input_with_label"},
     )
     role_update = SelectField(
         "Выбор роли",
@@ -162,14 +177,19 @@ class Update_password(FlaskForm):
             ("user", "Пользователь"),
             ("admin", "Администратор"),
         ],
-        render_kw=({"class": "select_role -input_with_label"})
+        render_kw=({"class": "select_role -input_with_label"}),
     )
     password_update = PasswordField(
-        "Пароль", validators=[Length(min=8)], render_kw=({"class": "password -input_with_label"})
+        "Пароль",
+        validators=[Length(min=8)],
+        render_kw=({"class": "password -input_with_label"}),
     )
     password_update_check = PasswordField(
         "Пароль повторно",
         validators=[Length(min=8)],
         render_kw=({"class": "password_check -input_with_label"}),
     )
-    send_update = SubmitField("Изменить", render_kw=({"class": "button_send -button"}),)
+    send_update = SubmitField(
+        "Изменить",
+        render_kw=({"class": "button_send -button"}),
+    )

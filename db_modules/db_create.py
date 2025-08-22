@@ -1,19 +1,35 @@
-from sqlalchemy.orm import mapped_column, Mapped,DeclarativeBase,Session
-from sqlalchemy import BLOB, ForeignKey,create_engine
+from sqlalchemy.orm import mapped_column, Mapped, DeclarativeBase, Session
+from sqlalchemy import ForeignKey, create_engine
 import secrets
 import bcrypt
 from loguru import logger
 
 from instance.config_read import init_confg
 
-config=init_confg()
+config = init_confg()
+
+
+def init_db():
+    try:
+        engine = create_engine(config["SQLALCHEMY_DATABASE_URI"])
+        Base.metadata.create_all(engine)
+        logger.info("База данных инициализирована")
+        return engine
+    except Exception as err:
+        logger.critical(f"Не удалось инициализировать базу данных Ошибка: {err}")
+        exit()
+
 
 def session_create():
-    session=Session(bind=engine)
+    from app import engine
+
+    session = Session(bind=engine)
     return session
+
 
 class Base(DeclarativeBase):
     pass
+
 
 class Users(Base):
     __tablename__ = "users"
@@ -21,28 +37,21 @@ class Users(Base):
     id: Mapped[int] = mapped_column(primary_key=True, unique=True, nullable=False)
     login: Mapped[str] = mapped_column(nullable=False, unique=True)
     password_hash: Mapped[str] = mapped_column(nullable=True)
-    token: Mapped[str]=mapped_column(nullable=True,unique=True)
     user_name: Mapped[str] = mapped_column(nullable=True)
     user_role: Mapped[str] = mapped_column(nullable=False, default="user")
     chat_role: Mapped[str] = mapped_column(nullable=False, default="user")
+    disabled:Mapped[bool]=mapped_column(nullable=False,default=True)
 
-    def set_password(self, password:str):
-        generate_hash=bcrypt.hashpw(password.encode(),bcrypt.gensalt())
+    def set_password(self, password: str):
+        generate_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
         self.password_hash = generate_hash
 
-    def check_password(self, password:str):
-        return bcrypt.checkpw(password.encode(),self.password_hash)
+    def check_password(self, password: str):
+        return bcrypt.checkpw(password.encode(), self.password_hash)
 
-    def generate_token(self):
-        self.token=secrets.token_hex(32)
-    
-    def check_token(self,check_token):
-        return self.token==check_token
-    
-    def check_admin(self,token_to_check):
-        check_role=(self.user_role=='admin')
-        check_token=(self.token==token_to_check)
-        return check_role and check_token
+    def check_admin(self):
+        check_role = self.user_role == "admin"
+        return check_role
 
 
 class Chats(Base):
@@ -89,6 +98,7 @@ class Configs_ai(Base):
     value: Mapped[str] = mapped_column(nullable=False)
     input_format: Mapped[str] = mapped_column(nullable=False)
 
+
 class Token_API(Base):
     __tablename__ = "token_api"
 
@@ -96,18 +106,10 @@ class Token_API(Base):
     token: Mapped[str] = mapped_column(unique=True, nullable=True)
 
     def generate_token(self):
-        self.token=secrets.token_hex(64)
-    
-    def check_token(self,check_token):
-        if self.token==check_token:
+        self.token = secrets.token_hex(64)
+
+    def check_token(self, check_token):
+        if self.token == check_token:
             return True
         else:
             return False
-
-try:
-    engine=create_engine(config['SQLALCHEMY_DATABASE_URI'])
-    Base.metadata.create_all(engine)
-    logger.info("База данных инициализирована")
-except Exception as err:
-    logger.critical(f"Не удалось инициализировать базу данных Ошибка: {err}")
-    exit()

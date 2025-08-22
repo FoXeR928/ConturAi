@@ -12,7 +12,7 @@ def create_default_users(
     admin_role="admin",
     system_login="system",
     system_role="system",
-    system_chat_role='assistant'
+    system_chat_role="assistant",
 ):
     session = session_create()
     base = Users
@@ -76,14 +76,16 @@ def create_default_users(
 
 def create_default_config(
     recreate=False,
+    site_name="Ragi_AI",
     pdf="application/pdf",
     word="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     excel="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ):
-    configs_list=(
-        ("pdf","Параметр отвечающий за формат PDF",pdf,"text"),
-        ("word","Параметр отвечающий за формат WORD",word,"text"),
-        ("excel","Параметр отвечающий за формат EXCEL",excel,"text"),
+    configs_list = (
+        ("site_name", "Имя приложения", site_name, "text"),
+        ("pdf", "Параметр отвечающий за формат PDF", pdf, "text"),
+        ("word", "Параметр отвечающий за формат WORD", word, "text"),
+        ("excel", "Параметр отвечающий за формат EXCEL", excel, "text"),
     )
     session = session_create()
     base = Configs
@@ -140,10 +142,20 @@ def create_default_config_ai(
     system_promt="Ты - {name}, твоя задача отвечать на вопросы используя информации из базы, а если информации нет генерировать ответ самостоятельно и добавлять 'Ответ сгенерирован самостоятельно'",
     promt="Контекст: {context} Вопрос: {quest}",
 ):
-    configs_list=(
-        ("ai_name","Параметр отвечающий за имя нейросети",ai_name,"text"),
-        ("system_promt","Параметр отвечающий за промт для нейросети",system_promt,"textarea"),
-        ("promt","Параметр отвечающий за промт вопроса для нейросети",promt,"textextarea"),
+    configs_list = (
+        ("ai_name", "Параметр отвечающий за имя нейросети", ai_name, "text"),
+        (
+            "system_promt",
+            "Параметр отвечающий за промт для нейросети",
+            system_promt,
+            "textarea",
+        ),
+        (
+            "promt",
+            "Параметр отвечающий за промт вопроса для нейросети",
+            promt,
+            "textextarea",
+        ),
     )
     session = session_create()
     base = Configs_ai

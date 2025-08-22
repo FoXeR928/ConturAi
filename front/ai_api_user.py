@@ -18,6 +18,7 @@ try:
 except Exception as err:
     logger.error(f"Инициализация пути /api/ai не удалась Ошибка:{err}")
 
+
 @api_ai_user_app.post("/create_message")
 @login_required
 def create_message_api():
@@ -40,13 +41,14 @@ def create_message_api():
         )
     return redirect(request.referrer)
 
+
 @api_ai_user_app.post("/add_docs")
 @login_required
 def ai_add_docs_api():
     if get_user_role(current_user.login):
         try:
-            file = request.form['file_text']
-            file_name = request.form['file_name_text']
+            file = request.form["file_text"]
+            file_name = request.form["file_name_text"]
             logger.debug("Полученно из формы данных для загрузки в RAG базу")
         except Exception as err:
             logger.error(

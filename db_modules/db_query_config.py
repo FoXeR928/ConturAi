@@ -9,11 +9,12 @@ def get_configs_ai_query():
     try:
         search_config = session.execute(
             select(
-            Configs_ai.name,
-            Configs_ai.about,
-            Configs_ai.value,
-            Configs_ai.input_format,
-        )).all()
+                Configs_ai.name,
+                Configs_ai.about,
+                Configs_ai.value,
+                Configs_ai.input_format,
+            )
+        ).all()
         search_result = list()
         for config in search_config:
             search_result.append(
@@ -24,14 +25,26 @@ def get_configs_ai_query():
                     "input_format": config.input_format,
                 }
             )
-        result={'result':True,'configs_ai':search_result,'message':"Конфиги получены", 'category':"success",'cod':200}
+        result = {
+            "result": True,
+            "configs_ai": search_result,
+            "message": "Конфиги получены",
+            "category": "success",
+            "cod": 200,
+        }
         logger.trace(f"Получен список конфигов для AI из базы")
     except Exception as err:
         logger.error(f"Не удалось получить список конфигов для AI из базы Ошибка {err}")
-        return {'result':False,'message':"Ошибка сервера не удалось получить конфиги AI", 'category':"error",'cod':500}
+        return {
+            "result": False,
+            "message": "Ошибка сервера не удалось получить конфиги AI",
+            "category": "error",
+            "cod": 500,
+        }
     finally:
         session.close()
     return result
+
 
 def get_configs_query():
     session = session_create()
@@ -49,14 +62,26 @@ def get_configs_query():
                     "input_format": config.input_format,
                 }
             )
-        result={'result':True,'configs_ai':search_result,'message':"Конфиги получены", 'category':"success",'cod':200}
+        result = {
+            "result": True,
+            "configs_ai": search_result,
+            "message": "Конфиги получены",
+            "category": "success",
+            "cod": 200,
+        }
         logger.trace(f"Получен список конфигов из базы")
     except Exception as err:
         logger.error(f"Не удалось получить список конфигов из базы Ошибка {err}")
-        return {'result':False,'message':"Ошибка сервера не удалось получить конфиги приложения", 'category':"error",'cod':500}
+        return {
+            "result": False,
+            "message": "Ошибка сервера не удалось получить конфиги приложения",
+            "category": "error",
+            "cod": 500,
+        }
     finally:
         session.close()
     return result
+
 
 def update_config_ai_query(name: str, value):
     session = session_create()
@@ -66,13 +91,24 @@ def update_config_ai_query(name: str, value):
         )
         session.commit()
         logger.success(f"Обноваление значения конфигова {name} на {value} из базы")
-        result={'result':True,'message':"Конфиг обнавлен", 'category':"success",'cod':200}
+        result = {
+            "result": True,
+            "message": "Конфиг обнавлен",
+            "category": "success",
+            "cod": 200,
+        }
     except Exception as err:
         logger.error(f"Не удалось обновить значения конфигова {name} Ошибка {err}")
-        result={'result':False,'message':"Ошибка сервера конфиг не обнавлен", 'category':"error",'cod':500}
+        result = {
+            "result": False,
+            "message": "Ошибка сервера конфиг не обнавлен",
+            "category": "error",
+            "cod": 500,
+        }
     finally:
         session.close()
     return result
+
 
 def update_config_query(name: str, value):
     session = session_create()
@@ -80,13 +116,24 @@ def update_config_query(name: str, value):
         session.execute(update(Configs).where(Configs.name == name).values(value=value))
         session.commit()
         logger.success(f"Обноваление значения конфигова {name} на {value} из базы")
-        result={'result':True,'message':"Конфиг обнавлен", 'category':"success",'cod':200}
+        result = {
+            "result": True,
+            "message": "Конфиг обнавлен",
+            "category": "success",
+            "cod": 200,
+        }
     except Exception as err:
         logger.error(f"Не удалось обновить значения конфигова {name} Ошибка {err}")
-        result={'result':False,'message':"Ошибка сервера конфиг не обнавлен", 'category':"error",'cod':500}
+        result = {
+            "result": False,
+            "message": "Ошибка сервера конфиг не обнавлен",
+            "category": "error",
+            "cod": 500,
+        }
     finally:
         session.close()
     return result
+
 
 def get_config_ai(name: str):
     session = session_create()
@@ -105,6 +152,7 @@ def get_config_ai(name: str):
         session.close()
     return result
 
+
 def get_config(name: str):
     session = session_create()
     try:
@@ -122,8 +170,17 @@ def get_config(name: str):
         session.close()
     return result
 
-def create_config_ai_start(model_chunk:str,model:str,collection:str='ragi_db',rag_host:str='localhost',rag_port_http:int=6333,rag_port_grpc:int=6333,rag_grpc:bool=False):
-    configs_list=(
+
+def create_config_ai_start(
+    model_chunk: str,
+    model: str,
+    collection: str = "ragi_db",
+    rag_host: str = "localhost",
+    rag_port_http: int = 6333,
+    rag_port_grpc: int = 6333,
+    rag_grpc: bool = False,
+):
+    configs_list = (
         ("model_chunk", "Модель для генерации чанков", model_chunk, "text"),
         ("model", "Модель для генерации ответа", model, "text"),
         ("collection", "Название векторной коллекции", collection, "text"),
@@ -154,16 +211,20 @@ def create_config_ai_start(model_chunk:str,model:str,collection:str='ragi_db',ra
                 )
             session.commit()
         logger.success(f"Добавлены в базу конфиги для AI")
-        result={'result':True,'message':"Стартовый конфиг AI задан", 'category':"success",'cod':200}
+        result = {
+            "result": True,
+            "message": "Стартовый конфиг AI задан",
+            "category": "success",
+            "cod": 200,
+        }
     except Exception as err:
         logger.error(f"Не удалось задать стартовые конфиги AI Ошибка {err}")
-        result={'result':False,'message':"Ошибка сервера стартовый конфиг AI не задан", 'category':"error",'cod':500}
+        result = {
+            "result": False,
+            "message": "Ошибка сервера стартовый конфиг AI не задан",
+            "category": "error",
+            "cod": 500,
+        }
     finally:
         session.close()
     return result
-
-
-
-
-
-
