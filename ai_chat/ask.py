@@ -2,7 +2,7 @@ from ollama import chat
 from loguru import logger
 
 from db.db_query_chat import create_message
-from db.db_query_config import get_config_ai
+from db_modules.db_query_config import get_config_ai
 from ai_chat.query_rag_db import search_docs
 
 

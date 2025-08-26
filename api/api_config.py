@@ -1,10 +1,9 @@
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Response,Depends
 from pydantic import BaseModel
 from typing import Any
 from loguru import logger
 
-from api.api_auth import UserToken
-from db_modules.db_query import admin_auth_check
+from api.api_auth import User, get_current_user
 from db_modules.db_query_config import (
     get_configs_ai_query,
     get_configs_query,
@@ -36,16 +35,15 @@ class ConfigStart(BaseModel):
 
 
 @config_app.get("/ai", summary="Получение конфигов AI")
-async def get_configs_ai_api(token_data: UserToken, response: Response):
-    auth = admin_auth_check(login=token_data.login, token=token_data.user_token)
-    if auth == True:
+async def get_configs_ai_api(response: Response,current_user: User=Depends(get_current_user)):
+    if current_user.role == 'admin':
         result = get_configs_ai_query()
     else:
         result = {
             "result": False,
             "message": "Доступно только администратору",
             "category": "warning",
-            "cod": 401,
+            "cod": 403,
         }
     response.status_code = result["cod"]
     del result["cod"]
@@ -53,16 +51,15 @@ async def get_configs_ai_api(token_data: UserToken, response: Response):
 
 
 @config_app.get("/app", summary="Получение конфигов приложения")
-async def get_configs_ai_api(token_data: UserToken, response: Response):
-    auth = admin_auth_check(login=token_data.login, token=token_data.user_token)
-    if auth == True:
+async def get_configs_ai_api(response: Response,current_user: User=Depends(get_current_user)):
+    if current_user.role == 'admin':
         result = get_configs_query()
     else:
         result = {
             "result": False,
             "message": "Доступно только администратору",
             "category": "warning",
-            "cod": 401,
+            "cod": 403,
         }
     response.status_code = result["cod"]
     del result["cod"]
@@ -71,17 +68,16 @@ async def get_configs_ai_api(token_data: UserToken, response: Response):
 
 @config_app.patch("/ai/update", summary="Обновление конфига AI")
 async def get_configs_ai_api(
-    token_data: UserToken, config_data: ConfigUpdate, response: Response
+    config_data: ConfigUpdate, response: Response,current_user: User=Depends(get_current_user)
 ):
-    auth = admin_auth_check(login=token_data.login, token=token_data.user_token)
-    if auth == True:
+    if current_user.role == 'admin':
         result = update_config_ai_query(name=config_data.name, value=config_data.value)
     else:
         result = {
             "result": False,
             "message": "Доступно только администратору",
             "category": "warning",
-            "cod": 401,
+            "cod": 403,
         }
     response.status_code = result["cod"]
     del result["cod"]
@@ -90,17 +86,16 @@ async def get_configs_ai_api(
 
 @config_app.patch("/app/update", summary="Обновление конфига приложения")
 async def get_configs_ai_api(
-    token_data: UserToken, config_data: ConfigUpdate, response: Response
+    config_data: ConfigUpdate, response: Response,current_user: User=Depends(get_current_user)
 ):
-    auth = admin_auth_check(login=token_data.login, token=token_data.user_token)
-    if auth == True:
+    if current_user.role == 'admin':
         result = update_config_query(name=config_data.name, value=config_data.value)
     else:
         result = {
             "result": False,
             "message": "Доступно только администратору",
             "category": "warning",
-            "cod": 401,
+            "cod": 403,
         }
     response.status_code = result["cod"]
     del result["cod"]
@@ -109,17 +104,16 @@ async def get_configs_ai_api(
 
 @config_app.post("/ai/start", summary="Создание установочных конфигов AI")
 async def start_configs_ai_api(
-    token_data: UserToken, configs_data: ConfigStart, response: Response
+    configs_data: ConfigStart, response: Response,current_user: User=Depends(get_current_user)
 ):
-    auth = admin_auth_check(login=token_data.login, token=token_data.user_token)
-    if auth == True:
+    if current_user.role == 'admin':
         result = create_config_ai_start(configs=configs_data)
     else:
         result = {
             "result": False,
             "message": "Доступно только администратору",
             "category": "warning",
-            "cod": 401,
+            "cod": 403,
         }
     response.status_code = result["cod"]
     del result["cod"]

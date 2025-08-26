@@ -20,33 +20,3 @@ def check_user(login: str):
     finally:
         session.close()
     return result
-
-
-def user_auth_check(login: str, token: str):
-    session = session_create()
-    try:
-        user_token = session.scalars(select(Users).where(Users.login == login)).one()
-        logger.trace(f"Проверка токена пользователя {login} в базе")
-        result = user_token.check_token(token)
-        logger.debug(f"Проверка токена пользователя {login} в базе прошла успешно")
-    except Exception as err:
-        logger.error(f"Не удалось проверить токен пользователя {login} Ошибка {err}")
-        result = False
-    finally:
-        session.close()
-    return result
-
-
-def admin_auth_check(login: str, token: str):
-    session = session_create()
-    try:
-        user_token = session.scalars(select(Users).where(Users.login == login)).one()
-        logger.trace(f"Проверка токена пользователя {login} в базе")
-        result = user_token.check_admin(token)
-        logger.debug(f"Проверка токена пользователя {login} в базе прошла успешно")
-    except Exception as err:
-        logger.error(f"Не удалось проверить токен пользователя {login} Ошибка {err}")
-        result = False
-    finally:
-        session.close()
-    return result

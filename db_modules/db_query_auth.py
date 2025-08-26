@@ -23,6 +23,27 @@ def create_token(data:dict,expires_use:bool=False):
         result=False
     return result
 
+def decode_token(token:str):
+    payload=jwt.decode(token)
+    user=payload.get('sub')
+    return user
+
+def get_current_user_query(login:str):
+    user_check=check_user(login=login)
+    if user_check==True:
+        session = session_create()
+        try:
+            user = session.scalars(select(Users.login,Users.user_name,Users.user_role).where(Users.login == user)).one_or_none()
+            result=Users(**user)
+        except Exception as err:
+            logger.error(f"Не удалось получить данные пользователя {login} Ошибка {err}")
+            result = None
+        finally:
+            session.close()
+    else:
+        result=None
+    return result
+
 def auth_query(login: str, password: str):
     user=check_user()
     result_no_auth = {
@@ -51,15 +72,17 @@ def auth_query(login: str, password: str):
             session.close()
         if check_auth == True:
                 token=create_token(data={'sub':login})
-                logger.debug(f"Токен пользователя {login} успешно сгенерирован")
-                result = {
-                    "result": True,
-                    "token": token,
-                    "token_type":"bearer",
-                    "message": "Авторизация прошла успешно",
-                    "category": "success",
-                    "cod": 200,
-                }
+                if token!=False:
+                    result = {
+                        "result": True,
+                        "token": token,
+                        "token_type":"bearer",
+                        "message": "Авторизация прошла успешно",
+                        "category": "success",
+                        "cod": 200,
+                    }
+                else:
+                    result=result_error
         else:
             result=result_no_auth
     else:

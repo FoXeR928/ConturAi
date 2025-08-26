@@ -53,7 +53,7 @@ def init_app():
         app = FastAPI(
             title="Rago_AI",
             description="Система для локального нейропомощника",
-            version="1.3.0",
+            version="1.3.2",
         )
         return app
     except Exception as err:
@@ -68,10 +68,6 @@ create_default_config()
 create_default_config_ai()
 create_default_users()
 app = init_app()
-
-
-@app.on_event("startup")
-async def on_start():
-    init_pages()
-    if config["CREATE_AI"] == True:
-        init_ai()
+init_pages()
+if config["CREATE_AI"] == True:
+    init_ai()
