@@ -51,7 +51,8 @@ class Users(Base):
 
     def check_admin(self):
         check_role = self.user_role == "admin"
-        return check_role
+        check_active = self.disabled ==False
+        return check_role and check_active
 
 
 class Chats(Base):

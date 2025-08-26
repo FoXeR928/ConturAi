@@ -61,7 +61,7 @@ def auth_query(login: str, password: str):
                     "cod": 200,
                 }
         else:
-            result_no_auth
+            result=result_no_auth
     else:
         result = result_no_auth
     return result

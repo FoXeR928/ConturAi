@@ -2,6 +2,7 @@ from fastapi import APIRouter, Response, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from typing import Optional
+import jwt
 
 from db_modules.db_query import admin_auth_check, user_auth_check
 from db_modules.db_query_auth import (
@@ -10,7 +11,7 @@ from db_modules.db_query_auth import (
     get_token_query,
     create_token_query,
 )
-    
+
 auth_app = APIRouter(prefix="/auth", tags=["Авторизация"])
 
 class Auth(BaseModel):
@@ -24,6 +25,8 @@ class Token(BaseModel):
 class User(BaseModel):
     login: str
     name: Optional[str] = None
+
+def get_current_user(current_user:User=Depends()):
 
 
 @auth_app.post("/", response_model=Token, summary="Авторизация для получения токена")
@@ -53,7 +56,7 @@ async def auth_api(response: Response,current_user: User=Depends(get_current_use
 
 @auth_app.get("/get_token", summary="Получени токена API")
 async def get_token_api(response: Response, current_user: User=Depends(get_current_user),):
-    auth = admin_auth_check(login=token_d.login, token=token_data.user_token)
+    auth = admin_auth_check(login=current_user.login)
     if auth == True:
         result = get_token_query()
     else:
@@ -69,8 +72,8 @@ async def get_token_api(response: Response, current_user: User=Depends(get_curre
 
 
 @auth_app.put("/create_token", summary="Создание токена API")
-async def create_token_api(token_data: UserToken, response: Response):
-    auth = admin_auth_check(login=token_data.login, token=token_data.user_token)
+async def create_token_api(token_data: User, response: Response):
+    auth = admin_auth_check(login=token_data.login)
     if auth == True:
         result = create_token_query()
     else:
