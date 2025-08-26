@@ -16,8 +16,9 @@ Ragi_AI — это решение для создания чатов с бото
 
 ## Устанока:
 
-    poetry insatll
+    poetry install
 
     poetry run app.py
 
 После установки зайти на http://хост_ragi_ai:7000 для завершеня установки
+
