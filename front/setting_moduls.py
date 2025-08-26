@@ -18,13 +18,13 @@ except Exception as err:
 @configs_app.get("/start_settings")
 def start_settings():
     form = Settings()
-    return render_template("settings.html", form=form)
+    return render_template("settings/settings.html", form=form)
 
 
 @configs_app.get("/start_settings_ai")
 def start_settings_ai():
     form = Settings_ai()
-    return render_template("settings_ai.html", form=form)
+    return render_template("settings/settings_ai.html", form=form)
 
 
 @configs_app.post("/create_start_settings")
