@@ -9,8 +9,8 @@ from ai_chat.query_rag_db import search_docs
 def ask_query(query, chat_id, messages_history):
     context = search_docs(query)
     ai_model = get_config_ai(name="model")
-    prompt = str(get_config_ai(name='pront')).format(context=context,quest=query)
-    messages_history.append({"role": "user", "content": prompt})
+    promt = str(get_config_ai(name='promt')).format(context=context,quest=query)
+    messages_history.append({"role": "user", "content": promt})
     try:
         response = chat(model=ai_model, messages=messages_history,stream=False)
         result = response["message"]["content"]

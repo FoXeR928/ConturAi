@@ -6,9 +6,9 @@ $('#send_message').click(function(event){
         $('.loader').css({'display': 'inline-block'});
         $("ul#chat")[0].scrollIntoView();
         $.ajax({
-            url:'api/ai/create_message',
+            url:'../api/ai/create_message',
             method:'POST',
-            data:{chat_id:chat_send,message:message_send},
+            data:{'chat_id':chat_send,'message':message_send},
             success : function() {
                 location.reload()
             },

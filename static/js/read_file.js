@@ -14,14 +14,13 @@ $('#file').change(function(event){
             success : function(result) {
                 $('#file_name_text').val(result['name'])
                 $('#file_text').val(result['text'])
-                $('.loader').removeAttr('style');
             },
             error: function(error){
                 alert('Ошибка '+error)
                 console.log(error);
-                $('.loader').removeAttr('style');
             }
         })
+        $('.loader').removeAttr('style');
         $(this).val('')
     }
 })
@@ -30,10 +29,11 @@ $('#send_text').click(function(event){
     text_name=$('#file_name_text').val()
     text=$('#file_text').val()
     if (text.length>0){
+        $('.loader').css({'display': 'inline-block'});
         $.ajax({
             url:'/api/ai/add_docs',
             method:'POST',
-            data:{},
+            data:{'file_text':text,'file_name_text':text_name},
             success : function() {
                 $('#file_name_text').val('')
                 $('#file_text').val('')
@@ -42,8 +42,8 @@ $('#send_text').click(function(event){
             error: function(error){
                 alert('Ошибка '+error)
                 console.log(error);
-                $('.loader').removeAttr('style');
             }
         })
+        $('.loader').removeAttr('style');
     }
 })
