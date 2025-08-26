@@ -51,9 +51,9 @@ def init_ai():
 def init_app():
     try:
         app = FastAPI(
-            title="Rago_AI",
+            title="Ragi_AI",
             description="Система для локального нейропомощника",
-            version="1.3.2",
+            version="1.4.0",
         )
         return app
     except Exception as err:

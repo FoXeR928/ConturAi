@@ -5,6 +5,7 @@ from loguru import logger
 
 from db_modules.db_create import Users, session_create, Token_API
 from db_modules.db_query import check_user
+from app import config
 
 
 def create_token(data:dict,expires_use:bool=False):
@@ -15,7 +16,7 @@ def create_token(data:dict,expires_use:bool=False):
         else:
             expire+=timedelta(minutes=30)
         data['exp']=expire
-        encoded_jwt=jwt.encode(claims=data)
+        encoded_jwt=jwt.encode(payload=data, key=config["SECRETKEY"],algorithm="HS256")
         result=encoded_jwt
         logger.debug(f'Токен создан для пользователя {data['sub']}')
     except Exception as err:
@@ -24,7 +25,7 @@ def create_token(data:dict,expires_use:bool=False):
     return result
 
 def decode_token(token:str):
-    payload=jwt.decode(token)
+    payload=jwt.decode(jwt=token,key=config["SECRETKEY"],algorithms="HS256")
     user=payload.get('sub')
     return user
 
@@ -33,8 +34,8 @@ def get_current_user_query(login:str):
     if user_check==True:
         session = session_create()
         try:
-            user = session.scalars(select(Users.login,Users.user_name,Users.user_role).where(Users.login == user)).one_or_none()
-            result=Users(**user)
+            user = session.execute(select(Users.login,Users.user_name,Users.user_role).where(Users.login == login)).one_or_none()
+            result=user
         except Exception as err:
             logger.error(f"Не удалось получить данные пользователя {login} Ошибка {err}")
             result = None
@@ -45,7 +46,7 @@ def get_current_user_query(login:str):
     return result
 
 def auth_query(login: str, password: str):
-    user=check_user()
+    user=check_user(login=login)
     result_no_auth = {
         "result": False,
         "message": "Неверный логин или пароль",
@@ -75,7 +76,7 @@ def auth_query(login: str, password: str):
                 if token!=False:
                     result = {
                         "result": True,
-                        "token": token,
+                        "access_token": token,
                         "token_type":"bearer",
                         "message": "Авторизация прошла успешно",
                         "category": "success",
