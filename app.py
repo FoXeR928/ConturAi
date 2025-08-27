@@ -30,10 +30,12 @@ def init_pages():
         from api.api_auth import auth_app
         from api.api_config import config_app
         from api.api_chat import chat_app
+        from api.api_users import users_app
 
         app.include_router(router=auth_app)
         app.include_router(router=config_app)
         app.include_router(router=chat_app)
+        app.include_router(router=users_app)
         logger.debug("Инициализирован API")
     except Exception as err:
         logger.error(f"Ошибка инициализации API: {err}")
@@ -53,7 +55,7 @@ def init_app():
         app = FastAPI(
             title="Ragi_AI",
             description="Система для локального нейропомощника",
-            version="1.8.1",
+            version="1.9.0",
         )
         return app
     except Exception as err:

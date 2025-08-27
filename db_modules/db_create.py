@@ -41,7 +41,7 @@ class Users(Base):
     user_name: Mapped[str] = mapped_column(nullable=True)
     user_role: Mapped[str] = mapped_column(nullable=False, default="user")
     chat_role: Mapped[str] = mapped_column(nullable=False, default="user")
-    disabled: Mapped[bool] = mapped_column(nullable=False, default=True)
+    disabled: Mapped[bool] = mapped_column(nullable=False, default=False)
     date_create: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), default=datetime.now()
     )
@@ -54,7 +54,9 @@ class Users(Base):
         self.password_hash = generate_hash
 
     def check_password(self, password: str):
-        return bcrypt.checkpw(password.encode(), self.password_hash)
+        check_password_func=bcrypt.checkpw(password.encode(), self.password_hash)
+        check_active = self.disabled == False
+        return check_password_func and check_active
 
     def check_admin(self):
         check_role = self.user_role == "admin"
