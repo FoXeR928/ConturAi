@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Response, Depends
 from pydantic import BaseModel
+from typing import List
 
 from api.api_auth import User, get_current_user
 from db_modules.db_query_chat import (
@@ -8,7 +9,10 @@ from db_modules.db_query_chat import (
     get_messages_chat_query,
     create_message_query,
     delet_chat_query,
-    get_delet_chats_query
+    get_delet_chats_query,
+    delet_chats_irrevocably_list_query,
+    delet_chats_irrevocably_all_list,
+    recovery_chats_list_query
 )
 
 chat_app = APIRouter(prefix="/chats", tags=["Чаты"])
@@ -77,6 +81,57 @@ async def get_delet_chats_api(
 ):
     if current_user.role == "admin":
         result = get_delet_chats_query()
+    else:
+        result = {
+            "result": False,
+            "message": "Доступно только администратору",
+            "category": "warning",
+            "cod": 403,
+        }
+    response.status_code = result["cod"]
+    del result["cod"]
+    return result
+
+@chat_app.delete("/delet/irrevocably/list", summary="Удаление безвозвратно списка чатов")
+async def delet_chats_irrevocably_list_api(
+    response: Response,chats:List[int], current_user: User = Depends(get_current_user)
+):
+    if current_user.role == "admin":
+        result = delet_chats_irrevocably_list_query(chats=chats)
+    else:
+        result = {
+            "result": False,
+            "message": "Доступно только администратору",
+            "category": "warning",
+            "cod": 403,
+        }
+    response.status_code = result["cod"]
+    del result["cod"]
+    return result
+
+@chat_app.delete("/delet/irrevocably/all", summary="Удаление безвозвратно всех чатов")
+async def delet_chats_irrevocably_list_api(
+    response: Response,current_user: User = Depends(get_current_user)
+):
+    if current_user.role == "admin":
+        result = delet_chats_irrevocably_all_list()
+    else:
+        result = {
+            "result": False,
+            "message": "Доступно только администратору",
+            "category": "warning",
+            "cod": 403,
+        }
+    response.status_code = result["cod"]
+    del result["cod"]
+    return result
+
+@chat_app.patch("/recovery/list", summary="Восстановление списка чатов")
+async def recovery_chats_list_api(
+    response: Response,chats:List[int], current_user: User = Depends(get_current_user)
+):
+    if current_user.role == "admin":
+        result = recovery_chats_list_query(chats=chats)
     else:
         result = {
             "result": False,
