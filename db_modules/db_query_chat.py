@@ -1,7 +1,7 @@
 from sqlalchemy import select, update, delete
 from loguru import logger
 
-from db_modules.db_create import Chats, Messages, session_create
+from db_modules.db_create import Chats, Messages,Users, session_create
 from db_modules.db_query import check_user, check_chat
 
 
@@ -91,18 +91,22 @@ def get_messages_chat(login: str, chat_id: int):
         try:
             messages_query = session.execute(
                 select(
+                    Users.login,
+                    Users.chat_role,
                     Messages.id,
                     Messages.text,
                 ).where(Messages.chat_id == chat_id)
+                .join(Users)
             ).all()
             get_name = session.scalars(
                 select(Chats.chat_name).where(Chats.id == chat_id)
             ).one()
+            messages=[row._mapping for row in messages_query]
             result = {
                 "result": True,
                 "message": "Сообщения получены",
                 "chat_name": get_name,
-                "messages_history": messages_query,
+                "messages_history": messages,
                 "category": "success",
                 "cod": 200,
             }
@@ -126,11 +130,10 @@ def get_messages_chat(login: str, chat_id: int):
             "category": "warning",
             "cod": 404,
         }
-
     return result
 
 
-def create_message(login: str, chat_id: int, text: str):
+def create_message(login: str, chat_id: int, text: str, return_text: bool = False):
     user = check_user(login=login)
     chat = check_chat(chat_id=chat_id)
     if user == True and chat == True:
@@ -146,6 +149,8 @@ def create_message(login: str, chat_id: int, text: str):
                 "category": "success",
                 "cod": 201,
             }
+            if return_text == True:
+                result["answer"] = text
         except Exception as err:
             logger.error(f"Не удалось записать сообщение в чат {chat_id} Ошибка {err}")
             result = {
