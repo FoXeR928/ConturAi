@@ -2,8 +2,8 @@ from uuid import uuid4
 from qdrant_client.http.models import PointStruct, PayloadSchemaType, HnswConfigDiff
 from loguru import logger
 
-from db.db_query_config import get_config_ai
-from app import model, client
+from db_modules.db_query_config import get_config_ai
+from ai_chat.init_rag_db import model, client
 
 
 def optimizate_base():

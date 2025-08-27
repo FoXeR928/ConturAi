@@ -1,5 +1,6 @@
 from sqlalchemy.orm import mapped_column, Mapped, DeclarativeBase, Session
-from sqlalchemy import ForeignKey, create_engine
+from sqlalchemy import ForeignKey, create_engine, func,DateTime
+from datetime import datetime
 import secrets
 import bcrypt
 from loguru import logger
@@ -41,6 +42,8 @@ class Users(Base):
     user_role: Mapped[str] = mapped_column(nullable=False, default="user")
     chat_role: Mapped[str] = mapped_column(nullable=False, default="user")
     disabled:Mapped[bool]=mapped_column(nullable=False,default=True)
+    date_create: Mapped[datetime]=mapped_column(DateTime(timezone=True),server_default=func.now(),default=datetime.now())
+    date_update:Mapped[datetime]=mapped_column(DateTime(timezone=True),onupdate=func.now(),nullable=True)
 
     def set_password(self, password: str):
         generate_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
@@ -65,6 +68,8 @@ class Chats(Base):
     )
     chat_name: Mapped[str] = mapped_column(nullable=False)
     chat_del: Mapped[bool] = mapped_column(nullable=False, default=False)
+    date_create: Mapped[datetime]=mapped_column(DateTime(timezone=True),server_default=func.now(),default=datetime.now())
+    date_update:Mapped[datetime]=mapped_column(DateTime(timezone=True),onupdate=func.now(),nullable=True)
 
 
 class Messages(Base):
@@ -78,6 +83,8 @@ class Messages(Base):
         ForeignKey("chats.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False
     )
     text: Mapped[str]
+    date_create: Mapped[datetime]=mapped_column(DateTime(timezone=True),server_default=func.now(),default=datetime.now())
+    date_update:Mapped[datetime]=mapped_column(DateTime(timezone=True),onupdate=func.now(),nullable=True)
 
 
 class Configs(Base):
@@ -88,6 +95,8 @@ class Configs(Base):
     about: Mapped[str] = mapped_column(nullable=False)
     value: Mapped[str] = mapped_column(nullable=False)
     input_format: Mapped[str] = mapped_column(nullable=False)
+    date_create: Mapped[datetime]=mapped_column(DateTime(timezone=True),server_default=func.now(),default=datetime.now())
+    date_update:Mapped[datetime]=mapped_column(DateTime(timezone=True),onupdate=func.now(),nullable=True)
 
 
 class Configs_ai(Base):
@@ -98,6 +107,8 @@ class Configs_ai(Base):
     about: Mapped[str] = mapped_column(nullable=False)
     value: Mapped[str] = mapped_column(nullable=False)
     input_format: Mapped[str] = mapped_column(nullable=False)
+    date_create: Mapped[datetime]=mapped_column(DateTime(timezone=True),server_default=func.now(),default=datetime.now())
+    date_update:Mapped[datetime]=mapped_column(DateTime(timezone=True),onupdate=func.now(),nullable=True)
 
 
 class Token_API(Base):
@@ -105,6 +116,8 @@ class Token_API(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, unique=True, nullable=False)
     token: Mapped[str] = mapped_column(unique=True, nullable=True)
+    date_create: Mapped[datetime]=mapped_column(DateTime(timezone=True),server_default=func.now(),default=datetime.now())
+    date_update:Mapped[datetime]=mapped_column(DateTime(timezone=True),onupdate=func.now(),nullable=True)
 
     def generate_token(self):
         self.token = secrets.token_hex(64)

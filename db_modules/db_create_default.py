@@ -1,5 +1,6 @@
 from sqlalchemy import select, delete
 from loguru import logger
+import secrets
 
 from db_modules.db_create import Users, Configs, Configs_ai, session_create
 
@@ -76,12 +77,14 @@ def create_default_users(
 
 def create_default_config(
     recreate=False,
+    token=secrets.token_hex(64),
     site_name="Ragi_AI",
     pdf="application/pdf",
     word="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     excel="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ):
     configs_list = (
+        ("skey", "Ключ для генерации OAuth2 токена", token, "text"),
         ("site_name", "Имя приложения", site_name, "text"),
         ("pdf", "Параметр отвечающий за формат PDF", pdf, "text"),
         ("word", "Параметр отвечающий за формат WORD", word, "text"),

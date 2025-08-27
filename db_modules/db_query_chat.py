@@ -2,7 +2,7 @@ from sqlalchemy import select, update, delete
 from loguru import logger
 
 from db_modules.db_create import Users, Chats, Messages, session_create
-from db_modules.db_query import check_user
+from db_modules.db_query import check_user,check_chat
 
 
 def create_chat(login: str, chat: str):
@@ -47,16 +47,16 @@ def get_chats(login):
         try:
             result_list = dict()
             chats = session.execute(
-                select(Chats.id, Chats.chat_name).where(
+                select(Chats.id, Chats.chat_name,Chats.date_create).where(
                     (Chats.user_login == login) & (Chats.chat_del != True)
                 )
             ).all()
             for chat in chats:
-                result_list[chat[0]] = chat[1]
+                result_list[chat[0]] = {'chat_name':chat[1], 'chat_create':chat[2]}
             result = {
                 "result": True,
                 "chats": result_list,
-                "message": "Чат получены",
+                "message": "Чаты получены",
                 "category": "success",
                 "cod": 200,
             }
@@ -68,7 +68,7 @@ def get_chats(login):
             result = {
                 "result": False,
                 "message": "Ошибка сервера чаты не найдены",
-                "category": "warning",
+                "category": "error",
                 "cod": 500,
             }
         finally:
@@ -82,32 +82,87 @@ def get_chats(login):
         }
     return result
 
+def get_messages_chat(login, chat_id):
+    user=check_user(login=login)
+    chat=check_chat(chat_id=chat_id)
+    if user==True and chat==True:
+        session = session_create()
+        try:
+            messages_query = session.execute(
+                select(
+                    Messages.id,
+                    Messages.text,
+                )
+                .where(Messages.chat_id == chat_id)
+            ).all()
+            get_name = session.scalars(
+                select(Chats.chat_name).where(Chats.id == chat_id)
+            ).one()
+            result = {
+                "result": True,
+                "message": "Сообщения получены",
+                "chat_name": get_name,
+                "messages_history": messages_query,
+                "category": "success",
+                "cod": 200,
+            }
+            logger.debug(f"Получена историю чата {chat_id} для пользователя {login}")
+        except Exception as err:
+            logger.error(
+                f"Не удалось получить историю чата {chat_id} для пользователя {login} Ошибка {err}"
+            )
+            result = {
+                "result": False,
+                "message": "Ошибка сервера сообщения не найдены",
+                "category": "error",
+                "cod": 500,
+            }
+        finally:
+            session.close()
+    else:
+        result = {
+                "result": False,
+                "message": "Не найден чат",
+                "category": "warning",
+                "cod": 404,
+            }
+    
+    return result
 
 def create_message(login, chat_id, text):
-    session = db.session
-    try:
-        user = session.scalars(
-            select(Users.login).where(Users.login == login)
-        ).one_or_none()
-        chat = session.scalars(
-            select(Chats.id).where(Chats.id == chat_id)
-        ).one_or_none()
-        logger.trace(
-            f"Проверка существования пользователя {login} и чата {chat_id} прошла успешно"
-        )
-    except Exception as err:
-        logger.warning(
-            f"Не удалось проверить существование пользователя {login} и чата {chat_id} Ошибка {err}"
-        )
-    if user == login and chat != None:
+    user=check_user(login=login)
+    chat=check_chat(chat_id=chat_id)
+    if user==True and chat==True:
+        session = session_create()
         try:
             add_message_query = Messages(user_login=login, chat_id=chat_id, text=text)
             session.add(add_message_query)
             session.commit()
             logger.trace(f"Сообщение в чате {chat_id} создано")
+            result = {
+                "result": True,
+                "message": "Сообщение создано",
+                "category": "success",
+                "cod": 201,
+            }
         except Exception as err:
             logger.error(f"Не удалось записать сообщение в чат {chat_id} Ошибка {err}")
-    session.close()
+            result = {
+                "result": False,
+                "message": "Ошибка сервера сообщение не создано",
+                "category": "error",
+                "cod": 500,
+            }
+        finally:
+            session.close()
+    else:
+        result = {
+                "result": False,
+                "message": "Не найден чат",
+                "category": "warning",
+                "cod": 404,
+            }
+    return result
 
 
 def delet_messages(chat_id, user):
@@ -141,90 +196,6 @@ def delet_messages(chat_id, user):
     else:
         logger.warning(f"Не найден чат {chat_id} Ошибка {err}")
     session.close()
-
-
-def get_messages_ai(chat_id):
-    session = db.session
-    try:
-        chat = session.scalars(
-            select(Chats.id).where(Chats.id == chat_id)
-        ).one_or_none()
-        logger.trace(f"Проверка существования чата {chat_id} прошла успешно")
-    except Exception as err:
-        logger.warning(
-            f"Не удалось проверить существование чата {chat_id} Ошибка {err}"
-        )
-    if chat != None:
-        ai_name = get_config_ai(name="ai_name")
-        system_promt = str(get_config_ai(name="system_promt")).format(name=ai_name)
-        result = [{"role": "system", "content": system_promt}]
-        try:
-            messages_query = session.execute(
-                select(
-                    Users.chat_role,
-                    Messages.text,
-                )
-                .select_from(Messages)
-                .join(Users, Messages.user_login == Users.login)
-                .where(Messages.chat_id == chat_id)
-            ).all()
-            for i in messages_query:
-                result.append({"role": i[0], "content": i[1]})
-            logger.trace(
-                f"Получение истории чата {chat_id} и создание истории для AI прошла успешно"
-            )
-        except Exception as err:
-            logger.error(
-                f"Не удалось получение истории чата {chat_id} и создать истории для AI Ошибка {err}"
-            )
-            result = None
-    else:
-        result = None
-    session.close()
-    return result
-
-
-def get_messages_chat(login, chat_id):
-    session = db.session
-    try:
-        user = session.scalars(
-            select(Users.login).where(Users.login == login)
-        ).one_or_none()
-        chat = session.scalars(
-            select(Chats.id).where(Chats.id == chat_id)
-        ).one_or_none()
-        logger.trace(
-            f"Проверка существования пользователя {login} и чата {chat_id} прошла успешно"
-        )
-    except Exception as err:
-        logger.warning(
-            f"Не удалось проверить существование пользователя {login} и чата {chat_id} Ошибка {err}"
-        )
-    if user == login and chat != None:
-        try:
-            messages_query = session.execute(
-                select(
-                    Users.chat_role,
-                    Messages.id,
-                    Messages.text,
-                )
-                .where(Messages.chat_id == chat_id)
-                .join(Users)
-            ).all()
-            get_name = session.execute(
-                select(Chats.chat_name).where(Chats.id == chat_id)
-            ).one()
-            result = {"name": get_name.chat_name, "messages": messages_query}
-            logger.debug(f"Получена историю чата {chat_id} для пользователя {login}")
-        except Exception as err:
-            logger.error(
-                f"Не удалось получить историю чата {chat_id} для пользователя {login} Ошибка {err}"
-            )
-            result = False
-    else:
-        result = False
-    session.close()
-    return result
 
 
 def get_delet_chats_irrevocably():

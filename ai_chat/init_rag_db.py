@@ -8,7 +8,7 @@ from sentence_transformers import SentenceTransformer
 import torch
 from loguru import logger
 
-from db.db_query_config import get_config_ai
+from db_modules.db_query_config import get_config_ai
 
 
 def init_ai_chunk():

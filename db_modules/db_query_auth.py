@@ -5,6 +5,7 @@ from loguru import logger
 
 from db_modules.db_create import Users, session_create, Token_API
 from db_modules.db_query import check_user
+from db_modules.db_query_config import get_config
 from app import config
 
 
@@ -16,16 +17,16 @@ def create_token(data:dict,expires_use:bool=False):
         else:
             expire+=timedelta(minutes=30)
         data['exp']=expire
-        encoded_jwt=jwt.encode(payload=data, key=config["SECRETKEY"],algorithm="HS256")
+        encoded_jwt=jwt.encode(payload=data, key=get_config(name='skey'),algorithm="HS256")
         result=encoded_jwt
         logger.debug(f'Токен создан для пользователя {data['sub']}')
     except Exception as err:
         logger.error(f'Ошибка сервера создания токена: {err}')
-        result=False
+        raise False
     return result
 
 def decode_token(token:str):
-    payload=jwt.decode(jwt=token,key=config["SECRETKEY"],algorithms="HS256")
+    payload=jwt.decode(jwt=token,key=get_config(name='skey'),algorithms="HS256")
     user=payload.get('sub')
     return user
 
@@ -119,15 +120,17 @@ def logout_query(login: str):
 def get_token_query():
     session = session_create()
     try:
-        token_get = session.scalars(
-            select(Token_API.token).where(Token_API.id == 1)
+        token_get = session.execute(
+            select(Token_API.token,Token_API.date_update).where(Token_API.id == 1)
         ).one_or_none()
         if token_get != None:
             result = {
                 "result": True,
-                "token_api": token_get,
+                "token_api": token_get[0],
+                "date_create":token_get[1],
                 "message": "Токен получен",
                 "category": "success",
+
                 "cod": 200,
             }
         else:
@@ -156,15 +159,8 @@ def create_token_query():
         token_get = session.scalars(
             select(Token_API).where(Token_API.id == 1)
         ).one_or_none()
-        if token_get == None:
-            session.add(Token_API(token=None))
-            token_get = session.scalars(
-                select(Token_API).where(Token_API.id == 1)
-            ).one_or_none()
-            token_get.generate_token()
-            session.commit()
-        else:
-            token_get.generate_token()
+        token_get.generate_token()
+        session.commit()
         token_get = session.scalars(
             select(Token_API.token).where(Token_API.id == 1)
         ).one_or_none()

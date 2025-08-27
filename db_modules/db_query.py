@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from loguru import logger
 
-from db_modules.db_create import Users, session_create
+from db_modules.db_create import Users, session_create, Chats
 
 
 def check_user(login: str):
@@ -16,6 +16,23 @@ def check_user(login: str):
         logger.debug(f"Проверка пользователя {login} в базе прошла успешно")
     except Exception as err:
         logger.error(f"Не удалось проверить пользователя {login} Ошибка {err}")
+        result = False
+    finally:
+        session.close()
+    return result
+
+def check_chat(chat_id: int):
+    session = session_create()
+    try:
+        chat = session.scalars(select(Chats).where(Chats.id == chat_id)).one_or_none()
+        logger.trace(f"Проверка чата {chat_id} в базе")
+        if chat != None:
+            result = True
+        else:
+            result = False
+        logger.debug(f"Проверка чата {chat_id} в базе прошла успешно")
+    except Exception as err:
+        logger.error(f"Не удалось проверить чата {chat_id} Ошибка {err}")
         result = False
     finally:
         session.close()
