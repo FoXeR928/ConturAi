@@ -2,6 +2,7 @@ __pycache__/
 *.log
 *.db
 /venv
+/.venv
 config.json
 uv.lock
 dist/
