@@ -7,7 +7,7 @@ from db_modules.db_query import check_user, check_chat
 from ai_chat.ask import ask_query
 
 
-def create_message_ai(login: str, chat_id: int, text: str):
+def create_message_ai_query(login: str, chat_id: int, text: str):
     user = check_user(login=login)
     chat = check_chat(chat_id=chat_id)
     if user == True and chat == True:
@@ -23,7 +23,7 @@ def create_message_ai(login: str, chat_id: int, text: str):
                 "category": "success",
                 "cod": 201,
             }
-            messages_history = get_messages_ai(chat_id=chat_id)
+            messages_history = get_messages_ai_query(chat_id=chat_id)
             result = ask_query(
                 query=text, chat_id=chat, messages_history=messages_history
             )
@@ -47,7 +47,7 @@ def create_message_ai(login: str, chat_id: int, text: str):
     return result
 
 
-def get_messages_ai(chat_id: int):
+def get_messages_ai_query(chat_id: int):
     chat = check_chat(chat_id=chat_id)
     if chat == True:
         session = session_create()

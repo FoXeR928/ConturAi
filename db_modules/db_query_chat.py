@@ -2,10 +2,11 @@ from sqlalchemy import select, update, delete
 from loguru import logger
 
 from db_modules.db_create import Chats, Messages,Users, session_create
-from db_modules.db_query import check_user, check_chat
+from db_modules.db_query import check_user, check_chat,check_chat_right
+from api.api_auth import User
 
 
-def create_chat(login: str, chat: str):
+def create_chat_query(login: str, chat: str):
     user = check_user(login=login)
     if user == True:
         session = session_create()
@@ -40,7 +41,7 @@ def create_chat(login: str, chat: str):
     return result
 
 
-def get_chats(login: str):
+def get_chats_query(login: str):
     user = check_user(login=login)
     if user == True:
         session = session_create()
@@ -83,7 +84,7 @@ def get_chats(login: str):
     return result
 
 
-def get_messages_chat(login: str, chat_id: int):
+def get_messages_chat_query(login: str, chat_id: int):
     user = check_user(login=login)
     chat = check_chat(chat_id=chat_id)
     if user == True and chat == True:
@@ -133,7 +134,7 @@ def get_messages_chat(login: str, chat_id: int):
     return result
 
 
-def create_message(login: str, chat_id: int, text: str, return_text: bool = False):
+def create_message_query(login: str, chat_id: int, text: str, return_text: bool = False):
     user = check_user(login=login)
     chat = check_chat(chat_id=chat_id)
     if user == True and chat == True:
@@ -170,6 +171,79 @@ def create_message(login: str, chat_id: int, text: str, return_text: bool = Fals
         }
     return result
 
+def delet_chat_query(user:User, chat_id:int):
+    chat = check_chat(chat_id=chat_id)
+    if  chat == True:
+        chat_right=check_chat_right(login=user.login,chat_id=chat_id)
+        if chat_right==True or user.role=='admin':
+            session = session_create()
+            try:
+                session.execute(
+                    update(Chats).where(Chats.id == chat_id).values(chat_del=True)
+                )
+                session.commit()
+                logger.debug(f"Чат {chat_id} помечен на удаленние пользователем {user.login}")
+                result = {
+                    "result": True,
+                    "message": "Чат удален",
+                    "category": "success",
+                    "cod": 201,
+                }
+            except Exception as err:
+                logger.error(f"Не удалось удалить чат {chat_id} Ошибка {err}")
+                result = {
+                    "result": False,
+                    "message": "Ошибка сервера сообщение не создано",
+                    "category": "error",
+                    "cod": 500,
+                }
+            finally:
+                session.close()
+        else:
+            result = {
+                "result": False,
+                "message": "Нет доступа",
+                "category": "warning",
+                "cod": 403,
+            }
+    else:
+        result = {
+            "result": False,
+            "message": "Не найден чат",
+            "category": "warning",
+            "cod": 404,
+        }
+    return result
+
+def get_delet_chats_query():
+    session = session_create()
+    try:
+        result = list()
+        chats_get = session.execute(
+            select(Chats.id, Chats.chat_name, Chats.user_login).where(
+                Chats.chat_del == True
+            )
+        ).all()
+        chats=[row._mapping for row in chats_get]
+        result = {
+            "result": True,
+            "message": "Чаты на удаление получены",
+            "chats": chats,
+            "category": "success",
+            "cod": 200,
+        }
+        logger.trace(f"Чаты для удаления получены из базы")
+    except Exception as err:
+        logger.error(f"Не удалось получить чаты для удаления из базы Ошибка {err}")
+        result = {
+                    "result": False,
+                    "message": "Ошибка сервера не удалось получить чаты на удаление",
+                    "category": "error",
+                    "cod": 500,
+                }
+    finally:
+        session.close()
+    return result
 
 def delet_messages(chat_id, user):
     session = db.session
@@ -202,25 +276,6 @@ def delet_messages(chat_id, user):
     else:
         logger.warning(f"Не найден чат {chat_id} Ошибка {err}")
     session.close()
-
-
-def get_delet_chats_irrevocably():
-    session = db.session
-    try:
-        result = list()
-        chats = session.execute(
-            select(Chats.id, Chats.chat_name, Chats.user_login).where(
-                Chats.chat_del == True
-            )
-        ).all()
-        for chat in chats:
-            chat_dict = {"chat_id": chat[0], "chat_name": chat[1], "user": chat[2]}
-            result.append(chat_dict)
-        logger.trace(f"Чаты для удаления получены из базы")
-    except Exception as err:
-        logger.error(f"Не удалось получить чаты для удаления из базы Ошибка {err}")
-    session.close()
-    return result
 
 
 def delet_chats_irrevocably_checked(chats):

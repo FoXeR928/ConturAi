@@ -53,7 +53,7 @@ async def get_configs_ai_api(
 
 
 @config_app.get("/app", summary="Получение конфигов приложения")
-async def get_configs_ai_api(
+async def get_configs_app_api(
     response: Response, current_user: User = Depends(get_current_user)
 ):
     if current_user.role == "admin":
@@ -71,7 +71,7 @@ async def get_configs_ai_api(
 
 
 @config_app.patch("/ai/update", summary="Обновление конфига AI")
-async def get_configs_ai_api(
+async def update_config_ai_api(
     config_data: ConfigUpdate,
     response: Response,
     current_user: User = Depends(get_current_user),
@@ -91,7 +91,7 @@ async def get_configs_ai_api(
 
 
 @config_app.patch("/app/update", summary="Обновление конфига приложения")
-async def get_configs_ai_api(
+async def update_config_app_api(
     config_data: ConfigUpdate,
     response: Response,
     current_user: User = Depends(get_current_user),

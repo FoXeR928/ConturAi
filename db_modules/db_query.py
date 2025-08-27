@@ -38,3 +38,20 @@ def check_chat(chat_id: int):
     finally:
         session.close()
     return result
+
+def check_chat_right(login:str,chat_id:int):
+    session = session_create()
+    try:
+        chat_user = session.scalars(select(Chats.user_login).where(Chats.id == chat_id)).one_or_none()
+        logger.trace(f"Проверка чата {chat_id} в базе")
+        if chat_user == login:
+            result = True
+        else:
+            result = False
+        logger.debug(f"Проверка прав на чат {chat_id} в базе прошла успешно")
+    except Exception as err:
+        logger.error(f"Не удалось проверить прав на чат {chat_id} Ошибка {err}")
+        result = False
+    finally:
+        session.close()
+    return result

@@ -9,7 +9,7 @@ ai_app = APIRouter(prefix="/AI", tags=["Нейросеть"])
 
 
 @ai_app.post("/messages/create_ai", summary="Создание сообщения AI")
-async def get_chats_api(
+async def create_message_ai_api(
     response: Response,
     chat_id: int,
     message: Message,

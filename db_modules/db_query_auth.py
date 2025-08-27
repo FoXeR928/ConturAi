@@ -132,7 +132,7 @@ def get_token_query():
     session = session_create()
     try:
         token_get = session.execute(
-            select(Token_API.token, Token_API.date_update).where(Token_API.id == 1)
+            select(Token_API.token, Token_API.date_create).where(Token_API.id == 1)
         ).one_or_none()
         if token_get != None:
             result = {
