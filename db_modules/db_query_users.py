@@ -2,9 +2,10 @@ from sqlalchemy import select, update, delete, func
 from loguru import logger
 
 from db_modules.db_create import Users, session_create
+from db_modules.db_query import check_user
 
 
-def get_users():
+def get_users_query():
     session = session_create()
     try:
         users_get = session.execute(
@@ -33,6 +34,43 @@ def get_users():
         session.close()
     return result
 
+def registration_user_query(login:str, user_name:str,password:str):
+    user=check_user(login=login)
+    if user == False:
+        try:
+            session = session_create()
+            add_user_query = Users(login=login, user_name=user_name)
+            add_user_query.set_password(password)
+            session.add(add_user_query)
+            session.commit()
+            result = {
+                "result": True,
+                "message": "Пользователь создан",
+                "category": "success",
+                "cod": 201,
+            }
+            logger.success(f"Пользователь {login} создан")
+        except Exception as err:
+            result = {
+                "result": False,
+                "message": "Ошибка сервера пользователь не создан",
+                "category": "error",
+                "cod": 500,
+            }
+            logger.error(f"Не удалось создать пользователя {login} Ошибка {err}")
+        finally:
+            session.close()
+    else:
+        result = {
+                "result": False,
+                "message": "Пользователь уже создан",
+                "category": "warning",
+                "cod": 409,
+            }
+        logger.info(f"Пользователь {login} не создан так как уже есть в базе")
+    return result
+    
+
 def update_password_user(user_update_password, login, password):
     session = db.session
     try:
@@ -44,30 +82,6 @@ def update_password_user(user_update_password, login, password):
         )
     except Exception as err:
         logger.error(f"Не удалось обновить пароль пользователя {login} Ошибка {err}")
-    session.close()
-
-
-def reg_user(login, password, user_name):
-    session = db.session
-    check_user = session.execute(
-        select(Users.login).where(Users.login == login)
-    ).one_or_none()
-    if check_user == None:
-        try:
-            add_user_query = Users(login=login, user_name=user_name)
-            add_user_query.set_password(password)
-            session.add(add_user_query)
-            session.commit()
-            flash(message="Пользователь создан", category="success")
-            logger.success(f"Пользователь {login} создан")
-        except Exception as err:
-            logger.error(f"Не удалось создать пользователя {login} Ошибка {err}")
-            flash(message="Пользователь не создан", category="error")
-    else:
-        logger.info(f"Пользователь {login} не создан так как уже есть в базе")
-        flash(
-            message="Пользователь не создан так как уже есть в базе", category="warning"
-        )
     session.close()
 
 
