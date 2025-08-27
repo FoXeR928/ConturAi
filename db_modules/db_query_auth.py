@@ -9,58 +9,69 @@ from db_modules.db_query_config import get_config
 from app import config
 
 
-def create_token(data:dict,expires_use:bool=False):
+def create_token(data: dict, expires_use: bool = False):
     try:
-        expire=datetime.utcnow()
-        if expires_use==True:
-            expire+=timedelta(days=7)
+        expire = datetime.utcnow()
+        if expires_use == True:
+            expire += timedelta(days=7)
         else:
-            expire+=timedelta(minutes=30)
-        data['exp']=expire
-        encoded_jwt=jwt.encode(payload=data, key=get_config(name='skey'),algorithm="HS256")
-        result=encoded_jwt
-        logger.debug(f'Токен создан для пользователя {data['sub']}')
+            expire += timedelta(minutes=30)
+        data["exp"] = expire
+        encoded_jwt = jwt.encode(
+            payload=data, key=get_config(name="skey"), algorithm="HS256"
+        )
+        result = encoded_jwt
+        logger.debug(f"Токен создан для пользователя {data['sub']}")
     except Exception as err:
-        logger.error(f'Ошибка сервера создания токена: {err}')
+        logger.error(f"Ошибка сервера создания токена: {err}")
         raise False
     return result
 
-def decode_token(token:str):
-    payload=jwt.decode(jwt=token,key=get_config(name='skey'),algorithms="HS256")
-    user=payload.get('sub')
+
+def decode_token(token: str):
+    payload = jwt.decode(jwt=token, key=get_config(name="skey"), algorithms="HS256")
+    user = payload.get("sub")
     return user
 
-def get_current_user_query(login:str):
-    user_check=check_user(login=login)
-    if user_check==True:
+
+def get_current_user_query(login: str):
+    user_check = check_user(login=login)
+    if user_check == True:
         session = session_create()
         try:
-            user = session.execute(select(Users.login,Users.user_name,Users.user_role).where(Users.login == login)).one_or_none()
-            result=user
+            user = session.execute(
+                select(Users.login, Users.user_name, Users.user_role).where(
+                    Users.login == login
+                )
+            ).one_or_none()
+            result = user
         except Exception as err:
-            logger.error(f"Не удалось получить данные пользователя {login} Ошибка {err}")
+            logger.error(
+                f"Не удалось получить данные пользователя {login} Ошибка {err}"
+            )
             result = None
         finally:
             session.close()
     else:
-        result=None
+        result = None
     return result
 
+
 def auth_query(login: str, password: str):
-    user=check_user(login=login)
+    user = check_user(login=login)
     result_no_auth = {
         "result": False,
         "message": "Неверный логин или пароль",
         "category": "warning",
         "cod": 401,
     }
-    result_error= {
+    result_error = {
         "result": False,
         "message": "Ошибка сервера авторизация не удалась",
         "category": "error",
         "cod": 500,
     }
-    if user==True:
+    if user == True:
         session = session_create()
         try:
             auth = session.scalars(select(Users).where(Users.login == login)).one()
@@ -73,20 +84,20 @@ def auth_query(login: str, password: str):
         finally:
             session.close()
         if check_auth == True:
-                token=create_token(data={'sub':login})
-                if token!=False:
-                    result = {
-                        "result": True,
-                        "access_token": token,
-                        "token_type":"bearer",
-                        "message": "Авторизация прошла успешно",
-                        "category": "success",
-                        "cod": 200,
-                    }
-                else:
-                    result=result_error
+            token = create_token(data={"sub": login})
+            if token != False:
+                result = {
+                    "result": True,
+                    "access_token": token,
+                    "token_type": "bearer",
+                    "message": "Авторизация прошла успешно",
+                    "category": "success",
+                    "cod": 200,
+                }
+            else:
+                result = result_error
         else:
-            result=result_no_auth
+            result = result_no_auth
     else:
         result = result_no_auth
     return result
@@ -121,16 +132,15 @@ def get_token_query():
     session = session_create()
     try:
         token_get = session.execute(
-            select(Token_API.token,Token_API.date_update).where(Token_API.id == 1)
+            select(Token_API.token, Token_API.date_update).where(Token_API.id == 1)
         ).one_or_none()
         if token_get != None:
             result = {
                 "result": True,
                 "token_api": token_get[0],
-                "date_create":token_get[1],
+                "date_create": token_get[1],
                 "message": "Токен получен",
                 "category": "success",
-
                 "cod": 200,
             }
         else:

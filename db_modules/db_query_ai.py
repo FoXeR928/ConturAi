@@ -1,15 +1,16 @@
 from sqlalchemy import select
 from loguru import logger
 
-from db_modules.db_create import session_create,Users,Messages
+from db_modules.db_create import session_create, Users, Messages
 from db_modules.db_query_config import get_config_ai
 from db_modules.db_query import check_user, check_chat
 from ai_chat.ask import ask_query
 
-def create_message_ai(login:str, chat_id:int, text:str):
-    user=check_user(login=login)
-    chat=check_chat(chat_id=chat_id)
-    if user==True and chat==True:
+
+def create_message_ai(login: str, chat_id: int, text: str):
+    user = check_user(login=login)
+    chat = check_chat(chat_id=chat_id)
+    if user == True and chat == True:
         session = session_create()
         try:
             add_message_query = Messages(user_login=login, chat_id=chat_id, text=text)
@@ -22,8 +23,10 @@ def create_message_ai(login:str, chat_id:int, text:str):
                 "category": "success",
                 "cod": 201,
             }
-            messages_history=get_messages_ai(chat_id=chat_id)
-            result=ask_query(query=text, chat_id=chat, messages_history=messages_history)
+            messages_history = get_messages_ai(chat_id=chat_id)
+            result = ask_query(
+                query=text, chat_id=chat, messages_history=messages_history
+            )
         except Exception as err:
             logger.error(f"Не удалось записать сообщение в чат {chat_id} Ошибка {err}")
             result = {
@@ -36,16 +39,17 @@ def create_message_ai(login:str, chat_id:int, text:str):
             session.close()
     else:
         result = {
-                "result": False,
-                "message": "Не найден чат",
-                "category": "warning",
-                "cod": 404,
-            }
+            "result": False,
+            "message": "Не найден чат",
+            "category": "warning",
+            "cod": 404,
+        }
     return result
 
-def get_messages_ai(chat_id:int):
-    chat=check_chat(chat_id=chat_id)
-    if chat==True:
+
+def get_messages_ai(chat_id: int):
+    chat = check_chat(chat_id=chat_id)
+    if chat == True:
         session = session_create()
         try:
             ai_name = get_config_ai(name="ai_name")
@@ -63,8 +67,8 @@ def get_messages_ai(chat_id:int):
             for message in messages_query:
                 result.append({"role": message[0], "content": message[1]})
             logger.trace(
-                    f"Получение истории чата {chat_id} и создание истории для AI прошла успешно"
-                )
+                f"Получение истории чата {chat_id} и создание истории для AI прошла успешно"
+            )
         except Exception as err:
             logger.error(
                 f"Не удалось получение истории чата {chat_id} и создать истории для AI Ошибка {err}"

@@ -21,6 +21,7 @@ def check_user(login: str):
         session.close()
     return result
 
+
 def check_chat(chat_id: int):
     session = session_create()
     try:

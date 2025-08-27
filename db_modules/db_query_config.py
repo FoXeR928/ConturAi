@@ -138,10 +138,10 @@ def update_config_query(name: str, value):
 def get_config_ai(name: str):
     session = session_create()
     try:
-        search_config = session.execute(
+        search_config = session.scalars(
             select(Configs_ai.value).where(Configs_ai.name == name)
         ).first()
-        result = search_config.value
+        result = search_config
         logger.trace(f"Получено значения конфигова {name} из базы")
     except Exception as err:
         logger.error(
@@ -156,10 +156,10 @@ def get_config_ai(name: str):
 def get_config(name: str):
     session = session_create()
     try:
-        search_config = session.execute(
+        search_config = session.scalars(
             select(Configs.value).where(Configs.name == name)
         ).first()
-        result = search_config.value
+        result = search_config
         logger.trace(f"Получено значения конфигова {name} из базы")
     except Exception as err:
         logger.error(

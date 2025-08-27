@@ -1,8 +1,8 @@
 from sqlalchemy import select, update, delete
 from loguru import logger
 
-from db_modules.db_create import Users, Chats, Messages, session_create
-from db_modules.db_query import check_user,check_chat
+from db_modules.db_create import Chats, Messages, session_create
+from db_modules.db_query import check_user, check_chat
 
 
 def create_chat(login: str, chat: str):
@@ -40,19 +40,19 @@ def create_chat(login: str, chat: str):
     return result
 
 
-def get_chats(login):
+def get_chats(login: str):
     user = check_user(login=login)
     if user == True:
         session = session_create()
         try:
             result_list = dict()
             chats = session.execute(
-                select(Chats.id, Chats.chat_name,Chats.date_create).where(
+                select(Chats.id, Chats.chat_name, Chats.date_create).where(
                     (Chats.user_login == login) & (Chats.chat_del != True)
                 )
             ).all()
             for chat in chats:
-                result_list[chat[0]] = {'chat_name':chat[1], 'chat_create':chat[2]}
+                result_list[chat[0]] = {"chat_name": chat[1], "chat_create": chat[2]}
             result = {
                 "result": True,
                 "chats": result_list,
@@ -82,18 +82,18 @@ def get_chats(login):
         }
     return result
 
-def get_messages_chat(login, chat_id):
-    user=check_user(login=login)
-    chat=check_chat(chat_id=chat_id)
-    if user==True and chat==True:
+
+def get_messages_chat(login: str, chat_id: int):
+    user = check_user(login=login)
+    chat = check_chat(chat_id=chat_id)
+    if user == True and chat == True:
         session = session_create()
         try:
             messages_query = session.execute(
                 select(
                     Messages.id,
                     Messages.text,
-                )
-                .where(Messages.chat_id == chat_id)
+                ).where(Messages.chat_id == chat_id)
             ).all()
             get_name = session.scalars(
                 select(Chats.chat_name).where(Chats.id == chat_id)
@@ -121,18 +121,19 @@ def get_messages_chat(login, chat_id):
             session.close()
     else:
         result = {
-                "result": False,
-                "message": "Не найден чат",
-                "category": "warning",
-                "cod": 404,
-            }
-    
+            "result": False,
+            "message": "Не найден чат",
+            "category": "warning",
+            "cod": 404,
+        }
+
     return result
 
-def create_message(login, chat_id, text):
-    user=check_user(login=login)
-    chat=check_chat(chat_id=chat_id)
-    if user==True and chat==True:
+
+def create_message(login: str, chat_id: int, text: str):
+    user = check_user(login=login)
+    chat = check_chat(chat_id=chat_id)
+    if user == True and chat == True:
         session = session_create()
         try:
             add_message_query = Messages(user_login=login, chat_id=chat_id, text=text)
@@ -157,11 +158,11 @@ def create_message(login, chat_id, text):
             session.close()
     else:
         result = {
-                "result": False,
-                "message": "Не найден чат",
-                "category": "warning",
-                "cod": 404,
-            }
+            "result": False,
+            "message": "Не найден чат",
+            "category": "warning",
+            "cod": 404,
+        }
     return result
 
 

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Response,Depends
+from fastapi import APIRouter, Response, Depends
 from pydantic import BaseModel
 from typing import Any
 from loguru import logger
@@ -35,8 +35,10 @@ class ConfigStart(BaseModel):
 
 
 @config_app.get("/ai", summary="Получение конфигов AI")
-async def get_configs_ai_api(response: Response,current_user: User=Depends(get_current_user)):
-    if current_user.role == 'admin':
+async def get_configs_ai_api(
+    response: Response, current_user: User = Depends(get_current_user)
+):
+    if current_user.role == "admin":
         result = get_configs_ai_query()
     else:
         result = {
@@ -51,8 +53,10 @@ async def get_configs_ai_api(response: Response,current_user: User=Depends(get_c
 
 
 @config_app.get("/app", summary="Получение конфигов приложения")
-async def get_configs_ai_api(response: Response,current_user: User=Depends(get_current_user)):
-    if current_user.role == 'admin':
+async def get_configs_ai_api(
+    response: Response, current_user: User = Depends(get_current_user)
+):
+    if current_user.role == "admin":
         result = get_configs_query()
     else:
         result = {
@@ -68,9 +72,11 @@ async def get_configs_ai_api(response: Response,current_user: User=Depends(get_c
 
 @config_app.patch("/ai/update", summary="Обновление конфига AI")
 async def get_configs_ai_api(
-    config_data: ConfigUpdate, response: Response,current_user: User=Depends(get_current_user)
+    config_data: ConfigUpdate,
+    response: Response,
+    current_user: User = Depends(get_current_user),
 ):
-    if current_user.role == 'admin':
+    if current_user.role == "admin":
         result = update_config_ai_query(name=config_data.name, value=config_data.value)
     else:
         result = {
@@ -86,9 +92,11 @@ async def get_configs_ai_api(
 
 @config_app.patch("/app/update", summary="Обновление конфига приложения")
 async def get_configs_ai_api(
-    config_data: ConfigUpdate, response: Response,current_user: User=Depends(get_current_user)
+    config_data: ConfigUpdate,
+    response: Response,
+    current_user: User = Depends(get_current_user),
 ):
-    if current_user.role == 'admin':
+    if current_user.role == "admin":
         result = update_config_query(name=config_data.name, value=config_data.value)
     else:
         result = {
@@ -104,9 +112,11 @@ async def get_configs_ai_api(
 
 @config_app.post("/ai/start", summary="Создание установочных конфигов AI")
 async def start_configs_ai_api(
-    configs_data: ConfigStart, response: Response,current_user: User=Depends(get_current_user)
+    configs_data: ConfigStart,
+    response: Response,
+    current_user: User = Depends(get_current_user),
 ):
-    if current_user.role == 'admin':
+    if current_user.role == "admin":
         result = create_config_ai_start(configs=configs_data)
     else:
         result = {

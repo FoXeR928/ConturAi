@@ -28,16 +28,16 @@ def init_ai_chunk():
         logger.critical(
             f"Не удалось инициализированть AI модель для генерации чанков Ошибка {err}"
         )
-        return False
+        raise None
 
 
 def init_rag():
+    rag_host = get_config_ai(name="rag_host")
+    rag_port_http = get_config_ai(name="rag_port_http")
+    rag_port_grpc = get_config_ai(name="rag_port_grpc")
+    rag_grpc = bool(get_config_ai(name="rag_grpc"))
+    rag_collection = get_config_ai(name="collection")
     try:
-        rag_host = get_config_ai("rag_host")
-        rag_port_http = get_config_ai("rag_port_http")
-        rag_port_grpc = get_config_ai("rag_port_grpc")
-        rag_grpc = bool(get_config_ai("rag_grpc"))
-        rag_collection = get_config_ai("collection")
         client = QdrantClient(
             host=rag_host,
             port=rag_port_http,
@@ -51,7 +51,7 @@ def init_rag():
             logger.critical(
                 f"Не удалось проверить наличие коллекции в векторной базе Ошибка {err}"
             )
-            return False
+            raise None
         if not check_rag_base:
             try:
                 client.recreate_collection(
@@ -69,7 +69,7 @@ def init_rag():
                 logger.critical(
                     f"Не удалось создать коллекцию в векторной базе Ошибка {err}"
                 )
-                return False
+                raise None
         else:
             logger.debug(f"Коллекция {rag_collection} уже есть в векторной базе")
             logger.debug("Инициализирован клиент векторной базы")
@@ -78,7 +78,7 @@ def init_rag():
         logger.critical(
             f"Не удалось инициализированть клиент векторной базы Ошибка {err}"
         )
-        return False
+        raise None
 
 
 model = init_ai_chunk()

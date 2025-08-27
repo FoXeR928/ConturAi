@@ -6,14 +6,14 @@ from db_modules.db_create import Users, Configs, Configs_ai, session_create
 
 
 def create_default_users(
-    recreate=False,
-    admin_login="admin",
-    admin_password="admin",
-    admin_name="админ",
-    admin_role="admin",
-    system_login="system",
-    system_role="system",
-    system_chat_role="assistant",
+    recreate: bool = False,
+    admin_login: str = "admin",
+    admin_password: str = "admin",
+    admin_name: str = "админ",
+    admin_role: str = "admin",
+    system_login: str = "system",
+    system_role: str = "system",
+    system_chat_role: str = "assistant",
 ):
     session = session_create()
     base = Users
@@ -76,12 +76,12 @@ def create_default_users(
 
 
 def create_default_config(
-    recreate=False,
-    token=secrets.token_hex(64),
-    site_name="Ragi_AI",
-    pdf="application/pdf",
-    word="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    excel="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    recreate: bool = False,
+    token: str = secrets.token_hex(64),
+    site_name: str = "Ragi_AI",
+    pdf: str = "application/pdf",
+    word: str = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    excel: str = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ):
     configs_list = (
         ("skey", "Ключ для генерации OAuth2 токена", token, "text"),
