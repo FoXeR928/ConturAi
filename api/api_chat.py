@@ -71,7 +71,7 @@ async def delet_chat_api(
     del result["cod"]
     return result
 
-@chat_app.get("/delet/irrevocably", summary="Получение чатов на безвозвратное удаление")
+@chat_app.get("/delet/irrevocably/get", summary="Получение чатов на безвозвратное удаление")
 async def get_delet_chats_api(
     response: Response, current_user: User = Depends(get_current_user)
 ):

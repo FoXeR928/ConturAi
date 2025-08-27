@@ -137,10 +137,7 @@ class Token_API(Base):
     id: Mapped[int] = mapped_column(primary_key=True, unique=True, nullable=False)
     token: Mapped[str] = mapped_column(unique=True, nullable=True)
     date_create: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), default=datetime.now()
-    )
-    date_update: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), onupdate=func.now(), nullable=True
+        DateTime(timezone=True), onupdate=func.now(), default=datetime.now()
     )
 
     def generate_token(self):
