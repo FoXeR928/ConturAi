@@ -8,9 +8,7 @@ from ai_chat.ask import ask_query
 
 
 def create_message_ai_query(login: str, chat_id: int, text: str):
-    user = check_user(login=login)
-    chat = check_chat(chat_id=chat_id)
-    if user == True and chat == True:
+    if check_user(login=login) == True and check_chat(chat_id=chat_id) == True:
         session = session_create()
         try:
             add_message_query = Messages(user_login=login, chat_id=chat_id, text=text)
@@ -25,7 +23,7 @@ def create_message_ai_query(login: str, chat_id: int, text: str):
             }
             messages_history = get_messages_ai_query(chat_id=chat_id)
             result = ask_query(
-                query=text, chat_id=chat, messages_history=messages_history
+                query=text, chat_id=chat_id, messages_history=messages_history
             )
         except Exception as err:
             logger.error(f"Не удалось записать сообщение в чат {chat_id} Ошибка {err}")
@@ -48,8 +46,7 @@ def create_message_ai_query(login: str, chat_id: int, text: str):
 
 
 def get_messages_ai_query(chat_id: int):
-    chat = check_chat(chat_id=chat_id)
-    if chat == True:
+    if check_chat(chat_id=chat_id) == True:
         session = session_create()
         try:
             ai_name = get_config_ai(name="ai_name")

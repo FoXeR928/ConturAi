@@ -6,6 +6,34 @@ from db_modules.db_query import check_user
 from api.api_auth import User
 
 
+def check_update_role_opportunity(user_update:str,login:str,role:str):
+    if role=='user':
+        session=session_create()
+        try:
+            user_check = session.scalars(
+                    select(Users.user_role).where(Users.login == login)
+                ).one()
+            if user_check=='admin':
+                admins = session.scalar(
+                    select(func.count(Users.login)).where(Users.user_role == "admin")
+                )
+                if admins==1:
+                    if user_update==login:
+                        result=False
+                    else:
+                        result=True
+                else:
+                    result=True
+            else:
+                result=True
+            logger.trace('Количество администраторов проверено успешно')
+        except Exception as err:
+            result=False
+            logger.error(f"Не удалось проверить количество администраторов Ошибка {err}")
+    else:
+        result=True
+    return result
+
 def get_users_query():
     session = session_create()
     try:
@@ -36,8 +64,7 @@ def get_users_query():
     return result
 
 def registration_user_query(login:str, user_name:str,password:str):
-    user=check_user(login=login)
-    if user == False:
+    if check_user(login=login) == False:
         try:
             session = session_create()
             add_user_query = Users(login=login, user_name=user_name)
@@ -72,17 +99,22 @@ def registration_user_query(login:str, user_name:str,password:str):
     return result
     
 
-def update_password_user_query(user_update_password:User, login:str, password:str):
-    chat = check_user(login=login)
-    if  chat == True:
-        if user_update_password.login==login or user_update_password.role=='admin':
+def update_password_user_query(user_update:User, login:str, password:str):
+    if  check_user(login=login) == True:
+        if user_update.login==login or user_update.role=='admin':
             session = session_create()
             try:
                 user = session.query(Users).filter(Users.login == login).one()
                 user.set_password(password)
                 session.commit()
+                result = {
+                    "result": True,
+                    "message": "Пароль изменен",
+                    "category": "success",
+                    "cod": 201,
+                }
                 logger.success(
-                    f"Изменен пароль пользователя {login} пользователем {user_update_password}"
+                    f"Изменен пароль пользователя {login} пользователем {user_update.login}"
                 )
             except Exception as err:
                 result = {
@@ -111,47 +143,49 @@ def update_password_user_query(user_update_password:User, login:str, password:st
     return result
 
 
-def add_user_status(login, role):
-    session = db.session
-    try:
-        user_role = session.scalars(
-            select(Users.user_role).where(Users.login == login)
-        ).one_or_none()
-        logger.trace(f"Проверка существование пользователя {login}")
-    except Exception as err:
-        logger.warning(
-            f"Не удалось проверить существование пользователя {login} Ошибка {err}"
-        )
-    if user_role != None:
-        try:
-            admins = session.scalar(
-                select(func.count(Users.login)).where(Users.user_role == "admin")
-            )
-            if user_role == "admin":
-                if admins <= 1:
-                    logger.warning(
-                        f"У администратора {login} нельзя изменить роль, так как существует только 1 запись админа"
-                    )
-                    flash(
-                        message="Нельзя изменить роль учетной запис, так как существует только 1 запись админа",
-                        category="warning",
-                    )
-                    return False
-            session.execute(
-                update(Users).where(Users.login == login).values(user_role=role)
-            )
-            session.commit()
-            logger.success(f"Роль пользовавателя {login} обнавлена на {role}")
-            flash(message="Роль пользователя изменена", category="success")
-        except Exception as err:
-            logger.error(f"Не удалось изменить роль пользователя {login} Ошибка {err}")
-            flash(message="Не удалось изменить роль пользователя", category="error")
+def update_role_user_query(user_update:User,login:str, role:str):
+    if  check_user(login=login) == True:
+        if check_update_role_opportunity(user_update=user_update.login,login=login,role=role) == True:
+            session = session_create()
+            try:
+                session.execute(
+                    update(Users).where(Users.login == login).values(user_role=role)
+                )
+                session.commit()
+                result = {
+                    "result": True,
+                    "message": "Роль изменена",
+                    "category": "success",
+                    "cod": 201,
+                }
+                logger.success(
+                    f"Изменена роль пользователя {login} пользователем {user_update.login}"
+                )
+            except Exception as err:
+                result = {
+                    "result": False,
+                    "message": "Ошибка сервера роль не изменена",
+                    "category": "error",
+                    "cod": 500,
+                }
+                logger.error(f"Не удалось обновить роль пользователя {login} Ошибка {err}")
+            finally:
+                session.close()
+        else:
+            result = {
+            "result": False,
+            "message": "Нельзя изменить роль из-за отсутсвия других администраторов",
+            "category": "warning",
+            "cod": 403,
+        }
     else:
-        logger.warning(
-            f"Не удалось изменить роль пользователя {login} Ошибка отсутсвие пользователя"
-        )
-        flash(message="Не удалось найти пользователя ", category="error")
-    session.close()
+        result = {
+            "result": False,
+            "message": "Не найден пользователь",
+            "category": "warning",
+            "cod": 404,
+        }
+    return result
 
 
 def delet_user(login):

@@ -35,8 +35,7 @@ def decode_token(token: str):
 
 
 def get_current_user_query(login: str):
-    user_check = check_user(login=login)
-    if user_check == True:
+    if check_user(login=login) == True:
         session = session_create()
         try:
             user = session.execute(
@@ -58,7 +57,6 @@ def get_current_user_query(login: str):
 
 
 def auth_query(login: str, password: str):
-    user = check_user(login=login)
     result_no_auth = {
         "result": False,
         "message": "Неверный логин или пароль",
@@ -71,7 +69,7 @@ def auth_query(login: str, password: str):
         "category": "error",
         "cod": 500,
     }
-    if user == True:
+    if check_user(login=login) == True:
         session = session_create()
         try:
             auth = session.scalars(select(Users).where(Users.login == login)).one()

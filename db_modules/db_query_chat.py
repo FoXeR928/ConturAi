@@ -7,8 +7,7 @@ from api.api_auth import User
 
 
 def create_chat_query(login: str, chat: str):
-    user = check_user(login=login)
-    if user == True:
+    if check_user(login=login) == True:
         session = session_create()
         try:
             create_chat_query = Chats(user_login=login, chat_name=chat)
@@ -42,8 +41,7 @@ def create_chat_query(login: str, chat: str):
 
 
 def get_chats_query(login: str):
-    user = check_user(login=login)
-    if user == True:
+    if check_user(login=login) == True:
         session = session_create()
         try:
             result_list = dict()
@@ -85,9 +83,7 @@ def get_chats_query(login: str):
 
 
 def get_messages_chat_query(login: str, chat_id: int):
-    user = check_user(login=login)
-    chat = check_chat(chat_id=chat_id)
-    if user == True and chat == True:
+    if check_user(login=login) == True and check_chat(chat_id=chat_id) == True:
         session = session_create()
         try:
             messages_query = session.execute(
@@ -135,9 +131,7 @@ def get_messages_chat_query(login: str, chat_id: int):
 
 
 def create_message_query(login: str, chat_id: int, text: str, return_text: bool = False):
-    user = check_user(login=login)
-    chat = check_chat(chat_id=chat_id)
-    if user == True and chat == True:
+    if check_user(login=login) == True and check_chat(chat_id=chat_id) == True:
         session = session_create()
         try:
             add_message_query = Messages(user_login=login, chat_id=chat_id, text=text)
@@ -172,8 +166,7 @@ def create_message_query(login: str, chat_id: int, text: str, return_text: bool 
     return result
 
 def delet_chat_query(user:User, chat_id:int):
-    chat = check_chat(chat_id=chat_id)
-    if  chat == True:
+    if  check_chat(chat_id=chat_id) == True:
         chat_right=check_chat_right(login=user.login,chat_id=chat_id)
         if chat_right==True or user.role=='admin':
             session = session_create()
@@ -248,8 +241,7 @@ def get_delet_chats_query():
 def delet_chats_irrevocably_list_query(chats:list):
     chats_delet=list()
     for chat in chats:
-        chat_check=check_chat(chat_id=chat)
-        if chat_check ==True:
+        if check_chat(chat_id=chat) ==True:
             session = session_create()
             try:
                 session.execute(
@@ -300,8 +292,7 @@ def delet_chats_irrevocably_all_list():
 def recovery_chats_list_query(chats:list):
     chats_delet=list()
     for chat in chats:
-        chat_check=check_chat(chat_id=chat)
-        if chat_check ==True:
+        if check_chat(chat_id=chat) ==True:
             session = session_create()
             try:
                 session.execute(
