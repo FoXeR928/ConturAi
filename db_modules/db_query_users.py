@@ -6,32 +6,31 @@ from db_modules.db_query import check_user
 from api.api_auth import User
 
 
-def check_update_role_opportunity(user_update:str,login:str,role:str):
-    if role=='user':
-        session=session_create()
-        try:
-            user_check = session.scalars(
-                    select(Users.user_role).where(Users.login == login)
-                ).one()
-            if user_check=='admin':
-                admins = session.scalar(
-                    select(func.count(Users.login)).where(Users.user_role == "admin")
-                )
-                if admins==1:
-                    if user_update==login:
-                        result=False
-                    else:
-                        result=True
+def check_user_opportunity(user:str,login:str):
+    session=session_create()
+    try:
+        user_check = session.scalars(
+                select(Users.user_role).where(Users.login == login)
+            ).one()
+        if user_check=='admin':
+            admins = session.scalar(
+                select(func.count(Users.login)).where(Users.user_role == "admin")
+            )
+            if admins==1:
+                if user==login:
+                    result=False
                 else:
                     result=True
             else:
                 result=True
-            logger.trace('Количество администраторов проверено успешно')
-        except Exception as err:
-            result=False
-            logger.error(f"Не удалось проверить количество администраторов Ошибка {err}")
-    else:
-        result=True
+        else:
+            result=True
+        logger.trace('Количество администраторов проверено успешно')
+    except Exception as err:
+        result=False
+        logger.error(f"Не удалось проверить количество администраторов Ошибка {err}")
+    finally:
+        session.close()
     return result
 
 def get_users_query():
@@ -144,8 +143,12 @@ def update_password_user_query(user_update:User, login:str, password:str):
 
 
 def update_role_user_query(user_update:User,login:str, role:str):
-    if  check_user(login=login) == True:
-        if check_update_role_opportunity(user_update=user_update.login,login=login,role=role) == True:
+    if check_user(login=login) == True:
+        if role=='user':
+            opportunity=check_user_opportunity(user=user_update.login,login=login)
+        else:
+            opportunity=True
+        if  opportunity == True:
             session = session_create()
             try:
                 session.execute(
@@ -188,44 +191,42 @@ def update_role_user_query(user_update:User,login:str, role:str):
     return result
 
 
-def delet_user(login):
-    session = db.session
-    try:
-        user = session.scalars(
-            select(Users.user_role).where(Users.login == login)
-        ).one_or_none()
-        logger.trace(f"Проверка существование пользователя {login}")
-    except Exception as err:
-        logger.warning(
-            f"Не удалось проверить существование пользователя {login} Ошибка {err}"
-        )
-    if not (user == None):
-        try:
-            admins = session.scalar(
-                select(func.count(Users.login)).where(Users.user_role == "admin")
-            )
-            if user == "admin":
-                if admins <= 1:
-                    logger.warning(
-                        f"Администратора {login} нельзя удалить, так как существует только 1 запись админа"
-                    )
-                    flash(
-                        message="Нельзя удалить учетную запись админа, так как существует только 1 запись админа",
-                        category="warning",
-                    )
-                    return False
-                else:
-                    logger.info(f"Администратора {login} отправлен на удаление")
-            session.execute(delete(Users).where(Users.login == login))
-            session.commit()
-            logger.success(f"Пользоваватель {login} удален")
-            flash(message="Пользоваватель удален", category="success")
-        except Exception as err:
-            logger.error(f"Не удалось удалить пользователя {login} Ошибка {err}")
-            flash(message="Не удалось удалить пользователя", category="error")
+def delete_user_query(user_delet:User,login:str):
+    if check_user(login=login) == True:
+        if check_user_opportunity(user=user_delet.login,login=login)==True:
+            session = session_create()
+            try:
+                session.execute(delete(Users).where(Users.login == login))
+                session.commit()
+                result = {
+                    "result": True,
+                    "message": "Пользователь удален",
+                    "category": "success",
+                    "cod": 201,
+                    }
+                logger.success(f"Пользоваватель {login} удален пользователем {user_delet.login}")
+            except Exception as err:
+                result = {
+                    "result": False,
+                    "message": "Ошибка сервера роль не изменена",
+                    "category": "error",
+                    "cod": 500,
+                }
+                logger.error(f"Не удалось удалить пользователя {login} Ошибка {err}")
+            finally:
+                session.close()
+        else:
+            result = {
+            "result": False,
+            "message": "Нельзя удалить пользователя из-за отсутсвия других администраторов",
+            "category": "warning",
+            "cod": 403,
+        }
     else:
-        logger.warning(
-            f"Не удалось удалить пользователя {login} Ошибка отсутсвие пользователя"
-        )
-        flash(message="Не удалось найти пользователя ", category="error")
-    session.close()
+        result = {
+            "result": False,
+            "message": "Не найден пользователь",
+            "category": "warning",
+            "cod": 404,
+        }
+    return result
