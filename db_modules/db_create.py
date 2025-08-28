@@ -40,6 +40,8 @@ class Users(Base):
     password_hash: Mapped[str] = mapped_column(nullable=True)
     user_name: Mapped[str] = mapped_column(nullable=True)
     user_role: Mapped[str] = mapped_column(nullable=False, default="user")
+    admin:Mapped[bool]= mapped_column(nullable=False, default=False)
+    system:Mapped[bool]= mapped_column(nullable=False, default=False)
     chat_role: Mapped[str] = mapped_column(nullable=False, default="user")
     disabled: Mapped[bool] = mapped_column(nullable=False, default=False)
     date_create: Mapped[datetime] = mapped_column(
@@ -57,11 +59,6 @@ class Users(Base):
         check_password_func=bcrypt.checkpw(password.encode(), self.password_hash)
         check_active = self.disabled == False
         return check_password_func and check_active
-
-    def check_admin(self):
-        check_role = self.user_role == "admin"
-        check_active = self.disabled == False
-        return check_role and check_active
 
 
 class Chats(Base):
