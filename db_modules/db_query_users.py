@@ -3,6 +3,7 @@ from loguru import logger
 
 from db_modules.db_create import Users, session_create
 from db_modules.db_query import check_user
+from api.api_auth import User
 
 
 def get_users_query():
@@ -16,7 +17,7 @@ def get_users_query():
         users=[row._mapping for row in users_get]
         result = {
             "result": True,
-            "message": "Чаты на удаление получены",
+            "message": "Пользователи получены",
             "users": users,
             "category": "success",
             "cod": 200,
@@ -71,18 +72,43 @@ def registration_user_query(login:str, user_name:str,password:str):
     return result
     
 
-def update_password_user(user_update_password, login, password):
-    session = db.session
-    try:
-        user = session.query(Users).filter(Users.login == login).one()
-        user.set_password(password)
-        session.commit()
-        logger.success(
-            f"Изменен пароль пользователя {login} пользователем {user_update_password}"
-        )
-    except Exception as err:
-        logger.error(f"Не удалось обновить пароль пользователя {login} Ошибка {err}")
-    session.close()
+def update_password_user_query(user_update_password:User, login:str, password:str):
+    chat = check_user(login=login)
+    if  chat == True:
+        if user_update_password.login==login or user_update_password.role=='admin':
+            session = session_create()
+            try:
+                user = session.query(Users).filter(Users.login == login).one()
+                user.set_password(password)
+                session.commit()
+                logger.success(
+                    f"Изменен пароль пользователя {login} пользователем {user_update_password}"
+                )
+            except Exception as err:
+                result = {
+                    "result": False,
+                    "message": "Ошибка сервера пароль не изменен",
+                    "category": "error",
+                    "cod": 500,
+                }
+                logger.error(f"Не удалось обновить пароль пользователя {login} Ошибка {err}")
+            finally:
+                session.close()
+        else:
+            result = {
+                "result": False,
+                "message": "Нет доступа",
+                "category": "warning",
+                "cod": 403,
+            }
+    else:
+        result = {
+            "result": False,
+            "message": "Не найден пользователь",
+            "category": "warning",
+            "cod": 404,
+        }
+    return result
 
 
 def add_user_status(login, role):

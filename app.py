@@ -9,6 +9,7 @@ from db_modules.db_create_default import (
     create_default_config,
     create_default_config_ai,
 )
+from db_modules.db_query import check_config_ai
 
 
 def init_log(log_level_file="INFO", log_level_std="WARNING"):
@@ -55,7 +56,7 @@ def init_app():
         app = FastAPI(
             title="Ragi_AI",
             description="Система для локального нейропомощника",
-            version="1.9.1",
+            version="1.9.2",
         )
         return app
     except Exception as err:
@@ -71,5 +72,5 @@ create_default_config_ai()
 create_default_users()
 app = init_app()
 init_pages()
-if config["CREATE_AI"] == True:
+if check_config_ai() == True:
     init_ai()
