@@ -44,18 +44,16 @@ def get_chats_query(login: str):
     if check_user(login=login) == True:
         session = session_create()
         try:
-            result_list = dict()
             chats = session.execute(
                 select(Chats.id, Chats.chat_name, Chats.date_create).where(
-                    (Chats.user_login == login) & (Chats.chat_del != True)
+                    (Chats.user_login == login) & (Chats.chat_del == False)
                 )
             ).all()
-            for chat in chats:
-                result_list[chat[0]] = {"chat_name": chat[1], "chat_create": chat[2]}
+            chats=[row._mapping for row in chats]
             result = {
                 "result": True,
-                "chats": result_list,
                 "message": "Чаты получены",
+                "chats": chats,
                 "category": "success",
                 "cod": 200,
             }
@@ -88,10 +86,10 @@ def get_messages_chat_query(login: str, chat_id: int):
         try:
             messages_query = session.execute(
                 select(
-                    Users.login,
-                    Users.chat_role,
                     Messages.id,
                     Messages.text,
+                    Users.login,
+                    Users.chat_role,
                 ).where(Messages.chat_id == chat_id)
                 .join(Users)
             ).all()
@@ -167,8 +165,7 @@ def create_message_query(login: str, chat_id: int, text: str, return_text: bool 
 
 def delet_chat_query(user:User, chat_id:int):
     if  check_chat(chat_id=chat_id) == True:
-        chat_right=check_chat_right(login=user.login,chat_id=chat_id)
-        if chat_right==True or user.role=='admin':
+        if check_chat_right(login=user.login,chat_id=chat_id)==True or user.role=='admin':
             session = session_create()
             try:
                 session.execute(
@@ -319,37 +316,45 @@ def recovery_chats_list_query(chats:list):
         }
 
 
-def delet_messages(chat_id, user):
-    session = db.session
-    try:
-        chat = session.scalars(
-            select(Chats.id).where(Chats.id == chat_id)
-        ).one_or_none()
-        logger.trace(f"Проверка существования чата {chat_id} прошла успешно")
-    except Exception as err:
-        logger.warning(
-            f"Не удалось проверить существование чата {chat_id} Ошибка {err}"
-        )
-    if chat != None:
-        user = session.scalars(
-            select(Chats.user_login).where(Chats.id == chat_id)
-        ).one_or_none()
-        if user == user or get_user_role(user):
+def delete_message_query(user:User,chat_id:int,message_id:int):
+    if check_chat(chat_id=chat_id) ==True:
+        if check_chat_right(login=user.login,chat_id=chat_id)==True:
+            session = session_create()
             try:
                 session.execute(
-                    update(Chats).where(Chats.id == chat_id).values(chat_del=True)
+                    delete(Messages).where((Messages.chat_id == chat_id) & (Messages.id == message_id))
                 )
                 session.commit()
-                logger.debug(f"Чат {chat_id} помечен как удаленный")
-                flash(message="Чат удален", category="success")
+                logger.debug(f"Сообщение в чате {chat_id} удаленно")
+                result= {
+                        "result": True,
+                        "message": "Сообщение удалено",
+                        "category": "success",
+                        "cod": 201,
+                    }
             except Exception as err:
-                logger.warning(f"Не удалось измеить статус чата {chat_id} Ошибка {err}")
-                flash(message="Чат не удален из-за ошибки", category="error")
+                logger.warning(f"Не удалось удалить сообщение в чате {chat_id} Ошибка {err}")
+                result = {
+                    "result": False,
+                    "message": "Ошибка сервера сообщение не удалено",
+                    "category": "error",
+                    "cod": 500,
+                }
         else:
-            flash(message="У вас нет права на удаление чата", category="warning")
+            result = {
+                "result": False,
+                "message": "Нет доступа",
+                "category": "warning",
+                "cod": 403,
+            }
     else:
-        logger.warning(f"Не найден чат {chat_id} Ошибка {err}")
-    session.close()
+        result = {
+            "result": False,
+            "message": "Не найден чат",
+            "category": "warning",
+            "cod": 404,
+        }
+    return result
 
 
 

@@ -12,7 +12,8 @@ from db_modules.db_query_chat import (
     get_delet_chats_query,
     delet_chats_irrevocably_list_query,
     delet_chats_irrevocably_all_list,
-    recovery_chats_list_query
+    recovery_chats_list_query,
+    delete_message_query
 )
 
 chat_app = APIRouter(prefix="/chats", tags=["Чаты"])
@@ -42,7 +43,7 @@ async def get_chats_api(
     return result
 
 
-@chat_app.get("/messages", summary="Получение сообщений чата")
+@chat_app.get("/messages/get", summary="Получение сообщений чата")
 async def get_messages_api(
     response: Response, chat_id: int, current_user: User = Depends(get_current_user)
 ):
@@ -62,6 +63,18 @@ async def create_message_api(
     result = create_message_query(
         login=current_user.login, chat_id=chat_id, text=message.text
     )
+    response.status_code = result["cod"]
+    del result["cod"]
+    return result
+
+@chat_app.delete("/messages/delet", summary="Удаление сообщения")
+async def create_message_api(
+    response: Response,
+    chat_id: int,
+    message_id:int,
+    current_user: User = Depends(get_current_user),
+):
+    result = delete_message_query(user=current_user,chat_id=chat_id,message_id=message_id)
     response.status_code = result["cod"]
     del result["cod"]
     return result
