@@ -3,11 +3,11 @@ from loguru import logger
 
 from db_modules.db_query_chat import create_message_query
 from db_modules.db_query_config import get_config_ai
-from ai_modules.query_rag_db import search_docs
+from ai_modules.query_rag_db import search_docs_rquery
 
 
 def ask_query(query: str, chat_id: int, messages_history: list[dict[str, str]]):
-    context = search_docs(query)
+    context = search_docs_rquery(query=query)
     ai_model = get_config_ai(name="model")
     prompt = str(get_config_ai(name="pront")).format(context=context, quest=query)
     messages_history.append({"role": "user", "content": prompt})

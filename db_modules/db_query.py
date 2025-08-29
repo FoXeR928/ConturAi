@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from loguru import logger
 
-from db_modules.db_create import Users, session_create, Chats
+from db_modules.db_create import Users, session_create, Chats,Configs
 from db_modules.db_query_config import get_config_ai
 
 

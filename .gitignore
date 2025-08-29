@@ -7,3 +7,5 @@ config.json
 uv.lock
 dist/
 ai_modules/models
+/ai_modules/models
+ai_modules/models/sbert_large_nlu_ru

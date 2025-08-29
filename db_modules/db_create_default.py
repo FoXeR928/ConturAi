@@ -144,6 +144,8 @@ def create_default_config_ai(
     ai_name="Раги",
     system_promt="Ты - {name}, твоя задача отвечать на вопросы используя информации из базы, а если информации нет генерировать ответ самостоятельно и добавлять 'Ответ сгенерирован самостоятельно'",
     promt="Контекст: {context} Вопрос: {quest}",
+    search_rag=5,
+    batch_size=256
 ):
     configs_list = (
         ("ai_name", "Параметр отвечающий за имя нейросети", ai_name, "text"),
@@ -159,6 +161,9 @@ def create_default_config_ai(
             promt,
             "textextarea",
         ),
+        ("search_rag", "Лимит поиска по RAG базе", search_rag, "number"),
+        ("batch_size", "Размер чанков для загрузки в RAG базу", batch_size, "number"),
+        
     )
     session = session_create()
     base = Configs_ai

@@ -52,9 +52,9 @@ def init_rag():
                 f"Не удалось проверить наличие коллекции в векторной базе Ошибка {err}"
             )
             raise None
-        if not check_rag_base:
+        if check_rag_base==False:
             try:
-                client.recreate_collection(
+                client.create_collection(
                     collection_name=rag_collection,
                     vectors_config=VectorParams(
                         size=1024, distance=Distance.COSINE, on_disk=True
