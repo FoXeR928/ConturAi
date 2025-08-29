@@ -3,7 +3,7 @@ from qdrant_client.http.models import PointStruct, PayloadSchemaType, HnswConfig
 from loguru import logger
 
 from db_modules.db_query_config import get_config_ai
-from ai_chat.init_rag_db import model, client
+from ai_modules.init_rag_db import model, client
 
 
 def optimizate_base():

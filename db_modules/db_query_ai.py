@@ -4,7 +4,7 @@ from loguru import logger
 from db_modules.db_create import session_create, Users, Messages
 from db_modules.db_query_config import get_config_ai
 from db_modules.db_query import check_user, check_chat
-from ai_chat.ask import ask_query
+from ai_modules.ask import ask_query
 
 
 def create_message_ai_query(login: str, chat_id: int, text: str):

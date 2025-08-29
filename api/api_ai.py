@@ -5,7 +5,7 @@ from io import BytesIO
 from db_modules.db_query_ai import create_message_ai_query
 from api.api_auth import User, get_current_user
 from api.api_chat import Message
-from ai_chat.parther import check_file_type
+from ai_modules.parther import check_file_type
 
 ai_app = APIRouter(prefix="/AI", tags=["Нейросеть"])
 
