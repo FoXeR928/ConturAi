@@ -40,10 +40,13 @@ def check_chat(chat_id: int):
         session.close()
     return result
 
-def check_chat_right(login:str,chat_id:int):
+
+def check_chat_right(login: str, chat_id: int):
     session = session_create()
     try:
-        chat_user = session.scalars(select(Chats.user_login).where(Chats.id == chat_id)).one_or_none()
+        chat_user = session.scalars(
+            select(Chats.user_login).where(Chats.id == chat_id)
+        ).one_or_none()
         logger.trace(f"Проверка чата {chat_id} в базе")
         if chat_user == login:
             result = True
@@ -57,12 +60,20 @@ def check_chat_right(login:str,chat_id:int):
         session.close()
     return result
 
+
 def check_config_ai():
-    config_list=("model_chunk","rag_host","rag_port_http","rag_port_grpc","rag_grpc","collection")
-    result_list=list()
+    config_list = (
+        "model_chunk",
+        "rag_host",
+        "rag_port_http",
+        "rag_port_grpc",
+        "rag_grpc",
+        "collection",
+    )
+    result_list = list()
     for config in config_list:
-        if get_config(name=config)==None:
+        if get_config(name=config) == None:
             result_list.append(False)
         else:
             result_list.append(True)
-    return(all(result_list))
+    return all(result_list)

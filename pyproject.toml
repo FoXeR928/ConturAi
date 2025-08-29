@@ -1,6 +1,6 @@
 [project]
 name = "Ragi_AI"
-version = "1.10.0"
+version = "1.10.0.1"
 description = "AI integrator ollama and qdrant"
 authors = [
     {name = "foxer928",email = "nik280302@yandex.ru"}

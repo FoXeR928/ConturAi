@@ -3,7 +3,7 @@ $('#db_select').on('change',function(){
     if (select=='sqlite'){
         $('.-hide').hide()
         $('.-hide').val('')
-        $('#db_path').val('../instance/ragi_db.db')
+        $('#db_path').val('/instance/ragi_db.db')
         $('#db_server').val('-')
         $('#db_port').val(1)
         $('#db_user').val('-')

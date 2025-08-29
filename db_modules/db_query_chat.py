@@ -1,8 +1,8 @@
 from sqlalchemy import select, update, delete
 from loguru import logger
 
-from db_modules.db_create import Chats, Messages,Users, session_create
-from db_modules.db_query import check_user, check_chat,check_chat_right
+from db_modules.db_create import Chats, Messages, Users, session_create
+from db_modules.db_query import check_user, check_chat, check_chat_right
 from api.api_auth import User
 
 
@@ -49,7 +49,7 @@ def get_chats_query(login: str):
                     (Chats.user_login == login) & (Chats.chat_del == False)
                 )
             ).all()
-            chats=[row._mapping for row in chats]
+            chats = [row._mapping for row in chats]
             result = {
                 "result": True,
                 "message": "Чаты получены",
@@ -90,13 +90,14 @@ def get_messages_chat_query(login: str, chat_id: int):
                     Messages.text,
                     Users.login,
                     Users.chat_role,
-                ).where(Messages.chat_id == chat_id)
+                )
+                .where(Messages.chat_id == chat_id)
                 .join(Users)
             ).all()
             get_name = session.scalars(
                 select(Chats.chat_name).where(Chats.id == chat_id)
             ).one()
-            messages=[row._mapping for row in messages_query]
+            messages = [row._mapping for row in messages_query]
             result = {
                 "result": True,
                 "message": "Сообщения получены",
@@ -128,7 +129,9 @@ def get_messages_chat_query(login: str, chat_id: int):
     return result
 
 
-def create_message_query(login: str, chat_id: int, text: str, return_text: bool = False):
+def create_message_query(
+    login: str, chat_id: int, text: str, return_text: bool = False
+):
     if check_user(login=login) == True and check_chat(chat_id=chat_id) == True:
         session = session_create()
         try:
@@ -163,16 +166,22 @@ def create_message_query(login: str, chat_id: int, text: str, return_text: bool 
         }
     return result
 
-def delet_chat_query(user:User, chat_id:int):
-    if  check_chat(chat_id=chat_id) == True:
-        if check_chat_right(login=user.login,chat_id=chat_id)==True or user.role=='admin':
+
+def delet_chat_query(user: User, chat_id: int):
+    if check_chat(chat_id=chat_id) == True:
+        if (
+            check_chat_right(login=user.login, chat_id=chat_id) == True
+            or user.role == "admin"
+        ):
             session = session_create()
             try:
                 session.execute(
                     update(Chats).where(Chats.id == chat_id).values(chat_del=True)
                 )
                 session.commit()
-                logger.debug(f"Чат {chat_id} помечен на удаленние пользователем {user.login}")
+                logger.debug(
+                    f"Чат {chat_id} помечен на удаленние пользователем {user.login}"
+                )
                 result = {
                     "result": True,
                     "message": "Чат удален",
@@ -205,6 +214,7 @@ def delet_chat_query(user:User, chat_id:int):
         }
     return result
 
+
 def get_delet_chats_query():
     session = session_create()
     try:
@@ -214,7 +224,7 @@ def get_delet_chats_query():
                 Chats.chat_del == True
             )
         ).all()
-        chats=[row._mapping for row in chats_get]
+        chats = [row._mapping for row in chats_get]
         result = {
             "result": True,
             "message": "Чаты на удаление получены",
@@ -226,48 +236,50 @@ def get_delet_chats_query():
     except Exception as err:
         logger.error(f"Не удалось получить чаты для удаления из базы Ошибка {err}")
         result = {
-                    "result": False,
-                    "message": "Ошибка сервера не удалось получить чаты на удаление",
-                    "category": "error",
-                    "cod": 500,
-                }
+            "result": False,
+            "message": "Ошибка сервера не удалось получить чаты на удаление",
+            "category": "error",
+            "cod": 500,
+        }
     finally:
         session.close()
     return result
 
-def delet_chats_irrevocably_list_query(chats:list):
-    chats_delet=list()
+
+def delet_chats_irrevocably_list_query(chats: list):
+    chats_delet = list()
     for chat in chats:
-        if check_chat(chat_id=chat) ==True:
+        if check_chat(chat_id=chat) == True:
             session = session_create()
             try:
                 session.execute(
                     delete(Chats).where((Chats.chat_del == True) & (Chats.id == chat))
                 )
                 session.commit()
-                chats_delet.append({chat:'success'})
+                chats_delet.append({chat: "success"})
                 logger.debug(f"Чат {chat} удалены из базы")
             except Exception as err:
                 logger.error(f"Не удалось удалить чат {chat} Ошибка {err}")
-                chats_delet.append({chat:'error'})
+                chats_delet.append({chat: "error"})
             finally:
                 session.close()
         else:
-            chats_delet.append({chat:'not found'})
+            chats_delet.append({chat: "not found"})
     return {
-            "result": True,
-            "message": "Чаты удалены безвозвратно",
-            "chats_result": chats_delet,
-            "category": "success",
-            "cod": 201,
-        }
+        "result": True,
+        "message": "Чаты удалены безвозвратно",
+        "chats_result": chats_delet,
+        "category": "success",
+        "cod": 201,
+    }
+
 
 def delet_chats_irrevocably_all_list():
     session = session_create()
     try:
         session.execute(delete(Chats).where(Chats.chat_del == True))
         session.commit()
-        result= {
+        result = {
             "result": True,
             "message": "Чаты удалены",
             "category": "success",
@@ -276,20 +288,21 @@ def delet_chats_irrevocably_all_list():
         logger.success(f"Чаты удалены из базы")
     except Exception as err:
         result = {
-                "result": False,
-                "message": "Ошибка сервера не удалось удалить чаты",
-                "category": "error",
-                "cod": 500,
-            }
+            "result": False,
+            "message": "Ошибка сервера не удалось удалить чаты",
+            "category": "error",
+            "cod": 500,
+        }
         logger.error(f"Не удалось удалить чаты Ошибка {err}")
     finally:
         session.close()
     return result
 
-def recovery_chats_list_query(chats:list):
-    chats_delet=list()
+
+def recovery_chats_list_query(chats: list):
+    chats_delet = list()
     for chat in chats:
-        if check_chat(chat_id=chat) ==True:
+        if check_chat(chat_id=chat) == True:
             session = session_create()
             try:
                 session.execute(
@@ -298,42 +311,46 @@ def recovery_chats_list_query(chats:list):
                     .values(chat_del=False)
                 )
                 session.commit()
-                chats_delet.append({chat:'success'})
+                chats_delet.append({chat: "success"})
                 logger.debug(f"Чат {chat} восствновлен")
             except Exception as err:
                 logger.error(f"Не удалось восстановить чат {chat} Ошибка {err}")
-                chats_delet.append({chat:'error'})
+                chats_delet.append({chat: "error"})
             finally:
                 session.close()
         else:
-            chats_delet.append({chat:'not found'})
+            chats_delet.append({chat: "not found"})
     return {
-            "result": True,
-            "message": "Чаты восстановлены",
-            "chats_result": chats_delet,
-            "category": "success",
-            "cod": 201,
-        }
+        "result": True,
+        "message": "Чаты восстановлены",
+        "chats_result": chats_delet,
+        "category": "success",
+        "cod": 201,
+    }
 
 
-def delete_message_query(user:User,chat_id:int,message_id:int):
-    if check_chat(chat_id=chat_id) ==True:
-        if check_chat_right(login=user.login,chat_id=chat_id)==True:
+def delete_message_query(user: User, chat_id: int, message_id: int):
+    if check_chat(chat_id=chat_id) == True:
+        if check_chat_right(login=user.login, chat_id=chat_id) == True:
             session = session_create()
             try:
                 session.execute(
-                    delete(Messages).where((Messages.chat_id == chat_id) & (Messages.id == message_id))
+                    delete(Messages).where(
+                        (Messages.chat_id == chat_id) & (Messages.id == message_id)
+                    )
                 )
                 session.commit()
                 logger.debug(f"Сообщение в чате {chat_id} удаленно")
-                result= {
-                        "result": True,
-                        "message": "Сообщение удалено",
-                        "category": "success",
-                        "cod": 201,
-                    }
+                result = {
+                    "result": True,
+                    "message": "Сообщение удалено",
+                    "category": "success",
+                    "cod": 201,
+                }
             except Exception as err:
-                logger.warning(f"Не удалось удалить сообщение в чате {chat_id} Ошибка {err}")
+                logger.warning(
+                    f"Не удалось удалить сообщение в чате {chat_id} Ошибка {err}"
+                )
                 result = {
                     "result": False,
                     "message": "Ошибка сервера сообщение не удалено",
@@ -355,11 +372,3 @@ def delete_message_query(user:User,chat_id:int,message_id:int):
             "cod": 404,
         }
     return result
-
-
-
-
-
-
-
-

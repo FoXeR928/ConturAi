@@ -171,7 +171,7 @@ def get_config(name: str):
     return result
 
 
-def create_config_ai_start(
+def create_config_ai_start_query(
     model_chunk: str,
     model: str,
     collection: str = "ragi_db",

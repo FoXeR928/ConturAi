@@ -9,7 +9,7 @@ from db_modules.db_query_config import (
     get_configs_query,
     update_config_ai_query,
     update_config_query,
-    create_config_ai_start,
+    create_config_ai_start_query,
 )
 
 try:
@@ -24,7 +24,7 @@ class ConfigUpdate(BaseModel):
     value: Any
 
 
-class ConfigStart(BaseModel):
+class ConfigStartAI(BaseModel):
     model_chunk: str
     model: str
     collection: str = "ragi_db"
@@ -112,12 +112,20 @@ async def update_config_app_api(
 
 @config_app.post("/ai/start", summary="Создание установочных конфигов AI")
 async def start_configs_ai_api(
-    configs_data: ConfigStart,
+    configs_start_ai: ConfigStartAI,
     response: Response,
     current_user: User = Depends(get_current_user),
 ):
     if current_user.role == "admin":
-        result = create_config_ai_start(configs=configs_data)
+        result = create_config_ai_start_query(
+            model=configs_start_ai.model,
+            model_chunk=configs_start_ai.model_chunk,
+            collection=configs_start_ai.collection,
+            rag_host=configs_start_ai.rag_host,
+            rag_port_http=configs_start_ai.rag_port_http,
+            rag_port_grpc=configs_start_ai.rag_port_grpc,
+            rag_grpc=configs_start_ai.rag_grpc
+        )
     else:
         result = {
             "result": False,

@@ -13,7 +13,7 @@ from db_modules.db_query_chat import (
     delet_chats_irrevocably_list_query,
     delet_chats_irrevocably_all_list,
     recovery_chats_list_query,
-    delete_message_query
+    delete_message_query,
 )
 
 chat_app = APIRouter(prefix="/chats", tags=["Чаты"])
@@ -67,28 +67,35 @@ async def create_message_api(
     del result["cod"]
     return result
 
+
 @chat_app.delete("/messages/delet", summary="Удаление сообщения")
 async def create_message_api(
     response: Response,
     chat_id: int,
-    message_id:int,
+    message_id: int,
     current_user: User = Depends(get_current_user),
 ):
-    result = delete_message_query(user=current_user,chat_id=chat_id,message_id=message_id)
+    result = delete_message_query(
+        user=current_user, chat_id=chat_id, message_id=message_id
+    )
     response.status_code = result["cod"]
     del result["cod"]
     return result
+
 
 @chat_app.patch("/delet", summary="Удаление чата")
 async def delet_chat_api(
-    response: Response,chat_id:int, current_user: User = Depends(get_current_user)
+    response: Response, chat_id: int, current_user: User = Depends(get_current_user)
 ):
-    result = delet_chat_query(user=current_user,chat_id=chat_id)
+    result = delet_chat_query(user=current_user, chat_id=chat_id)
     response.status_code = result["cod"]
     del result["cod"]
     return result
 
-@chat_app.get("/delet/irrevocably/get", summary="Получение чатов на безвозвратное удаление")
+
+@chat_app.get(
+    "/delet/irrevocably/get", summary="Получение чатов на безвозвратное удаление"
+)
 async def get_delet_chats_api(
     response: Response, current_user: User = Depends(get_current_user)
 ):
@@ -105,9 +112,12 @@ async def get_delet_chats_api(
     del result["cod"]
     return result
 
-@chat_app.delete("/delet/irrevocably/list", summary="Удаление безвозвратно списка чатов")
+
+@chat_app.delete(
+    "/delet/irrevocably/list", summary="Удаление безвозвратно списка чатов"
+)
 async def delet_chats_irrevocably_list_api(
-    response: Response,chats:List[int], current_user: User = Depends(get_current_user)
+    response: Response, chats: List[int], current_user: User = Depends(get_current_user)
 ):
     if current_user.role == "admin":
         result = delet_chats_irrevocably_list_query(chats=chats)
@@ -122,9 +132,10 @@ async def delet_chats_irrevocably_list_api(
     del result["cod"]
     return result
 
+
 @chat_app.delete("/delet/irrevocably/all", summary="Удаление безвозвратно всех чатов")
 async def delet_chats_irrevocably_list_api(
-    response: Response,current_user: User = Depends(get_current_user)
+    response: Response, current_user: User = Depends(get_current_user)
 ):
     if current_user.role == "admin":
         result = delet_chats_irrevocably_all_list()
@@ -139,9 +150,10 @@ async def delet_chats_irrevocably_list_api(
     del result["cod"]
     return result
 
+
 @chat_app.patch("/recovery/list", summary="Восстановление списка чатов")
 async def recovery_chats_list_api(
-    response: Response,chats:List[int], current_user: User = Depends(get_current_user)
+    response: Response, chats: List[int], current_user: User = Depends(get_current_user)
 ):
     if current_user.role == "admin":
         result = recovery_chats_list_query(chats=chats)

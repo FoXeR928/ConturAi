@@ -6,4 +6,4 @@ __pycache__/
 config.json
 uv.lock
 dist/
-/ai_chat/models
+ai_modules/models

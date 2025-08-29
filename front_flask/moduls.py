@@ -68,7 +68,7 @@ class Settings_ai(FlaskForm):
         validators=[DataRequired()],
         render_kw={
             "class": "model_chunk -input_with_label",
-            "value": "./ai_chat/models/sbert_large_nlu_ru",
+            "value": "ai_modules/models/sbert_large_nlu_ru",
         },
     )
     model = StringField(
