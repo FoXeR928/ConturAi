@@ -2,7 +2,7 @@ from sqlalchemy import select
 from loguru import logger
 
 from db_modules.db_create import Users, session_create, Chats
-from db_modules.db_query_config import get_config
+from db_modules.db_query_config import get_config_ai
 
 
 def check_user(login: str):
@@ -64,15 +64,16 @@ def check_chat_right(login: str, chat_id: int):
 def check_config_ai():
     config_list = (
         "model_chunk",
+        "model",
+        "collection",
         "rag_host",
         "rag_port_http",
         "rag_port_grpc",
         "rag_grpc",
-        "collection",
     )
     result_list = list()
     for config in config_list:
-        if get_config(name=config) == None:
+        if get_config_ai(name=config) == None:
             result_list.append(False)
         else:
             result_list.append(True)

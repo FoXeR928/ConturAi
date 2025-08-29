@@ -34,7 +34,7 @@ class ConfigStartAI(BaseModel):
     rag_grpc: bool = False
 
 
-@config_app.get("/ai", summary="Получение конфигов AI")
+@config_app.get("/ai/get", summary="Получение конфигов AI")
 async def get_configs_ai_api(
     response: Response, current_user: User = Depends(get_current_user)
 ):
@@ -52,7 +52,7 @@ async def get_configs_ai_api(
     return result
 
 
-@config_app.get("/app", summary="Получение конфигов приложения")
+@config_app.get("/app/get", summary="Получение конфигов приложения")
 async def get_configs_app_api(
     response: Response, current_user: User = Depends(get_current_user)
 ):
@@ -110,7 +110,7 @@ async def update_config_app_api(
     return result
 
 
-@config_app.post("/ai/start", summary="Создание установочных конфигов AI")
+@config_app.post("/ai/start/create", summary="Создание установочных конфигов AI")
 async def start_configs_ai_api(
     configs_start_ai: ConfigStartAI,
     response: Response,
