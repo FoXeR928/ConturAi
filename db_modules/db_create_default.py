@@ -79,13 +79,16 @@ def create_default_config(
     recreate: bool = False,
     token: str = secrets.token_hex(64),
     site_name: str = "Ragi_AI",
+    debug:bool=False,
     pdf: str = "application/pdf",
     word: str = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     excel: str = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    
 ):
     configs_list = (
         ("skey", "Ключ для генерации OAuth2 токена", token, "text"),
         ("site_name", "Имя приложения", site_name, "text"),
+        ("debug", "Подробное логирование", debug, "boolen"),
         ("pdf", "Параметр отвечающий за формат PDF", pdf, "text"),
         ("word", "Параметр отвечающий за формат WORD", word, "text"),
         ("excel", "Параметр отвечающий за формат EXCEL", excel, "text"),
@@ -105,10 +108,10 @@ def create_default_config(
             check_config = session.scalars(
                 select(base).where(base.name == configs[0])
             ).one_or_none()
-            logger.trace("Проверенно существование записей в базе Configs")
+            logger.trace(f"Проверенно существование записи {configs[0]} в таблице Configs")
         except Exception as err:
             logger.error(
-                f"Не удалось проверить существование записей таблицы Configs Ошибка {err}"
+                f"Не удалось проверить существование записи {configs[0]} в таблице Configs Ошибка {err}"
             )
         if check_config == None:
             try:
@@ -140,12 +143,12 @@ def create_default_config(
 
 
 def create_default_config_ai(
-    recreate=False,
-    ai_name="Раги",
-    system_promt="Ты - {name}, твоя задача отвечать на вопросы используя информации из базы, а если информации нет генерировать ответ самостоятельно и добавлять 'Ответ сгенерирован самостоятельно'",
-    promt="Контекст: {context} Вопрос: {quest}",
-    search_rag=5,
-    batch_size=256
+    recreate:bool=False,
+    ai_name:str="Раги",
+    system_promt:str="Ты - {name}, твоя задача отвечать на вопросы используя информации из базы, а если информации нет генерировать ответ самостоятельно и добавлять 'Ответ сгенерирован самостоятельно'",
+    promt:str="Контекст: {context} Вопрос: {quest}",
+    search_rag:int=5,
+    batch_size:int=256
 ):
     configs_list = (
         ("ai_name", "Параметр отвечающий за имя нейросети", ai_name, "text"),
@@ -180,10 +183,10 @@ def create_default_config_ai(
             check_config = session.scalars(
                 select(base).where(base.name == configs[0])
             ).one_or_none()
-            logger.trace("Проверенно существование записей в базе Configs_ai")
+            logger.trace(f"Проверенно существование записи {configs[0]} в таблице Configs_ai")
         except Exception as err:
             logger.error(
-                f"Не удалось проверить существование записей таблицы Configs_ai Ошибка {err}"
+                f"Не удалось проверить существование записи {configs[0]} в таблице Configs_ai Ошибка {err}"
             )
         if check_config == None:
             try:

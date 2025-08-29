@@ -10,6 +10,7 @@ from db_modules.db_create_default import (
     create_default_config_ai,
 )
 from db_modules.db_query import check_config_ai
+from db_modules.db_query_config import get_config
 
 
 def init_log(log_level_file="INFO", log_level_std="WARNING"):
@@ -21,7 +22,7 @@ def init_log(log_level_file="INFO", log_level_std="WARNING"):
         retention=f"10 days",
         level=log_level_file,
     )
-    if config["DEBUG"] == True:
+    if bool(int(get_config(name='debug'))) == True:
         log_level_std = "TRACE"
     logger.add(stdout, level=log_level_std)
 
@@ -65,8 +66,8 @@ def init_app():
 
 
 config = init_confg()
-init_log()
 engine = init_db()
+init_log()
 create_default_config()
 create_default_config_ai()
 create_default_users()
