@@ -22,7 +22,7 @@ def init_db():
 
 
 def session_create():
-    from app import engine
+    from api.api_app import engine
 
     session = Session(bind=engine)
     return session

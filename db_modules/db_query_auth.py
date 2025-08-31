@@ -6,7 +6,6 @@ from loguru import logger
 from db_modules.db_create import Users, session_create, Token_API
 from db_modules.db_query import check_user
 from db_modules.db_query_config import get_config
-from app import config
 
 
 def create_token(data: dict, expires_use: bool = False):

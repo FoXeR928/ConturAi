@@ -2,7 +2,7 @@ import uvicorn
 from loguru import logger
 
 from instance.config_read import init_confg
-from app import app
+from api.api_app import app
 
 config = init_confg()
 
