@@ -67,8 +67,8 @@ def init_app():
 
 config = init_confg()
 engine = init_db()
-init_log()
 create_default_config()
+init_log()
 create_default_config_ai()
 create_default_users()
 app = init_app()
