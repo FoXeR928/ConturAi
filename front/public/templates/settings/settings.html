@@ -7,23 +7,29 @@
 {% endblock %}
 
 {% block content %}
-<form class="form_with_back" action="{{url_for('settings.create_start_settings')}}" method="post">
-    {{form.csrf_token}}
-    {{form.port.label}}{{form.port}}
-    <div class="check_box">
-        {{form.debug.label}}{{form.debug}}
-    </div>
-    {{form.db_select.label}}{{form.db_select}}
-    {{form.db_server.label(class='db_server -hide -server')}}{{form.db_server}}
-    {{form.db_path.label(class='db_path -hide -local')}}{{form.db_path}}
-    {{form.db_port.label(class='db_port -hide -server')}}{{form.db_port}}
-    {{form.db_user.label(class='db_user -hide -server')}}{{form.db_user}}
-    {{form.db_password.label(class='db_password -hide -server')}}{{form.db_password}}
-    {{form.db_name.label(class='db_name -hide -server')}}{{form.db_name}}
-    {{form.send_settings}}
+<form class="form_with_back" method="post">
+    <label for="app_port">Порт приложения</label>
+    <input id="app_port" type="number" value="7000">
+    <select id="sql_driver">
+        <option value="" selected disabled hidden>Выберите драйвер SQL</option>
+        <option value="sqlite">SQLite</option>
+        <option value="mysql">MySQL</option>
+        <option value="postgresql">PostgreSQL</option>
+    </select>
+    <label for="sql_host">Хост SQL</label>
+    <input id="sql_host" type="text">
+    <label for="sql_port">Порт SQL</label>
+    <input id="sql_port" type="number">
+    <label for="sql_db">Имя базы данных SQL</label>
+    <input id="sql_db" type="text" value="ragi_db">
+    <label for="sql_user">Пользователь SQL</label>
+    <input id="sql_user" type="text">
+    <label for="sql_password">Пароль SQL</label>
+    <input id="sql_password" type="password">
+    <label for="db_path">Путь базы данных</label>
+    <input id="db_path" type="text" value="./instance">
 </form>
 {% endblock %}
-
 {% block scripts %}
 <script src="/static/js/setting_db.js"></script>
 {% endblock %}

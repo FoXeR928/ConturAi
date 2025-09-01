@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 import os
 from loguru import logger
 
@@ -34,12 +33,15 @@ def init_pages():
                 except Exception as err:
                     logger.error(f"Ошибка инициализации API AI: {err}")
             if get_config(name="front_enable")==True:
-                app.mount("/static", StaticFiles(directory="/front/public/static"), name="front")
-                templates = Jinja2Templates(directory="/front/public/templates")
+                app.mount("/static", StaticFiles(directory="front/public/static"), name="front")
         else:
             from api.api_config_start import config_start_app
+            from front.start_pages import start_pages_app
 
+            app.mount("/static", StaticFiles(directory="front/public/static"), name="front")
             app.include_router(router=config_start_app)
+            app.include_router(router=start_pages_app)
+
     except Exception as err:
         logger.error(f"Ошибка инициализации API: {err}")
 
@@ -52,7 +54,7 @@ try:
     app = FastAPI(
         title="Ragi_AI",
         description="Система для локального нейропомощника",
-        version="1.12.2-alfa",
+        version="1.13.0-alfa",
     )
 except Exception as err:
     logger.critical(f"Ошибка инициализации приложения: {err}")

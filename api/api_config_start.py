@@ -5,6 +5,7 @@ from loguru import logger
 from db_modules.db_query_config import (
     create_config_app_start_query
 )
+from main import manager
 
 try:
     config_start_app=APIRouter(prefix="/config/app/start", tags=["Стартовая страница"])
@@ -40,4 +41,5 @@ async def start_configs_ai_api(
     )
     response.status_code = result["cod"]
     del result["cod"]
+    manager.reload_server()
     return result

@@ -1,6 +1,8 @@
-import uvicorn
 from sys import stdout
 import os
+from time import sleep
+import uvicorn
+from multiprocessing import Process
 from loguru import logger
 from api.api_app import app
 
@@ -29,11 +31,42 @@ if os.path.exists("./instance/config.json")==True:
 else:
     port=7000
 
+class ServerManager:
+    def __init__(self):
+        self.proccess:Process=None
+    
+    def start_server(self):
+        def run_server():
+            try:
+                uvicorn.run(app=app,host="0.0.0.0",port=port)
+                logger.info(f"Сервер запущен на порту {port}")
+            except Exception as err:
+                logger.critical(f"Ошибка запустить сервера: {err}")
+                exit()
+        try:
+            self.proccess=Process(target=run_server,daemon=True)
+            logger.info(f"Сервер запущен на порту {port}")
+        except Exception as err:
+            logger.critical(f"Ошибка запустить сервера: {err}")
+    
+    def reload_server(self):
+        if self.proccess==True:
+            self.proccess.terminate()
+        sleep(5)
+        return self.start_server()
+
+    def stop_server(self):
+        if self.proccess==True:
+            self.proccess.terminate()
+        logger.info("Сервер остановлен")
+
+manager=ServerManager()
+
 if __name__ == "__main__":
+    #manager.start_server
     try:
+        uvicorn.run(app=app,host="0.0.0.0",port=port)
         logger.info(f"Сервер запущен на порту {port}")
-        uvicorn.run(app=app, host="0.0.0.0", port=port)
     except Exception as err:
-        logger.error(f"Ошибка инициализации сервера: {err}")
-    finally:
-        logger.info(f"Cервер остановлен")
+        logger.critical(f"Ошибка запустить сервера: {err}")
+        exit()
