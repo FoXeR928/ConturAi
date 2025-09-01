@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from loguru import logger
 
-from db_modules.db_create import init_db
 from db_modules.db_create_default import (
     create_default_users,
     create_default_config,
@@ -32,22 +31,17 @@ def init_pages():
     except Exception as err:
         logger.error(f"Ошибка инициализации API: {err}")
 
-def init_app():
-    try:
-        app = FastAPI(
-            title="Ragi_AI",
-            description="Система для локального нейропомощника",
-            version="1.11.2-alfa",
-        )
-        return app
-    except Exception as err:
-        logger.critical(f"Ошибка инициализации приложения: {err}")
-        exit()
 
-
-engine = init_db()
 create_default_config()
 create_default_config_ai()
 create_default_users()
-app = init_app()
+try:
+    app = FastAPI(
+        title="Ragi_AI",
+        description="Система для локального нейропомощника",
+        version="1.12.0-alfa",
+    )
+except Exception as err:
+    logger.critical(f"Ошибка инициализации приложения: {err}")
+    exit()
 init_pages()

@@ -3,31 +3,31 @@ from sqlalchemy import ForeignKey, create_engine, func, DateTime
 from datetime import datetime
 import secrets
 import bcrypt
-import os
 import json
 from loguru import logger
 
 def init_confg():
     try:
-        if not os.path.exists("./instance/config.json"):
-            data = {
-                "PORT": 7000,
-            }
-            with open("./instance/config.json", "w") as file_config:
-                json.dump(data, file_config, indent=4)
-            logger.debug("Добавлен файл конфигов")
-
-        with open("./instance/config.json") as c:
-            config = json.load(c)
+        with open("./instance/config.json","r") as file_config:
+            config = json.load(file_config)
         logger.info("Инициализирован конфиг базы данных")
+        return config
     except Exception as err:
-        logger.error(f"Ошибка инициализации конфигов базы данных: {err}")
+        logger.critical(f"Ошибка инициализации конфигов базы данных: {err}")
         exit()
-    return config
 
 def init_db():
     try:
-        engine = create_engine(init_confg()["SQLALCHEMY_DATABASE_URI"])
+        config=init_confg()
+        if config["sql_driver"]=="sqlite":
+            sql_url=f"{config["sql_driver"]}:///{config["db_path"]}/{config["sql_db"]}.db"
+        elif config["sql_driver"]=="mysql":
+            sql_url=f"{config["sql_driver"]}://{config["sql_user"]}:{config["sql_password"]}@{config["sql_host"]}:{config["sql_port"]}/{config["sql_db"]}"
+        elif config["sql_driver"]=="postgresql":
+            sql_url=f"{config["sql_driver"]}://{config["sql_user"]}:{config["sql_password"]}@{config["sql_host"]}:{config["sql_port"]}/{config["sql_db"]}"
+        else:
+            raise None
+        engine = create_engine(url=sql_url)
         Base.metadata.create_all(engine)
         logger.info("База данных инициализирована")
         return engine
@@ -37,9 +37,7 @@ def init_db():
 
 
 def session_create():
-    from api.api_app import engine
-
-    session = Session(bind=engine)
+    session = Session(bind=init_db())
     return session
 
 

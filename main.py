@@ -1,9 +1,7 @@
 import uvicorn
 from sys import stdout
+import os
 from loguru import logger
-
-from db_modules.db_query_config import get_config
-from api.api_app import app
 
 def init_log(log_level_file="INFO", log_level_std="WARNING"):
     try:
@@ -23,11 +21,20 @@ def init_log(log_level_file="INFO", log_level_std="WARNING"):
         logger.error(f"Ошибка инициализации конфигов базы данных: {err}")
         exit()
 
+if os.path.exists("./instance/config.json")==True:
+    from db_modules.db_query_config import get_config
+
+    init_log()
+    app="api.api_app:app"
+    port=int(get_config(name="app_port"))
+else:
+    app="api.api_config_start:app"
+    port=7000
+
 if __name__ == "__main__":
     try:
-        init_log()
-        logger.info(f"Сервер запущен на порту {int(get_config(name="app_port"))}")
-        uvicorn.run(app=app, host="0.0.0.0", port=int(get_config(name="app_port")))
+        logger.info(f"Сервер запущен на порту {port}")
+        uvicorn.run(app=app, host="0.0.0.0", port=port)
     except Exception as err:
         logger.error(f"Ошибка инициализации сервера: {err}")
     finally:

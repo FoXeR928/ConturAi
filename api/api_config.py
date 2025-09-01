@@ -34,82 +34,6 @@ class ConfigStartAI(BaseModel):
     rag_grpc: bool = False
 
 
-@config_app.get("/ai/get", summary="Получение конфигов AI")
-async def get_configs_ai_api(
-    response: Response, current_user: User = Depends(get_current_user)
-):
-    if current_user.role == "admin":
-        result = get_configs_ai_query()
-    else:
-        result = {
-            "result": False,
-            "message": "Доступно только администратору",
-            "category": "warning",
-            "cod": 403,
-        }
-    response.status_code = result["cod"]
-    del result["cod"]
-    return result
-
-
-@config_app.get("/app/get", summary="Получение конфигов приложения")
-async def get_configs_app_api(
-    response: Response, current_user: User = Depends(get_current_user)
-):
-    if current_user.role == "admin":
-        result = get_configs_query()
-    else:
-        result = {
-            "result": False,
-            "message": "Доступно только администратору",
-            "category": "warning",
-            "cod": 403,
-        }
-    response.status_code = result["cod"]
-    del result["cod"]
-    return result
-
-
-@config_app.patch("/ai/update", summary="Обновление конфига AI")
-async def update_config_ai_api(
-    config_data: ConfigUpdate,
-    response: Response,
-    current_user: User = Depends(get_current_user),
-):
-    if current_user.role == "admin":
-        result = update_config_ai_query(name=config_data.name, value=config_data.value)
-    else:
-        result = {
-            "result": False,
-            "message": "Доступно только администратору",
-            "category": "warning",
-            "cod": 403,
-        }
-    response.status_code = result["cod"]
-    del result["cod"]
-    return result
-
-
-@config_app.patch("/app/update", summary="Обновление конфига приложения")
-async def update_config_app_api(
-    config_data: ConfigUpdate,
-    response: Response,
-    current_user: User = Depends(get_current_user),
-):
-    if current_user.role == "admin":
-        result = update_config_query(name=config_data.name, value=config_data.value)
-    else:
-        result = {
-            "result": False,
-            "message": "Доступно только администратору",
-            "category": "warning",
-            "cod": 403,
-        }
-    response.status_code = result["cod"]
-    del result["cod"]
-    return result
-
-
 @config_app.post("/ai/start/create", summary="Создание установочных конфигов AI")
 async def start_configs_ai_api(
     configs_start_ai: ConfigStartAI,
@@ -136,3 +60,79 @@ async def start_configs_ai_api(
     response.status_code = result["cod"]
     del result["cod"]
     return result
+
+@config_app.get("/ai/get", summary="Получение конфигов AI")
+async def get_configs_ai_api(
+    response: Response, current_user: User = Depends(get_current_user)
+):
+    if current_user.role == "admin":
+        result = get_configs_ai_query()
+    else:
+        result = {
+            "result": False,
+            "message": "Доступно только администратору",
+            "category": "warning",
+            "cod": 403,
+        }
+    response.status_code = result["cod"]
+    del result["cod"]
+    return result
+
+@config_app.patch("/ai/update", summary="Обновление конфига AI")
+async def update_config_ai_api(
+    config_data: ConfigUpdate,
+    response: Response,
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role == "admin":
+        result = update_config_ai_query(name=config_data.name, value=config_data.value)
+    else:
+        result = {
+            "result": False,
+            "message": "Доступно только администратору",
+            "category": "warning",
+            "cod": 403,
+        }
+    response.status_code = result["cod"]
+    del result["cod"]
+    return result
+
+@config_app.get("/app/get", summary="Получение конфигов приложения")
+async def get_configs_app_api(
+    response: Response, current_user: User = Depends(get_current_user)
+):
+    if current_user.role == "admin":
+        result = get_configs_query()
+    else:
+        result = {
+            "result": False,
+            "message": "Доступно только администратору",
+            "category": "warning",
+            "cod": 403,
+        }
+    response.status_code = result["cod"]
+    del result["cod"]
+    return result
+
+@config_app.patch("/app/update", summary="Обновление конфига приложения")
+async def update_config_app_api(
+    config_data: ConfigUpdate,
+    response: Response,
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role == "admin":
+        result = update_config_query(name=config_data.name, value=config_data.value)
+    else:
+        result = {
+            "result": False,
+            "message": "Доступно только администратору",
+            "category": "warning",
+            "cod": 403,
+        }
+    response.status_code = result["cod"]
+    del result["cod"]
+    return result
+
+
+
+
