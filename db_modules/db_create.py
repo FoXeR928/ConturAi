@@ -3,16 +3,31 @@ from sqlalchemy import ForeignKey, create_engine, func, DateTime
 from datetime import datetime
 import secrets
 import bcrypt
+import os
+import json
 from loguru import logger
 
-from instance.config_read import init_confg
+def init_confg():
+    try:
+        if not os.path.exists("./instance/config.json"):
+            data = {
+                "PORT": 7000,
+            }
+            with open("./instance/config.json", "w") as file_config:
+                json.dump(data, file_config, indent=4)
+            logger.debug("Добавлен файл конфигов")
 
-config = init_confg()
-
+        with open("./instance/config.json") as c:
+            config = json.load(c)
+        logger.info("Инициализирован конфиг базы данных")
+    except Exception as err:
+        logger.error(f"Ошибка инициализации конфигов базы данных: {err}")
+        exit()
+    return config
 
 def init_db():
     try:
-        engine = create_engine(config["SQLALCHEMY_DATABASE_URI"])
+        engine = create_engine(init_confg()["SQLALCHEMY_DATABASE_URI"])
         Base.metadata.create_all(engine)
         logger.info("База данных инициализирована")
         return engine
