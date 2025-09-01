@@ -2,6 +2,7 @@ import uvicorn
 from sys import stdout
 import os
 from loguru import logger
+from api.api_app import app
 
 def init_log(log_level_file="INFO", log_level_std="WARNING"):
     try:
@@ -23,12 +24,9 @@ def init_log(log_level_file="INFO", log_level_std="WARNING"):
 
 if os.path.exists("./instance/config.json")==True:
     from db_modules.db_query_config import get_config
-
-    init_log()
-    app="api.api_app:app"
     port=int(get_config(name="app_port"))
+    init_log()
 else:
-    app="api.api_config_start:app"
     port=7000
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-from fastapi import FastAPI,Response
+from fastapi import APIRouter,Response
 from pydantic import BaseModel
 from loguru import logger
 
@@ -7,14 +7,11 @@ from db_modules.db_query_config import (
 )
 
 try:
-    app = FastAPI(
-        title="Start_config",
-        description="Стартовая страница",
-        version="0.1.0-alfa",
-    )
+    config_start_app=APIRouter(prefix="/config/app/start", tags=["Стартовая страница"])
+    logger.debug("Инициализирован API стартовый")
 except Exception as err:
-    logger.critical(f"Ошибка инициализации приложения: {err}")
-    exit()
+    logger.error(f"Ошибка инициализации API: {err}")
+
 
 class ConfigStartApp(BaseModel):
     app_port:int=7000
@@ -26,7 +23,7 @@ class ConfigStartApp(BaseModel):
     sql_password:str=None
     db_path:str='./instance'
 
-@app.post("/create", summary="Создание установочных конфигов приложения")
+@config_start_app.post("/create", summary="Создание установочных конфигов приложения")
 async def start_configs_ai_api(
     configs_start_app: ConfigStartApp,
     response: Response,

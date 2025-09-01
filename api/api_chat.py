@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Response, Depends
 from pydantic import BaseModel
 from typing import List
+from loguru import logger
 
 from api.api_auth import User, get_current_user
 from db_modules.db_query_chat import (
@@ -16,7 +17,12 @@ from db_modules.db_query_chat import (
     delete_message_query,
 )
 
-chat_app = APIRouter(prefix="/chats", tags=["Чаты"])
+try:
+    chat_app = APIRouter(prefix="/chats", tags=["Чаты"])
+    logger.debug("Инициализирован API чатов")
+except Exception as err:
+    logger.error(f"Ошибка инициализации API: {err}")
+
 
 
 class Message(BaseModel):
