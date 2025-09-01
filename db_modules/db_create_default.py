@@ -79,6 +79,7 @@ def create_default_config(
     recreate: bool = False,
     app_port:int=7000,
     token: str = secrets.token_hex(64),
+    front_enable:bool=True,
     site_name: str = "Ragi_AI",
     debug:bool=False,
     pdf: str = "application/pdf",
@@ -89,6 +90,7 @@ def create_default_config(
     configs_list = (
         ("app_port", "Порт приложения", app_port, "number"),
         ("skey", "Ключ для генерации OAuth2 токена", token, "text"),
+        ("front_enable","Включение веб-интерфейса",front_enable,"boolen"),
         ("site_name", "Имя приложения", site_name, "text"),
         ("debug", "Подробное логирование", debug, "boolen"),
         ("pdf", "Параметр отвечающий за формат PDF", pdf, "text"),
