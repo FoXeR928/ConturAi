@@ -7,7 +7,7 @@ from api.api_auth import User
 
 
 def check_user_opportunity(user: str, login: str):
-    session = session_create()
+    session = session_create
     try:
         user_check = session.scalars(
             select(Users.user_role).where(Users.login == login)
@@ -35,7 +35,7 @@ def check_user_opportunity(user: str, login: str):
 
 
 def get_users_query():
-    session = session_create()
+    session = session_create
     try:
         users_get = session.execute(
             select(
@@ -72,7 +72,7 @@ def get_users_query():
 def registration_user_query(login: str, user_name: str, password: str):
     if check_user(login=login) == False:
         try:
-            session = session_create()
+            session = session_create
             add_user_query = Users(login=login, user_name=user_name)
             add_user_query.set_password(password)
             session.add(add_user_query)
@@ -108,7 +108,7 @@ def registration_user_query(login: str, user_name: str, password: str):
 def update_password_user_query(user_update: User, login: str, password: str):
     if check_user(login=login) == True:
         if user_update.login == login or user_update.role == "admin":
-            session = session_create()
+            session = session_create
             try:
                 user = session.query(Users).filter(Users.login == login).one()
                 user.set_password(password)
@@ -158,7 +158,7 @@ def update_role_user_query(user_update: User, login: str, role: str):
         else:
             opportunity = True
         if opportunity == True:
-            session = session_create()
+            session = session_create
             try:
                 session.execute(
                     update(Users).where(Users.login == login).values(user_role=role)
@@ -205,7 +205,7 @@ def update_role_user_query(user_update: User, login: str, role: str):
 def delete_user_query(user_delet: User, login: str):
     if check_user(login=login) == True:
         if check_user_opportunity(user=user_delet.login, login=login) == True:
-            session = session_create()
+            session = session_create
             try:
                 session.execute(delete(Users).where(Users.login == login))
                 session.commit()

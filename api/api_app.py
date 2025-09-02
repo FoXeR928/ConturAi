@@ -3,18 +3,12 @@ from fastapi.staticfiles import StaticFiles
 import os
 from loguru import logger
 
-from db_modules.db_create_default import (
-    create_default_users,
-    create_default_config,
-    create_default_config_ai,
-)
-from db_modules.db_query import check_config_ai
-from db_modules.db_query_config import get_config
-
 
 def init_pages():
     try:
         if os.path.exists("./instance/config.json")==True:
+            from db_modules.db_query import check_config_ai
+            from db_modules.db_query_config import get_config
             from api.api_auth import auth_app
             from api.api_config import config_app
             from api.api_chat import chat_app
@@ -46,6 +40,11 @@ def init_pages():
         logger.error(f"Ошибка инициализации API: {err}")
 
 if os.path.exists("./instance/config.json")==True:
+    from db_modules.db_create_default import (
+                create_default_users,
+                create_default_config,
+                create_default_config_ai,
+            )
     create_default_config()
     create_default_config_ai()
     create_default_users()
@@ -54,7 +53,7 @@ try:
     app = FastAPI(
         title="Ragi_AI",
         description="Система для локального нейропомощника",
-        version="1.13.0-alfa",
+        version="1.14.1-alfa",
     )
 except Exception as err:
     logger.critical(f"Ошибка инициализации приложения: {err}")

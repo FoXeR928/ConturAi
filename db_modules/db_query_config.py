@@ -6,7 +6,7 @@ from loguru import logger
 from db_modules.db_create import Configs, Configs_ai, session_create
 
 def check_config(name: str):
-    session = session_create()
+    session = session_create
     try:
         config = session.scalars(select(Configs).where(Configs.name == name)).one_or_none()
         logger.trace(f"Проверка чата {name} в базе")
@@ -23,7 +23,7 @@ def check_config(name: str):
     return result
 
 def check_config_ai(name: str):
-    session = session_create()
+    session = session_create
     try:
         config = session.scalars(select(Configs_ai).where(Configs_ai.name == name)).one_or_none()
         logger.trace(f"Проверка чата {name} в базе")
@@ -40,7 +40,7 @@ def check_config_ai(name: str):
     return result
 
 def get_config_ai(name: str):
-    session = session_create()
+    session = session_create
     try:
         search_config = session.scalars(
             select(Configs_ai.value).where(Configs_ai.name == name)
@@ -58,7 +58,7 @@ def get_config_ai(name: str):
 
 
 def get_config(name: str):
-    session = session_create()
+    session = session_create
     try:
         search_config = session.scalars(
             select(Configs.value).where(Configs.name == name)
@@ -74,65 +74,8 @@ def get_config(name: str):
         session.close()
     return result
 
-def create_config_app_start_query(
-    app_port:int=7000,
-    sql_driver:str="sqlite",
-    sql_host:str=None,
-    sql_port:int=None,
-    sql_db:str='ragi_db',
-    sql_user:str=None,
-    sql_password:str=None,
-    db_path:str='instance'
-):
-    try:
-        data={
-            "sql_driver":sql_driver,
-            "sql_host":sql_host,
-            "sql_port":sql_port,
-            "sql_db":sql_db,
-            "sql_user":sql_user,
-            "sql_password":sql_password,
-            "db_path":db_path
-        }
-        if os.path.exists("instance")==False:
-            os.mkdir('instance')
-        with open("instance/config.json", "w") as file_config:
-            json.dump(data, file_config, indent=4)
-        result = {
-            "result": True,
-            "message": "Стартовый конфиг приложения задан",
-            "category": "success",
-            "cod": 200,
-        }
-        from db_modules.db_create_default import (
-            create_default_users,
-            create_default_config,
-            create_default_config_ai,
-        )
-        create_default_users()
-        create_default_config()
-        create_default_config_ai()
-        session = session_create()
-        session.execute(
-            update(Configs)
-            .where(Configs.name == "app_port")
-            .values(value=app_port)
-        )
-        session.commit()
-        session.close()
-        logger.success(f"Добавлены в базу конфиги для приложения")
-    except Exception as err:
-        logger.error(f"Не удалось задать стартовые конфиги приложения Ошибка {err}")
-        result = {
-            "result": False,
-            "message": "Ошибка сервера стартовый конфиг приложения не задан",
-            "category": "error",
-            "cod": 500,
-        }
-    return result
-
 def get_configs_ai_query():
-    session = session_create()
+    session = session_create
     try:
         search_config = session.execute(
             select(
@@ -174,7 +117,7 @@ def get_configs_ai_query():
 
 def update_config_ai_query(name: str, value):
     if check_config_ai(name=name)==True:
-        session = session_create()
+        session = session_create
         try:
             session.execute(
                 update(Configs_ai).where(Configs_ai.name == name).values(value=value)
@@ -224,7 +167,7 @@ def create_config_ai_start_query(
         ("rag_port_grpc", "GRPC порт Qdrant", rag_port_grpc, "number"),
         ("rag_grpc", "Использовать GRPC порт Qdrant", rag_grpc, "boolen"),
     )
-    session = session_create()
+    session = session_create
     try:
         for configs in configs_list:
             check_conf = session.scalars(
@@ -265,7 +208,7 @@ def create_config_ai_start_query(
     return result
 
 def get_configs_query():
-    session = session_create()
+    session = session_create
     try:
         search_config = session.execute(
             select(Configs.name, Configs.about, Configs.value, Configs.input_format)
@@ -302,7 +245,7 @@ def get_configs_query():
 
 def update_config_query(name: str, value):
     if check_config(name=name)==True:
-        session = session_create()
+        session = session_create
         try:
             session.execute(update(Configs).where(Configs.name == name).values(value=value))
             session.commit()

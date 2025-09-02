@@ -13,4 +13,4 @@ except Exception as err:
 
 @start_pages_app.get("/", summary="Создание установочных конфигов приложения")
 async def start_configs_ai_api(request: Request):
-    return templates.TemplateResponse(name="settings/settings.html",context={'request': request})
+    return templates.TemplateResponse(name="start_config/start_config.html",context={'request': request})

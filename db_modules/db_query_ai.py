@@ -9,7 +9,7 @@ from ai_modules.ask import ask_query
 
 def create_message_ai_query(login: str, chat_id: int, text: str):
     if check_user(login=login) == True and check_chat(chat_id=chat_id) == True:
-        session = session_create()
+        session = session_create
         try:
             add_message_query = Messages(user_login=login, chat_id=chat_id, text=text)
             session.add(add_message_query)
@@ -47,7 +47,7 @@ def create_message_ai_query(login: str, chat_id: int, text: str):
 
 def get_messages_ai_query(chat_id: int):
     if check_chat(chat_id=chat_id) == True:
-        session = session_create()
+        session = session_create
         try:
             ai_name = get_config_ai(name="ai_name")
             system_promt = str(get_config_ai(name="system_promt")).format(name=ai_name)

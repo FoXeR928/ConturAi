@@ -29,16 +29,12 @@ def init_db():
             raise None
         engine = create_engine(url=sql_url)
         Base.metadata.create_all(engine)
+        session = Session(bind=engine)
         logger.info("База данных инициализирована")
-        return engine
+        return session
     except Exception as err:
         logger.critical(f"Не удалось инициализировать базу данных Ошибка: {err}")
         exit()
-
-
-def session_create():
-    session = Session(bind=init_db())
-    return session
 
 
 class Base(DeclarativeBase):
@@ -160,3 +156,6 @@ class Token_API(Base):
             return True
         else:
             return False
+
+
+session_create=init_db()

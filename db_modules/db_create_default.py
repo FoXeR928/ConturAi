@@ -4,7 +4,6 @@ import secrets
 
 from db_modules.db_create import Users, Configs, Configs_ai, session_create
 
-
 def create_default_users(
     recreate: bool = False,
     admin_login: str = "admin",
@@ -15,7 +14,7 @@ def create_default_users(
     system_role: str = "system",
     system_chat_role: str = "assistant",
 ):
-    session = session_create()
+    session = session_create
     base = Users
     if recreate:
         try:
@@ -97,7 +96,7 @@ def create_default_config(
         ("word", "Параметр отвечающий за формат WORD", word, "text"),
         ("excel", "Параметр отвечающий за формат EXCEL", excel, "text"),
     )
-    session = session_create()
+    session = session_create
     base = Configs
     if recreate:
         try:
@@ -172,7 +171,7 @@ def create_default_config_ai(
         ("batch_size", "Размер чанков для загрузки в RAG базу", batch_size, "number"),
         
     )
-    session = session_create()
+    session = session_create
     base = Configs_ai
     if recreate:
         try:

@@ -6,7 +6,7 @@ from db_modules.db_query_config import get_config_ai
 
 
 def check_user(login: str):
-    session = session_create()
+    session = session_create
     try:
         user = session.scalars(select(Users).where(Users.login == login)).one_or_none()
         logger.trace(f"Проверка пользователя {login} в базе")
@@ -24,7 +24,7 @@ def check_user(login: str):
 
 
 def check_chat(chat_id: int):
-    session = session_create()
+    session = session_create
     try:
         chat = session.scalars(select(Chats).where(Chats.id == chat_id)).one_or_none()
         logger.trace(f"Проверка чата {chat_id} в базе")
@@ -42,7 +42,7 @@ def check_chat(chat_id: int):
 
 
 def check_chat_right(login: str, chat_id: int):
-    session = session_create()
+    session = session_create
     try:
         chat_user = session.scalars(
             select(Chats.user_login).where(Chats.id == chat_id)

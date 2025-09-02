@@ -1,11 +1,11 @@
 from fastapi import APIRouter,Response
 from pydantic import BaseModel
+from typing import Optional
 from loguru import logger
 
-from db_modules.db_query_config import (
+from db_modules.db_query_config_start import (
     create_config_app_start_query
 )
-from main import manager
 
 try:
     config_start_app=APIRouter(prefix="/config/app/start", tags=["Стартовая страница"])
@@ -17,12 +17,12 @@ except Exception as err:
 class ConfigStartApp(BaseModel):
     app_port:int=7000
     sql_driver:str="sqlite"
-    sql_host:str=None
-    sql_port:int=None
+    sql_host:Optional[str]=None
+    sql_port:Optional[int]=None
     sql_db:str='ragi_db'
-    sql_user:str=None
-    sql_password:str=None
-    db_path:str='./instance'
+    sql_user:Optional[str]=None
+    sql_password:Optional[str]=None
+    db_path:Optional[str]='./instance'
 
 @config_start_app.post("/create", summary="Создание установочных конфигов приложения")
 async def start_configs_ai_api(
@@ -41,5 +41,4 @@ async def start_configs_ai_api(
     )
     response.status_code = result["cod"]
     del result["cod"]
-    manager.reload_server()
     return result
