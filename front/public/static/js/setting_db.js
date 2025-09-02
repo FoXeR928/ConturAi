@@ -1,22 +1,17 @@
-$('#db_select').on('change',function(){
+$('#sql_driver').on('change',function(){
     select=$(this).val()
     if (select=='sqlite'){
         $('.-hide').hide()
-        $('.-hide').val('')
-        $('#db_path').val('/instance/ragi_db.db')
-        $('#db_server').val('-')
-        $('#db_port').val(1)
-        $('#db_user').val('-')
-        $('#db_password').val('-')
-        $('#db_name').val('-')
         $('.-local').show()
-    }else if (select=='postgres'){
+    }else if (select=='postgresql'){
         $('.-hide').hide()
-        $('.-hide').val('')
-        $('#db_path').val('-')
-        $('#db_server').val('localhost')
-        $('#db_port').val(5432)
-        $('#db_name').val('ragi_db')
+        $('#sql_host').val('localhost')
+        $('#sql_port').val(5432)
+        $('.-server').show()
+    }else if (select=='mysql'){
+        $('.-hide').hide()
+        $('#sql_host').val('localhost')
+        $('#sql_port').val(3306)
         $('.-server').show()
     }
 })

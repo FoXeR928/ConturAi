@@ -80,6 +80,26 @@
     background-color: var(--input_background-color);
     border: none;
 }
+.password-block {
+	display: flex;
+    justify-content: space-between;
+    flex-direction: row;
+}
+.-password{
+    width: 90%;
+    border: none;
+    background: none;
+}
+.password-control {
+	width: 20px;
+	height: 20px;
+    background-image: url("/static/image/view.svg");
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+.password-control.view {
+    background-image: url("/static/image/no-view.svg");
+}
 body{
     margin: 0;
     width: 100%;

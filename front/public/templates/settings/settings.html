@@ -9,27 +9,34 @@
 {% block content %}
 <form class="form_with_back" method="post">
     <label for="app_port">Порт приложения</label>
-    <input id="app_port" type="number" value="7000">
+    <input id="app_port" class="port -input" type="number" value="7000">
     <select id="sql_driver">
         <option value="" selected disabled hidden>Выберите драйвер SQL</option>
         <option value="sqlite">SQLite</option>
         <option value="mysql">MySQL</option>
         <option value="postgresql">PostgreSQL</option>
     </select>
-    <label for="sql_host">Хост SQL</label>
-    <input id="sql_host" type="text">
-    <label for="sql_port">Порт SQL</label>
-    <input id="sql_port" type="number">
-    <label for="sql_db">Имя базы данных SQL</label>
-    <input id="sql_db" type="text" value="ragi_db">
-    <label for="sql_user">Пользователь SQL</label>
-    <input id="sql_user" type="text">
-    <label for="sql_password">Пароль SQL</label>
-    <input id="sql_password" type="password">
-    <label for="db_path">Путь базы данных</label>
-    <input id="db_path" type="text" value="./instance">
+    <label for="sql_host" class="sql_host -hide -server">Хост SQL</label>
+    <input id="sql_host" class="sql_host -input -hide -server" type="text">
+    <label for="sql_port" class="sql_port -hide -server">Порт SQL</label>
+    <input id="sql_port" class="sql_port -input -hide -server" type="number">
+    <label for="sql_db" class="sql_db -hide -server -local">Имя базы данных SQL</label>
+    <input id="sql_db" class="sql_db -input -hide -server -local" type="text" value="ragi_db">
+    <label for="sql_user" class="sql_user -hide -server">Пользователь SQL</label>
+    <input id="sql_user"class="sql_user -input -hide -server" type="text">
+    <label for="sql_password" class="sql_password -hide -server">Пароль SQL</label>
+    <div class="hide-block -input -hide -server">
+        <div class="password-block">
+            <input id="sql_password" class="sql_password -password" type="password">
+            <div id="password-show" class="password-control"></div>
+        </div>
+    </div>
+    <label for="db_path" class="db_path -hide -local">Путь базы данных</label>
+    <input id="db_path" class="db_path -input -hide -local" type="text" value="./instance">
+    <button id="send_settings" class="button_send -button">Сохранить</button>
 </form>
 {% endblock %}
 {% block scripts %}
 <script src="/static/js/setting_db.js"></script>
+<script src="/static/js/view_password.js"></script>
 {% endblock %}

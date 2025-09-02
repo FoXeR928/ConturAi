@@ -45,6 +45,7 @@ class ServerManager:
                 exit()
         try:
             self.proccess=Process(target=run_server,daemon=True)
+            self.proccess.start()
             logger.info(f"Сервер запущен на порту {port}")
         except Exception as err:
             logger.critical(f"Ошибка запустить сервера: {err}")
