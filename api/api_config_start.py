@@ -23,6 +23,7 @@ class ConfigStartApp(BaseModel):
     sql_user:Optional[str]=None
     sql_password:Optional[str]=None
     db_path:Optional[str]='./instance'
+    front_enable:bool=True
 
 @config_start_app.post("/create", summary="Создание установочных конфигов приложения")
 async def start_configs_ai_api(
@@ -37,7 +38,8 @@ async def start_configs_ai_api(
         sql_db=configs_start_app.sql_db,
         sql_user=configs_start_app.sql_user,
         sql_password=configs_start_app.sql_password,
-        db_path=configs_start_app.db_path
+        db_path=configs_start_app.db_path,
+        front_enable=configs_start_app.front_enable
     )
     response.status_code = result["cod"]
     del result["cod"]

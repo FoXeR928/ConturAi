@@ -5,14 +5,15 @@ from loguru import logger
 
 
 def create_config_app_start_query(
-    app_port:int=7000,
-    sql_driver:str="sqlite",
-    sql_host:str=None,
-    sql_port:int=None,
-    sql_db:str='ragi_db',
-    sql_user:str=None,
-    sql_password:str=None,
-    db_path:str='instance'
+    app_port:int,
+    sql_driver:str,
+    sql_host:str,
+    sql_port:int,
+    sql_db:str,
+    sql_user:str,
+    sql_password:str,
+    db_path:str,
+    front_enable:bool
 ):
     try:
         data={
@@ -22,7 +23,7 @@ def create_config_app_start_query(
             "sql_db":sql_db,
             "sql_user":sql_user,
             "sql_password":sql_password,
-            "db_path":db_path
+            "db_path":db_path,
         }
         if os.path.exists("instance")==False:
             os.mkdir('instance')
@@ -30,7 +31,7 @@ def create_config_app_start_query(
             json.dump(data, file_config, indent=4)
         result = {
             "result": True,
-            "message": "Стартовый конфиг приложения задан",
+            "message": "Стартовый конфиг приложения задан. Перезапустите сервер",
             "category": "success",
             "cod": 200,
         }
@@ -49,8 +50,12 @@ def create_config_app_start_query(
             .where(Configs.name == "app_port")
             .values(value=app_port)
         )
+        session.execute(
+            update(Configs)
+            .where(Configs.name == "front_enable")
+            .values(value=front_enable)
+        )
         session.commit()
-        session.close()
         logger.success(f"Добавлены в базу конфиги для приложения")
     except Exception as err:
         logger.error(f"Не удалось задать стартовые конфиги приложения Ошибка {err}")
@@ -60,4 +65,6 @@ def create_config_app_start_query(
             "category": "error",
             "cod": 500,
         }
+    finally:
+        session.close()
     return result

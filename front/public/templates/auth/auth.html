@@ -1,0 +1,28 @@
+{% extends "sample_back.html" %}
+
+{% block title %}Авторизация{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="/static/style/style_auth.css">
+{% endblock %}
+
+{% block content %}
+<form class="form_with_back">
+    <label for="user" class="user -hide -server">Хост SQL</label>
+    <input id="user" class="user -input -hide -server" type="text">
+    <label for="password" class="password -hide -server">Пароль</label>
+    <div class="password-block -input">
+        <input id="password" class="password -password" type="password">
+        <div id="password-show" class="password-control"></div>
+    </div>
+    <div class="check_box">
+        <label for="front_enable">Остаться в системе</label>
+        <input id="front_enable" class="front_enable -input" type="checkbox">
+    </div>
+    <button id="send_auth" class="button_send -button">Войти</button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/auth/auth.js"></script>
+{% endblock %}

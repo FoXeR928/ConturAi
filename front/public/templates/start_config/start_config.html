@@ -9,7 +9,11 @@
 {% block content %}
 <form class="form_with_back" method="post">
     <label for="app_port">Порт приложения</label>
-    <input id="app_port" class="port -input" type="number" value="7000">
+    <input required id="app_port" class="port -input" type="number" value="7000">
+    <div class="check_box">
+        <label for="front_enable">Включить веб-интерфейс</label>
+        <input id="front_enable" class="front_enable -input" type="checkbox" checked>
+    </div>
     <select id="sql_driver">
         <option value="" selected disabled hidden>Выберите драйвер SQL</option>
         <option value="sqlite">SQLite</option>
@@ -21,7 +25,7 @@
     <label for="sql_port" class="sql_port -hide -server">Порт SQL</label>
     <input id="sql_port" class="sql_port -input -hide -server" type="number">
     <label for="sql_db" class="sql_db -hide -server -local">Имя базы данных SQL</label>
-    <input id="sql_db" class="sql_db -input -hide -server -local" type="text" value="ragi_db">
+    <input required id="sql_db" class="sql_db -input -hide -server -local" type="text" value="ragi_db">
     <label for="sql_user" class="sql_user -hide -server">Пользователь SQL</label>
     <input id="sql_user"class="sql_user -input -hide -server" type="text">
     <label for="sql_password" class="sql_password -hide -server">Пароль SQL</label>
@@ -38,5 +42,4 @@
 {% endblock %}
 {% block scripts %}
 <script src="/static/js/start_config/setting_db.js"></script>
-<script src="/static/js/default/view_password.js"></script>
 {% endblock %}

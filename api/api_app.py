@@ -26,8 +26,11 @@ def init_pages():
                     app.include_router(router=ai_app)
                 except Exception as err:
                     logger.error(f"Ошибка инициализации API AI: {err}")
-            if get_config(name="front_enable")==True:
+            if bool(get_config(name="front_enable"))==True:
                 app.mount("/static", StaticFiles(directory="front/public/static"), name="front")
+
+                from front.auth_pages import auth_pages_app
+                app.include_router(router=auth_pages_app)
         else:
             from api.api_config_start import config_start_app
             from front.start_pages import start_pages_app
@@ -53,7 +56,7 @@ try:
     app = FastAPI(
         title="Ragi_AI",
         description="Система для локального нейропомощника",
-        version="1.14.1-alfa",
+        version="1.14.2-alfa",
     )
 except Exception as err:
     logger.critical(f"Ошибка инициализации приложения: {err}")
