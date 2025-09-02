@@ -12,5 +12,5 @@ except Exception as err:
 
 
 @auth_pages_app.get("/", summary="Авторизация")
-async def start_configs_ai_api(request: Request):
+async def auth_page(request: Request):
     return templates.TemplateResponse(name="auth/auth.html",context={'request': request})
