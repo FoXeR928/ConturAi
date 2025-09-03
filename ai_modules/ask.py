@@ -1,7 +1,7 @@
 from ollama import chat
 from loguru import logger
 
-from db_modules.db_query_chat import create_message_query
+from db_modules.db_query_chats import create_message_query
 from db_modules.db_query_config import get_config_ai
 from ai_modules.query_rag_db import search_docs_rquery
 

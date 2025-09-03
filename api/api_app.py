@@ -11,7 +11,7 @@ def init_pages():
             from db_modules.db_query_config import get_config
             from api.api_auth import auth_app
             from api.api_config import config_app
-            from api.api_chat import chat_app
+            from api.api_chats import chat_app
             from api.api_users import users_app
 
             app.include_router(router=auth_app)

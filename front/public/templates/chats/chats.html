@@ -15,8 +15,8 @@
                 <button class="form_close_button -button_del_close -button">X</button>
             </div>
             <form class="form_create_chat -separete_block">
-                <input type="text" class="name_chat -separete_main -input_separete" placeholder="Название чата">
-                <button class="send_message -separete_second -button_separete">Создать</button>
+                <input type="text" id="name_chat" class="name_chat -separete_main -input_separete" placeholder="Название чата">
+                <button id="send_chat" class="send_chat -separete_second -button_separete">Создать</button>
             </form>
         </div>
     </dialog>
@@ -33,6 +33,8 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="/static/js/open_form.js"></script>
-<script src="/static/js/search.js"></script>
+<script src="/static/js/default/open_form.js"></script>
+<script src="/static/js/default/search.js"></script>
+<script src="/static/js/chats/get_chats.js"></script>
+<script src="/static/js/chats/create_chat.js"></script>
 {% endblock %}

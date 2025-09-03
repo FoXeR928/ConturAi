@@ -4,7 +4,7 @@ from typing import List
 from loguru import logger
 
 from api.api_auth import User, get_current_user
-from db_modules.db_query_chat import (
+from db_modules.db_query_chats import (
     create_chat_query,
     get_chats_query,
     get_messages_chat_query,
@@ -28,12 +28,14 @@ except Exception as err:
 class Message(BaseModel):
     text: str
 
+class ChatCreate(BaseModel):
+    chat_name: str
 
 @chat_app.post("/create", summary="Создание чата")
 async def create_chat_api(
-    chat_name: str, response: Response, current_user: User = Depends(get_current_user)
+    chat_name: ChatCreate, response: Response, current_user: User = Depends(get_current_user)
 ):
-    result = create_chat_query(login=current_user.login, chat=chat_name)
+    result = create_chat_query(login=current_user.login, chat=chat_name.chat_name)
     response.status_code = result["cod"]
     del result["cod"]
     return result
