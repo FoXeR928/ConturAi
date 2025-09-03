@@ -16,7 +16,7 @@
             </div>
             <form class="form_create_chat -separete_block">
                 <input type="text" id="name_chat" class="name_chat -separete_main -input_separete" placeholder="Название чата">
-                <button id="send_chat" class="send_chat -separete_second -button_separete">Создать</button>
+                <button onclick="create_chat(event)" id="send_chat" class="send_chat -separete_second -button_separete">Создать</button>
             </form>
         </div>
     </dialog>
@@ -35,6 +35,5 @@
 {% block scripts %}
 <script src="/static/js/default/open_form.js"></script>
 <script src="/static/js/default/search.js"></script>
-<script src="/static/js/chats/get_chats.js"></script>
-<script src="/static/js/chats/create_chat.js"></script>
+<script src="/static/js/chats/chats.js"></script>
 {% endblock %}

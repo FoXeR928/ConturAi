@@ -29,13 +29,16 @@ class Message(BaseModel):
     text: str
 
 class ChatCreate(BaseModel):
-    chat_name: str
+    name: str
+
+class ChatDelete(BaseModel):
+    id: int
 
 @chat_app.post("/create", summary="Создание чата")
 async def create_chat_api(
     chat_name: ChatCreate, response: Response, current_user: User = Depends(get_current_user)
 ):
-    result = create_chat_query(login=current_user.login, chat=chat_name.chat_name)
+    result = create_chat_query(login=current_user.login, chat=chat_name.name)
     response.status_code = result["cod"]
     del result["cod"]
     return result
@@ -50,6 +53,14 @@ async def get_chats_api(
     del result["cod"]
     return result
 
+@chat_app.patch("/delete", summary="Удаление чата")
+async def delet_chat_api(
+    response: Response, chat_id: ChatDelete, current_user: User = Depends(get_current_user)
+):
+    result = delet_chat_query(user=current_user, chat_id=chat_id.id)
+    response.status_code = result["cod"]
+    del result["cod"]
+    return result
 
 @chat_app.get("/messages/get", summary="Получение сообщений чата")
 async def get_messages_api(
@@ -86,16 +97,6 @@ async def create_message_api(
     result = delete_message_query(
         user=current_user, chat_id=chat_id, message_id=message_id
     )
-    response.status_code = result["cod"]
-    del result["cod"]
-    return result
-
-
-@chat_app.patch("/delet", summary="Удаление чата")
-async def delet_chat_api(
-    response: Response, chat_id: int, current_user: User = Depends(get_current_user)
-):
-    result = delet_chat_query(user=current_user, chat_id=chat_id)
     response.status_code = result["cod"]
     del result["cod"]
     return result
