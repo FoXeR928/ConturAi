@@ -17,7 +17,7 @@ function create_chat(event){
             success : function(result) {
                 get_chats(get_token())
                 get_chats_nav(get_token())
-                $("#hide_form").hide()
+                close_form()
                 create_flash(flash_status=result["category"],message=result["message"])  
             },
             error: function(error){

@@ -9,9 +9,11 @@ from ai_modules.query_rag_db import add_docs_rquery
 
 ai_app = APIRouter(prefix="/AI", tags=["Нейросеть"])
 
+
 class TextAdd(BaseModel):
-    name:str
-    text:str
+    name: str
+    text: str
+
 
 @ai_app.post("/messages/create_ai", summary="Создание сообщения AI")
 async def create_message_ai_api(
@@ -58,14 +60,15 @@ async def read_doc_api(
     del result["cod"]
     return result
 
+
 @ai_app.post("/docs/create", summary="Загрузка документа в RAG базу")
 async def read_doc_api(
     response: Response,
-    doc_add:TextAdd,
+    doc_add: TextAdd,
     current_user: User = Depends(get_current_user),
 ):
     if current_user.role == "admin":
-        result = add_docs_rquery(doc_name=doc_add.name,doc_text=doc_add.text)
+        result = add_docs_rquery(doc_name=doc_add.name, doc_text=doc_add.text)
     else:
         result = {
             "result": False,

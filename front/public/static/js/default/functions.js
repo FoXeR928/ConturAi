@@ -56,5 +56,5 @@ function open_form(){
     $("#hide_form").show();
 }
 function close_form(){
-    $(this).parent().parent().parent().hide();
+    $("#hide_form").hide();
 }

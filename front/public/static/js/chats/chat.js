@@ -22,7 +22,7 @@ function get_messages(token,chat_id){
             }else{
                 $("#chat").empty()
                 $.each(result.messages_history, function(index,message){
-                    $("#chat").append("<li class='message_box "+message.role+"' id='"+message.id+"'><p class='message'>"+message.text+"</p></li>")
+                    $("#chat").append("<li class='message_box "+message.chat_role+"' id='"+message.id+"'><p class='message'>"+message.text+"</p></li>")
                 })
             }
         },
@@ -42,11 +42,11 @@ function send_message(event){
     if (message_ai==true){
         url_for='/AI/messages/create_ai?chat_id='
     }else{
-        url_for='create?chat_id='
+        url_for='messages/create?chat_id='
     }
     if (message_send!=''){
-        $('.loader').css({'display': 'inline-block'});
-        $("ul#chat")[0].scrollIntoView();
+        $("#chat").append("<span class='loader'></span>")
+        $("#chat")[0].scrollIntoView();
         $.ajax({
             url:url_for+chat_id,
             method:'POST',
@@ -56,11 +56,13 @@ function send_message(event){
             },
             data:JSON.stringify({'text':message_send}),
             success : function() {
+                $('.loader').remove();
                 get_messages(token,chat_id)
             },
             error: function(error){
+                $('.loader').remove();
                 console.log(error);
-                $('.loader').removeAttr('style');
+                create_flash("error","Ошибка отправки")
             }
         })
     }

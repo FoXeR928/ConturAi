@@ -52,7 +52,7 @@ def init_rag():
                 f"Не удалось проверить наличие коллекции в векторной базе Ошибка {err}"
             )
             raise None
-        if check_rag_base==False:
+        if check_rag_base == False:
             try:
                 client.create_collection(
                     collection_name=rag_collection,
@@ -73,12 +73,12 @@ def init_rag():
         else:
             logger.debug(f"Коллекция {rag_collection} уже есть в векторной базе")
             logger.info("Инициализирован клиент векторной базы")
-            result=client
+            result = client
     except Exception as err:
         logger.critical(
             f"Не удалось инициализированть клиент векторной базы Ошибка {err}"
         )
-        result=None
+        result = None
     return result
 
 

@@ -5,10 +5,13 @@ from loguru import logger
 
 from db_modules.db_create import Configs, Configs_ai, session_create
 
+
 def check_config(name: str):
     session = session_create
     try:
-        config = session.scalars(select(Configs).where(Configs.name == name)).one_or_none()
+        config = session.scalars(
+            select(Configs).where(Configs.name == name)
+        ).one_or_none()
         logger.trace(f"Проверка чата {name} в базе")
         if config != None:
             result = True
@@ -22,10 +25,13 @@ def check_config(name: str):
         session.close()
     return result
 
+
 def check_config_ai(name: str):
     session = session_create
     try:
-        config = session.scalars(select(Configs_ai).where(Configs_ai.name == name)).one_or_none()
+        config = session.scalars(
+            select(Configs_ai).where(Configs_ai.name == name)
+        ).one_or_none()
         logger.trace(f"Проверка чата {name} в базе")
         if config != None:
             result = True
@@ -38,6 +44,7 @@ def check_config_ai(name: str):
     finally:
         session.close()
     return result
+
 
 def get_config_ai(name: str):
     session = session_create
@@ -73,6 +80,7 @@ def get_config(name: str):
     finally:
         session.close()
     return result
+
 
 def get_configs_ai_query():
     session = session_create
@@ -115,8 +123,9 @@ def get_configs_ai_query():
         session.close()
     return result
 
+
 def update_config_ai_query(name: str, value):
-    if check_config_ai(name=name)==True:
+    if check_config_ai(name=name) == True:
         session = session_create
         try:
             session.execute(
@@ -148,6 +157,7 @@ def update_config_ai_query(name: str, value):
             "cod": 404,
         }
     return result
+
 
 def create_config_ai_start_query(
     model_chunk: str,
@@ -207,6 +217,7 @@ def create_config_ai_start_query(
         session.close()
     return result
 
+
 def get_configs_query():
     session = session_create
     try:
@@ -243,11 +254,14 @@ def get_configs_query():
         session.close()
     return result
 
+
 def update_config_query(name: str, value):
-    if check_config(name=name)==True:
+    if check_config(name=name) == True:
         session = session_create
         try:
-            session.execute(update(Configs).where(Configs.name == name).values(value=value))
+            session.execute(
+                update(Configs).where(Configs.name == name).values(value=value)
+            )
             session.commit()
             logger.success(f"Обноваление значения конфигова {name} на {value} из базы")
             result = {

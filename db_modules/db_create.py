@@ -6,9 +6,10 @@ import bcrypt
 import json
 from loguru import logger
 
+
 def init_confg():
     try:
-        with open("./instance/config.json","r") as file_config:
+        with open("./instance/config.json", "r") as file_config:
             config = json.load(file_config)
         logger.info("Инициализирован конфиг базы данных")
         return config
@@ -16,15 +17,18 @@ def init_confg():
         logger.critical(f"Ошибка инициализации конфигов базы данных: {err}")
         exit()
 
+
 def init_db():
     try:
-        config=init_confg()
-        if config["sql_driver"]=="sqlite":
-            sql_url=f"{config["sql_driver"]}:///{config["db_path"]}/{config["sql_db"]}.db"
-        elif config["sql_driver"]=="mysql":
-            sql_url=f"{config["sql_driver"]}://{config["sql_user"]}:{config["sql_password"]}@{config["sql_host"]}:{config["sql_port"]}/{config["sql_db"]}"
-        elif config["sql_driver"]=="postgresql":
-            sql_url=f"{config["sql_driver"]}://{config["sql_user"]}:{config["sql_password"]}@{config["sql_host"]}:{config["sql_port"]}/{config["sql_db"]}"
+        config = init_confg()
+        if config["sql_driver"] == "sqlite":
+            sql_url = (
+                f"{config["sql_driver"]}:///{config["db_path"]}/{config["sql_db"]}.db"
+            )
+        elif config["sql_driver"] == "mysql":
+            sql_url = f"{config["sql_driver"]}://{config["sql_user"]}:{config["sql_password"]}@{config["sql_host"]}:{config["sql_port"]}/{config["sql_db"]}"
+        elif config["sql_driver"] == "postgresql":
+            sql_url = f"{config["sql_driver"]}://{config["sql_user"]}:{config["sql_password"]}@{config["sql_host"]}:{config["sql_port"]}/{config["sql_db"]}"
         else:
             raise None
         engine = create_engine(url=sql_url)
@@ -158,4 +162,4 @@ class Token_API(Base):
             return False
 
 
-session_create=init_db()
+session_create = init_db()

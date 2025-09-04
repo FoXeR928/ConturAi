@@ -50,6 +50,7 @@ def read_excel(file: bytes):
         logger.error(f"Не удалось прочитать документ Ошибка {err}")
     return result
 
+
 def check_file_type(file_type: str, file_dytes: bytes):
     if file_type == get_config("pdf"):
         file_type = "pdf"

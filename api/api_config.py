@@ -48,7 +48,7 @@ async def start_configs_ai_api(
             rag_host=configs_start_ai.rag_host,
             rag_port_http=configs_start_ai.rag_port_http,
             rag_port_grpc=configs_start_ai.rag_port_grpc,
-            rag_grpc=configs_start_ai.rag_grpc
+            rag_grpc=configs_start_ai.rag_grpc,
         )
     else:
         result = {
@@ -60,6 +60,7 @@ async def start_configs_ai_api(
     response.status_code = result["cod"]
     del result["cod"]
     return result
+
 
 @config_app.get("/ai/get", summary="Получение конфигов AI")
 async def get_configs_ai_api(
@@ -77,6 +78,7 @@ async def get_configs_ai_api(
     response.status_code = result["cod"]
     del result["cod"]
     return result
+
 
 @config_app.patch("/ai/update", summary="Обновление конфига AI")
 async def update_config_ai_api(
@@ -97,6 +99,7 @@ async def update_config_ai_api(
     del result["cod"]
     return result
 
+
 @config_app.get("/app/get", summary="Получение конфигов приложения")
 async def get_configs_app_api(
     response: Response, current_user: User = Depends(get_current_user)
@@ -113,6 +116,7 @@ async def get_configs_app_api(
     response.status_code = result["cod"]
     del result["cod"]
     return result
+
 
 @config_app.patch("/app/update", summary="Обновление конфига приложения")
 async def update_config_app_api(
@@ -132,7 +136,3 @@ async def update_config_app_api(
     response.status_code = result["cod"]
     del result["cod"]
     return result
-
-
-
-

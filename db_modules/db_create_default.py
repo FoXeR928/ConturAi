@@ -4,6 +4,7 @@ import secrets
 
 from db_modules.db_create import Users, Configs, Configs_ai, session_create
 
+
 def create_default_users(
     recreate: bool = False,
     admin_login: str = "admin",
@@ -76,20 +77,19 @@ def create_default_users(
 
 def create_default_config(
     recreate: bool = False,
-    app_port:int=7000,
+    app_port: int = 7000,
     token: str = secrets.token_hex(64),
-    front_enable:bool=True,
+    front_enable: bool = True,
     site_name: str = "Ragi_AI",
-    debug:bool=False,
+    debug: bool = False,
     pdf: str = "application/pdf",
     word: str = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     excel: str = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    
 ):
     configs_list = (
         ("app_port", "Порт приложения", app_port, "number"),
         ("skey", "Ключ для генерации OAuth2 токена", token, "text"),
-        ("front_enable","Включение веб-интерфейса",front_enable,"boolen"),
+        ("front_enable", "Включение веб-интерфейса", front_enable, "boolen"),
         ("site_name", "Имя приложения", site_name, "text"),
         ("debug", "Подробное логирование", debug, "boolen"),
         ("pdf", "Параметр отвечающий за формат PDF", pdf, "text"),
@@ -111,7 +111,9 @@ def create_default_config(
             check_config = session.scalars(
                 select(base).where(base.name == configs[0])
             ).one_or_none()
-            logger.trace(f"Проверенно существование записи {configs[0]} в таблице Configs")
+            logger.trace(
+                f"Проверенно существование записи {configs[0]} в таблице Configs"
+            )
         except Exception as err:
             logger.error(
                 f"Не удалось проверить существование записи {configs[0]} в таблице Configs Ошибка {err}"
@@ -146,12 +148,12 @@ def create_default_config(
 
 
 def create_default_config_ai(
-    recreate:bool=False,
-    ai_name:str="Раги",
-    system_promt:str="Ты - {name}, твоя задача отвечать на вопросы используя информации из базы, а если информации нет генерировать ответ самостоятельно и добавлять 'Ответ сгенерирован самостоятельно'",
-    promt:str="Контекст: {context} Вопрос: {quest}",
-    search_rag:int=5,
-    batch_size:int=256
+    recreate: bool = False,
+    ai_name: str = "Раги",
+    system_promt: str = "Ты - {name}, твоя задача отвечать на вопросы используя информации из базы, а если информации нет генерировать ответ самостоятельно и добавлять 'Ответ сгенерирован самостоятельно'",
+    promt: str = "Контекст: {context} Вопрос: {quest}",
+    search_rag: int = 5,
+    batch_size: int = 256,
 ):
     configs_list = (
         ("ai_name", "Параметр отвечающий за имя нейросети", ai_name, "text"),
@@ -169,7 +171,6 @@ def create_default_config_ai(
         ),
         ("search_rag", "Лимит поиска по RAG базе", search_rag, "number"),
         ("batch_size", "Размер чанков для загрузки в RAG базу", batch_size, "number"),
-        
     )
     session = session_create
     base = Configs_ai
@@ -186,7 +187,9 @@ def create_default_config_ai(
             check_config = session.scalars(
                 select(base).where(base.name == configs[0])
             ).one_or_none()
-            logger.trace(f"Проверенно существование записи {configs[0]} в таблице Configs_ai")
+            logger.trace(
+                f"Проверенно существование записи {configs[0]} в таблице Configs_ai"
+            )
         except Exception as err:
             logger.error(
                 f"Не удалось проверить существование записи {configs[0]} в таблице Configs_ai Ошибка {err}"

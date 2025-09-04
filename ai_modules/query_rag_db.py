@@ -8,6 +8,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from db_modules.db_query_config import get_config_ai
 from ai_modules.init_rag_db import model, client
 
+
 def normalize_text(text: str):
     try:
         morphanaliz = MorphAnalyzer()
@@ -34,6 +35,7 @@ def chunk_create(text: str):
         logger.error(f"Не удалось сгенерировать чанки Ошибка {err}")
         result = False
     return result
+
 
 def optimizate_base():
     collection = get_config_ai("collection")
@@ -69,11 +71,11 @@ def optimizate_base():
         logger.error(f"Не удалось структуризировать графы Ошибка {err}")
 
 
-def add_docs_rquery(doc_name:str, doc_text:str):
-    chunks=chunk_create(text=doc_text)
-    normal_text=normalize_text(text=doc_text)
-    batch_size=get_config_ai(name="batch_size") or 256
-    if chunks!=False and normal_text!=False:
+def add_docs_rquery(doc_name: str, doc_text: str):
+    chunks = chunk_create(text=doc_text)
+    normal_text = normalize_text(text=doc_text)
+    batch_size = get_config_ai(name="batch_size") or 256
+    if chunks != False and normal_text != False:
         rag_collection = get_config_ai("collection")
         points = list()
         try:
@@ -110,7 +112,7 @@ def add_docs_rquery(doc_name:str, doc_text:str):
             }
         try:
             client.upsert(collection_name=rag_collection, points=points, wait=False)
-            result={
+            result = {
                 "result": True,
                 "message": "Документ загружен в RAG базу",
                 "category": "success",
@@ -121,28 +123,30 @@ def add_docs_rquery(doc_name:str, doc_text:str):
             logger.error(
                 f"Не удалось добавить документ {doc_name} в RAG базу Ошибка: {err}"
             )
-            result={
+            result = {
                 "result": False,
                 "message": "Ошибка сервера не загружен документ в RAG базу",
                 "category": "error",
                 "cod": 500,
             }
     else:
-        result={
-                "result": False,
-                "message": "Ошибка сервера не удалось подготовить текст для выгрузки",
-                "category": "error",
-                "cod": 500,
-            }
+        result = {
+            "result": False,
+            "message": "Ошибка сервера не удалось подготовить текст для выгрузки",
+            "category": "error",
+            "cod": 500,
+        }
     return result
 
 
-def search_docs_rquery(query:str):
+def search_docs_rquery(query: str):
     try:
         rag_collection = get_config_ai("collection")
         query_embedding = model.encode(query).tolist()
         result_search = client.search(
-            collection_name=rag_collection, query_vector=query_embedding, limit=get_config_ai(name="search_rag")
+            collection_name=rag_collection,
+            query_vector=query_embedding,
+            limit=get_config_ai(name="search_rag"),
         )
         result = str()
         for hit in result_search:

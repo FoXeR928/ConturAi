@@ -5,28 +5,28 @@ from loguru import logger
 
 
 def create_config_app_start_query(
-    app_port:int,
-    sql_driver:str,
-    sql_host:str,
-    sql_port:int,
-    sql_db:str,
-    sql_user:str,
-    sql_password:str,
-    db_path:str,
-    front_enable:bool
+    app_port: int,
+    sql_driver: str,
+    sql_host: str,
+    sql_port: int,
+    sql_db: str,
+    sql_user: str,
+    sql_password: str,
+    db_path: str,
+    front_enable: bool,
 ):
     try:
-        data={
-            "sql_driver":sql_driver,
-            "sql_host":sql_host,
-            "sql_port":sql_port,
-            "sql_db":sql_db,
-            "sql_user":sql_user,
-            "sql_password":sql_password,
-            "db_path":db_path,
+        data = {
+            "sql_driver": sql_driver,
+            "sql_host": sql_host,
+            "sql_port": sql_port,
+            "sql_db": sql_db,
+            "sql_user": sql_user,
+            "sql_password": sql_password,
+            "db_path": db_path,
         }
-        if os.path.exists("instance")==False:
-            os.mkdir('instance')
+        if os.path.exists("instance") == False:
+            os.mkdir("instance")
         with open("instance/config.json", "w") as file_config:
             json.dump(data, file_config, indent=4)
         result = {
@@ -41,14 +41,13 @@ def create_config_app_start_query(
             create_default_config,
             create_default_config_ai,
         )
+
         create_default_users()
         create_default_config()
         create_default_config_ai()
         session = session_create
         session.execute(
-            update(Configs)
-            .where(Configs.name == "app_port")
-            .values(value=app_port)
+            update(Configs).where(Configs.name == "app_port").values(value=app_port)
         )
         session.execute(
             update(Configs)

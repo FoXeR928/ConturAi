@@ -6,7 +6,7 @@ from loguru import logger
 
 def init_pages():
     try:
-        if os.path.exists("./instance/config.json")==True:
+        if os.path.exists("./instance/config.json") == True:
             from db_modules.db_query import check_config_ai
             from db_modules.db_query_config import get_config
             from api.api_auth import auth_app
@@ -26,12 +26,16 @@ def init_pages():
                     app.include_router(router=ai_app)
                 except Exception as err:
                     logger.error(f"Ошибка инициализации API AI: {err}")
-            if bool(get_config(name="front_enable"))==True:
+            if bool(get_config(name="front_enable")) == True:
                 from front.auth_pages import auth_pages_app
                 from front.chats_pages import chats_pages_app
                 from front.admin_pages import admin_pages_app
 
-                app.mount("/static", StaticFiles(directory="front/public/static"), name="front")                
+                app.mount(
+                    "/static",
+                    StaticFiles(directory="front/public/static"),
+                    name="front",
+                )
                 app.include_router(router=auth_pages_app)
                 app.include_router(router=chats_pages_app)
                 app.include_router(router=admin_pages_app)
@@ -39,19 +43,23 @@ def init_pages():
             from api.api_config_start import config_start_app
             from front.start_pages import start_pages_app
 
-            app.mount("/static", StaticFiles(directory="front/public/static"), name="front")
+            app.mount(
+                "/static", StaticFiles(directory="front/public/static"), name="front"
+            )
             app.include_router(router=config_start_app)
             app.include_router(router=start_pages_app)
 
     except Exception as err:
         logger.error(f"Ошибка инициализации API: {err}")
 
-if os.path.exists("./instance/config.json")==True:
+
+if os.path.exists("./instance/config.json") == True:
     from db_modules.db_create_default import (
-                create_default_users,
-                create_default_config,
-                create_default_config_ai,
-            )
+        create_default_users,
+        create_default_config,
+        create_default_config_ai,
+    )
+
     create_default_config()
     create_default_config_ai()
     create_default_users()

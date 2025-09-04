@@ -1,4 +1,4 @@
-$("#send_auth").click(function(event){
+function auth(event){
     event.preventDefault();
     login=$("#user").val()
     password=$("#password").val()
@@ -31,4 +31,4 @@ $("#send_auth").click(function(event){
     }else{
         create_flash(flash_status="warning",message="Не все поля заполнены")
     }
-})
+}

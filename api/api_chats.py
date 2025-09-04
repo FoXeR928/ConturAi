@@ -24,19 +24,23 @@ except Exception as err:
     logger.error(f"Ошибка инициализации API: {err}")
 
 
-
 class Message(BaseModel):
     text: str
+
 
 class ChatCreate(BaseModel):
     name: str
 
+
 class ChatDelete(BaseModel):
     id: int
 
+
 @chat_app.post("/create", summary="Создание чата")
 async def create_chat_api(
-    chat_name: ChatCreate, response: Response, current_user: User = Depends(get_current_user)
+    chat_name: ChatCreate,
+    response: Response,
+    current_user: User = Depends(get_current_user),
 ):
     result = create_chat_query(login=current_user.login, chat=chat_name.name)
     response.status_code = result["cod"]
@@ -53,14 +57,18 @@ async def get_chats_api(
     del result["cod"]
     return result
 
+
 @chat_app.patch("/delete", summary="Удаление чата")
 async def delet_chat_api(
-    response: Response, chat_id: ChatDelete, current_user: User = Depends(get_current_user)
+    response: Response,
+    chat_id: ChatDelete,
+    current_user: User = Depends(get_current_user),
 ):
     result = delet_chat_query(user=current_user, chat_id=chat_id.id)
     response.status_code = result["cod"]
     del result["cod"]
     return result
+
 
 @chat_app.get("/messages/get", summary="Получение сообщений чата")
 async def get_messages_api(
