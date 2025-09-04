@@ -29,10 +29,12 @@ def init_pages():
             if bool(get_config(name="front_enable"))==True:
                 from front.auth_pages import auth_pages_app
                 from front.chats_pages import chats_pages_app
+                from front.admin_pages import admin_pages_app
 
                 app.mount("/static", StaticFiles(directory="front/public/static"), name="front")                
                 app.include_router(router=auth_pages_app)
                 app.include_router(router=chats_pages_app)
+                app.include_router(router=admin_pages_app)
         else:
             from api.api_config_start import config_start_app
             from front.start_pages import start_pages_app

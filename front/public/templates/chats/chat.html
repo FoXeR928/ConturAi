@@ -11,14 +11,18 @@
     <ul id="chat" class="chat_block">
         <span class="loader"></span>
     </ul>
-    <form id="form_message" class="form_message -separete_block">
-        <input id="chat_id" type="hidden" value="{{chat_id}}">
-        <textarea class="input_chat -separete_main -input_separete" name="message" id="message"></textarea>
-        <button onclick="send_message(event)" class="send_message -separete_second -button_separete" id="send_message">Отправить</button>
+    <form id="form_message" class="form_message">
+        <div class="message_block -separete_block">
+            <textarea class="input_chat -separete_main -input_separete" id="message"></textarea>
+            <button onclick="send_message(event)" class="send_message -separete_second -button_separete" id="send_message">Отправить</button>
+        </div>
+        <div>
+            <label for="message_ai">Сообщение для нейросети</label>
+            <input type="checkbox" id="message_ai" checked>
+        </div>
     </form>
 </div>
 {% endblock %}
-
 {% block scripts %}
 <script src="/static/js/chats/chat.js"></script>
 {% endblock %}

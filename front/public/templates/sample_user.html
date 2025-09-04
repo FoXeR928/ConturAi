@@ -15,12 +15,22 @@
                 <section class="nav_section">
                     <article class="nav_article">
                         <div class="nav_element -separete_block">
-                            <a class="nav_link -separete_main" href="/chats/">Чаты</a>
+                            <a class="nav_link -separete_main" href="/chats">Чаты</a>
                             <button class="button_nav_open -separete_second">^</button>    
                         </div>
                         <div class="nav_hide_block">
                             <div class="nav_interior_block" id="chats_nav">
-                                
+                            </div>
+                        </div>
+                        
+                    </article>
+                    <article class="nav_article">
+                        <div class="nav_element -separete_block">
+                            <a class="nav_link -separete_main" href="/admin">Администрирование</a>
+                            <button class="button_nav_open -separete_second">^</button>    
+                        </div>
+                        <div class="nav_hide_block">
+                            <div class="nav_interior_block" id="chats_nav">
                             </div>
                         </div>
                     </article>
@@ -37,6 +47,6 @@
 </body>
 {% block scripts %}{% endblock %}
 <script src="/static/js/default/open_nav.js"></script>
-<script src="/static/js/default/flash_create.js"></script>
-<script src="/static/js/default/token_get.js"></script>
+<script src="/static/js/default/functions.js"></script>
+<script src="/static/js/default/default_create.js"></script>
 </html>

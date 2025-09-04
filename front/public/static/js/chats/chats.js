@@ -1,5 +1,5 @@
 $(document).ready(function(){
-    get_chats_function(get_token())
+    get_chats(get_token())
 });
 
 function create_chat(event){
@@ -15,9 +15,10 @@ function create_chat(event){
                 "Authorization": "Bearer "+get_token()
             },
             success : function(result) {
-                create_flash(flash_status=result["category"],message=result["message"])
-                get_chats_function(get_token())
+                get_chats(get_token())
+                get_chats_nav(get_token())
                 $("#hide_form").hide()
+                create_flash(flash_status=result["category"],message=result["message"])  
             },
             error: function(error){
                 console.log(error);
@@ -29,7 +30,7 @@ function create_chat(event){
     
 }
 
-function get_chats_function(token){
+function get_chats(token){
     $.ajax({
         url:'/chats/get',
         method:'GET',
@@ -42,10 +43,8 @@ function get_chats_function(token){
                 window.location.href="/"
             }else{
                 $("#chats").empty()
-                $("#chats_nav").empty()
                 $.each(result.chats, function(index,chat){
                     $("#chats").append("<article class='chat_block -separete_block'><a class='chat_name -separete_main search_element' href='messages?chat="+chat.id+"'>"+chat.chat_name+"</a><button class='button_del_chat -button_del_close -separete_second' onclick='delete_chat(event,"+chat.id+")'>Удалить</a></article>")
-                    $("#chats_nav").append("<a class='nav_interior_element -button' href='messages?chat="+chat.id+"'> "+chat.chat_name+"</a>")
                 })
             }
         },
@@ -68,8 +67,9 @@ function delete_chat(event,chat_id){
             "Authorization": "Bearer "+get_token()
         },
         success : function(result) {
+            get_chats(get_token())
+            get_chats_nav(get_token())
             create_flash(flash_status=result["category"],message=result["message"])
-            get_chats_function(get_token())
         },
         error: function(error){
             console.log(error);

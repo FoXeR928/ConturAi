@@ -12,7 +12,7 @@
         <div class="form_hide -element_block">
             <div class="form_header">
                 <h2 class="form_h">Создание чата</h2>
-                <button class="form_close_button -button_del_close -button">X</button>
+                <button onclick="close_form()" class="form_close_button -button_del_close -button">X</button>
             </div>
             <form class="form_create_chat -separete_block">
                 <input type="text" id="name_chat" class="name_chat -separete_main -input_separete" placeholder="Название чата">
@@ -23,17 +23,15 @@
     <section class="main_nav">
         <h1>Чаты</h1>
         <form class="search_form -separete_block">
-            <input type="text" id="search" class="search_input -separete_main -input_separete" placeholder="Поиск чатов">
-            <input type="button" class="search_button -separete_second -button_separete" value="Поиск">
+            <input oninput="search_on_page(event)" type="text" id="search" class="search_input -separete_main -input_separete" placeholder="Поиск чатов">
+            <input onclick="search_on_page(event)" type="button" class="search_button -separete_second -button_separete" value="Поиск">
         </form>
-        <button class="button_add_chat -button_image" id="add_button"><img src="/static/image/add.svg" alt="Добавить чат"></button>
+        <button onclick="open_form()" class="button_add_chat -button_image" id="add_button"><img src="/static/image/add.svg" alt="Добавить чат"></button>
     </section>
     <section id="chats"> 
     </section>
 {% endblock %}
 
 {% block scripts %}
-<script src="/static/js/default/open_form.js"></script>
-<script src="/static/js/default/search.js"></script>
 <script src="/static/js/chats/chats.js"></script>
 {% endblock %}

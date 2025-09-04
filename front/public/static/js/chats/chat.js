@@ -1,11 +1,14 @@
-let param=new URLSearchParams(document.location.search)
-chat_id=param.get("chat")
-
 $(document).ready(function(){
-    get_messages_function(get_token(),chat_id)
+    get_messages(get_token(),get_chat_id())
 });
 
-function get_messages_function(token,chat_id){
+function get_chat_id(){
+    let param=new URLSearchParams(document.location.search)
+    chat_id=param.get("chat")
+    return chat_id
+}
+
+function get_messages(token,chat_id){
     $.ajax({
         url:'messages/get?chat_id='+chat_id,
         method:'GET',
@@ -33,12 +36,19 @@ function get_messages_function(token,chat_id){
 function send_message(event){
     event.preventDefault();
     token=get_token()
-    message_send=$('#message').val();
+    chat_id=get_chat_id()
+    var message_send=$('#message').val();
+    var message_ai=$('#message_ai').prop('checked');
+    if (message_ai==true){
+        url_for='/AI/messages/create_ai?chat_id='
+    }else{
+        url_for='create?chat_id='
+    }
     if (message_send!=''){
         $('.loader').css({'display': 'inline-block'});
         $("ul#chat")[0].scrollIntoView();
         $.ajax({
-            url:'AI/messages/create_ai?chat_id='+chat_id,
+            url:url_for+chat_id,
             method:'POST',
             headers:{
                 "Content-Type":"application/json",
@@ -46,7 +56,7 @@ function send_message(event){
             },
             data:JSON.stringify({'text':message_send}),
             success : function() {
-                get_messages_function(token,chat_id)
+                get_messages(token,chat_id)
             },
             error: function(error){
                 console.log(error);
