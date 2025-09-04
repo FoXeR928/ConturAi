@@ -171,7 +171,7 @@ def delet_chat_query(user: User, chat_id: int):
     if check_chat(chat_id=chat_id) == True:
         if (
             check_chat_right(login=user.login, chat_id=chat_id) == True
-            or user.role == "admin"
+            or user.isAdmin == True
         ):
             session = session_create
             try:

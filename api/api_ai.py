@@ -36,7 +36,7 @@ async def read_doc_api(
     doc: UploadFile,
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role == "admin":
+    if current_user.isAdmin == True:
         file_name = doc.filename
         file_type = doc.content_type
         file_dytes = doc.file
@@ -67,7 +67,7 @@ async def read_doc_api(
     doc_add: TextAdd,
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role == "admin":
+    if current_user.isAdmin == True:
         result = add_docs_rquery(doc_name=doc_add.name, doc_text=doc_add.text)
     else:
         result = {

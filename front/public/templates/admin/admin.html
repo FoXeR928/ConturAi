@@ -1,0 +1,26 @@
+{% extends "sample_admin.html" %}
+{% block title %}Администрирование{% endblock %}
+{% block styles %}
+<link rel="stylesheet" href="/static/style/style_admin.css">
+{% endblock %}
+
+{% block content %}
+<section class="main_nav">
+    <h1>Администрирование</h1>
+    <nav>
+        <button onclick="open_page('page_chats')" class="nav_interior_element -button">Чаты</button>
+        <button onclick="open_page('page_users')" class="nav_interior_element -button">Пользователи</button>
+        <button onclick="open_page('page_docs')" class="nav_interior_element -button">Документы</button>
+        <button onclick="open_page('page_configs')" class="nav_interior_element -button">Конфигурация AI</button>
+        <button onclick="open_page('page_configs_ai')" class="nav_interior_element -button">Конфигурации</button>
+    </nav>
+</section>
+<iframe id="page_chats" class="pages" src="chats" frameborder="0"></iframe>
+<iframe id="page_users" class="pages" src="users" frameborder="0"></iframe>
+<iframe id="page_docs" class="pages" src="docs" frameborder="0"></iframe>
+<iframe id="page_configs" class="pages" src="configs" frameborder="0"></iframe>
+<iframe id="page_configs_ai" class="pages" src="configs_ai" frameborder="0"></iframe>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/admin/admin.js"></script>
+{% endblock %}

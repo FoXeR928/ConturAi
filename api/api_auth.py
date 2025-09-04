@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Response, Depends
+from fastapi import APIRouter, Response, Depends,Form
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from pydantic import BaseModel
 from typing import Optional
@@ -16,15 +16,10 @@ auth_app = APIRouter(prefix="/auth", tags=["Авторизация"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-
 class User(BaseModel):
     login: str
     name: Optional[str] = None
-    role: str
+    isAdmin:bool
 
 
 class Auth(User):
@@ -35,14 +30,14 @@ class Auth(User):
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     login = decode_token(token=token)
     user = get_current_user_query(login=login)
-    return User(login=user[0], name=user[1], role=user[2])
+    return User(login=user[0], name=user[1],isAdmin=bool(user[2]))
 
 
 @auth_app.post(
-    "/login", response_model=Token, summary="Авторизация для получения токена"
+    "/login", summary="Авторизация для получения токена"
 )
-async def login_api(response: Response, auth: OAuth2PasswordRequestForm = Depends()):
-    result = auth_query(login=auth.username, password=auth.password)
+async def login_api(response: Response, auth: OAuth2PasswordRequestForm = Depends(),expires_use:bool=Form(False)):
+    result = auth_query(login=auth.username, password=auth.password,expires_use=expires_use)
     response.status_code = result["cod"]
     del result["cod"]
     return result
@@ -62,7 +57,7 @@ async def logout_api(
 async def get_token_api(
     response: Response, current_user: User = Depends(get_current_user)
 ):
-    if current_user.role == "admin":
+    if current_user.isAdmin == True:
         result = get_token_query()
     else:
         result = {
@@ -80,7 +75,7 @@ async def get_token_api(
 async def create_token_api(
     response: Response, current_user: User = Depends(get_current_user)
 ):
-    if current_user.role == "admin":
+    if current_user.isAdmin == True:
         result = create_token_query()
     else:
         result = {

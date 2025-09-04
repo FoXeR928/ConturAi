@@ -111,12 +111,12 @@ async def create_message_api(
 
 
 @chat_app.get(
-    "/delet/irrevocably/get", summary="Получение чатов на безвозвратное удаление"
+    "/delete/irrevocably/get", summary="Получение чатов на безвозвратное удаление"
 )
 async def get_delet_chats_api(
     response: Response, current_user: User = Depends(get_current_user)
 ):
-    if current_user.role == "admin":
+    if current_user.isAdmin == True:
         result = get_delet_chats_query()
     else:
         result = {
@@ -131,12 +131,12 @@ async def get_delet_chats_api(
 
 
 @chat_app.delete(
-    "/delet/irrevocably/list", summary="Удаление безвозвратно списка чатов"
+    "/delete/irrevocably/list", summary="Удаление безвозвратно списка чатов"
 )
 async def delet_chats_irrevocably_list_api(
     response: Response, chats: List[int], current_user: User = Depends(get_current_user)
 ):
-    if current_user.role == "admin":
+    if current_user.isAdmin == True:
         result = delet_chats_irrevocably_list_query(chats=chats)
     else:
         result = {
@@ -150,11 +150,11 @@ async def delet_chats_irrevocably_list_api(
     return result
 
 
-@chat_app.delete("/delet/irrevocably/all", summary="Удаление безвозвратно всех чатов")
+@chat_app.delete("/delete/irrevocably/all", summary="Удаление безвозвратно всех чатов")
 async def delet_chats_irrevocably_list_api(
     response: Response, current_user: User = Depends(get_current_user)
 ):
-    if current_user.role == "admin":
+    if current_user.isAdmin == True:
         result = delet_chats_irrevocably_all_list()
     else:
         result = {
@@ -172,7 +172,7 @@ async def delet_chats_irrevocably_list_api(
 async def recovery_chats_list_api(
     response: Response, chats: List[int], current_user: User = Depends(get_current_user)
 ):
-    if current_user.role == "admin":
+    if current_user.isAdmin == True:
         result = recovery_chats_list_query(chats=chats)
     else:
         result = {

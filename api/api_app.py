@@ -68,7 +68,7 @@ try:
     app = FastAPI(
         title="Ragi_AI",
         description="Система для локального нейропомощника",
-        version="1.14.2-alfa",
+        version="1.14.3-alfa",
     )
 except Exception as err:
     logger.critical(f"Ошибка инициализации приложения: {err}")

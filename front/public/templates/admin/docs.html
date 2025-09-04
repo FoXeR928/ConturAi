@@ -1,11 +1,5 @@
-{% if isAdmin %}
-    {% extends "sample_admin.html" %}
-{% else %}
-    {% extends "sample_user.html" %}
-{% endif %}
-
-{% block title %}Документы{% endblock %}
-
+{% extends "sample_admin_page.html" %}
+{% block title %}Документы AI{% endblock %}
 {% block styles %}
 <link rel="stylesheet" href="/static/style/style_docs.css">
 {% endblock %}
@@ -16,7 +10,6 @@
     <input hidden required id="file" name="file" type="file" placeholder="Выберите файл для чтения" class="input_file -separete_main -input_separate" accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
     <label for="file"><img src="/static/image/add.svg" alt="Добавить пользователя"></label>
 </section>
-<span class="loader"></span>
 <form class="form_text_file -form_column">
     <div class="input_block -separete_block">
         <label class='label -input_label' for="">Название документа</label>

@@ -52,9 +52,8 @@ class Users(Base):
     login: Mapped[str] = mapped_column(nullable=False, unique=True)
     password_hash: Mapped[str] = mapped_column(nullable=True)
     user_name: Mapped[str] = mapped_column(nullable=True)
-    user_role: Mapped[str] = mapped_column(nullable=False, default="user")
-    admin: Mapped[bool] = mapped_column(nullable=False, default=False)
-    system: Mapped[bool] = mapped_column(nullable=False, default=False)
+    isAdmin: Mapped[bool] = mapped_column(nullable=False, default=False)
+    isSystem: Mapped[bool] = mapped_column(nullable=False, default=False)
     chat_role: Mapped[str] = mapped_column(nullable=False, default="user")
     disabled: Mapped[bool] = mapped_column(nullable=False, default=False)
     date_create: Mapped[datetime] = mapped_column(

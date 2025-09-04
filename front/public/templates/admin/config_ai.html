@@ -1,9 +1,4 @@
-{% if isAdmin %}
-    {% extends "sample_admin.html" %}
-{% else %}
-    {% extends "sample_user.html" %}
-{% endif %}
-
+{% extends "sample_admin_page.html" %}
 {% block title %}Конфигурация AI{% endblock %}
 
 {% block styles %}
@@ -16,10 +11,10 @@
 <dialog class="form_background" id="hide_form">
     <div class="form_hide -element_block">
         <div class="form_header">
-            <h2 class="form_h">Настройки пользователя</h2>
+            <h2 class="form_h">Настройки конфигураций AI</h2>
             <button class="form_close_button -button_del_close -button">X</button>
         </div>
-        <form id="form_ai" class="form_ai -form_column" action="{{url_for('settings.create_start_settings_ai')}}" method="post">
+        <!--<form id="form_ai" class="form_ai -form_column" action="{{url_for('settings.create_start_settings_ai')}}" method="post">
             {{form.csrf_token}}
             <div class="input_block -separete_block">
                 {{form.model_chunk.label(class='label_input -input_label')}}{{form.model_chunk}}
@@ -46,7 +41,7 @@
                 {{form.rag_grpc.label(class='label_input -input_label')}}{{form.rag_grpc}}
             </div>
             {{form.send_settings_ai}}
-        </form>
+        </form>-->
     </div>
 </dialog>
 <section class="main_nav">
@@ -92,5 +87,4 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="/static/js/open_form.js"></script>
 {% endblock %}

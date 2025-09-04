@@ -180,7 +180,7 @@ body{
 .success{
     border-bottom: 3px solid rgb(0, 165, 0);
 }
-main{
+.main_with_nav{
     margin-left: 360px;
     width: auto;
     padding-right: 20px;

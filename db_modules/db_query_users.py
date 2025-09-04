@@ -10,11 +10,11 @@ def check_user_opportunity(user: str, login: str):
     session = session_create
     try:
         user_check = session.scalars(
-            select(Users.user_role).where(Users.login == login)
+            select(Users.isAdmin).where(Users.login == login)
         ).one()
-        if user_check == "admin":
+        if bool(user_check) == True:
             admins = session.scalar(
-                select(func.count(Users.login)).where(Users.user_role == "admin")
+                select(func.count(Users.login)).where(Users.isAdmin == True)
             )
             if admins == 1:
                 if user == login:
@@ -41,11 +41,11 @@ def get_users_query():
             select(
                 Users.login,
                 Users.user_name,
-                Users.user_role,
+                Users.isAdmin,
                 Users.disabled,
                 Users.date_create,
                 Users.date_update,
-            ).where(Users.user_role != "system")
+            ).where(Users.isSystem != True)
         ).all()
         users = [row._mapping for row in users_get]
         result = {
@@ -107,7 +107,7 @@ def registration_user_query(login: str, user_name: str, password: str):
 
 def update_password_user_query(user_update: User, login: str, password: str):
     if check_user(login=login) == True:
-        if user_update.login == login or user_update.role == "admin":
+        if user_update.login == login or user_update.isAdmin == True:
             session = session_create
             try:
                 user = session.query(Users).filter(Users.login == login).one()

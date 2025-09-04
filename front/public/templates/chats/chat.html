@@ -10,7 +10,7 @@
 <div class="chat">
     <ul id="chat" class="chat_block">
     </ul>
-    <form class="form_message">
+    <div class="form_message">
         <div class="message_block -separete_block">
             <textarea class="input_chat -separete_main -input_separete" id="message"></textarea>
             <button onclick="send_message(event)" class="send_message -separete_second -button_separete" id="send_message">Отправить</button>
@@ -19,7 +19,7 @@
             <label for="message_ai">Сообщение для нейросети</label>
             <input type="checkbox" id="message_ai" checked>
         </div>
-    </form>
+    </div>
 </div>
 {% endblock %}
 {% block scripts %}

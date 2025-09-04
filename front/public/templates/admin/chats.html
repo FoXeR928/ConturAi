@@ -1,9 +1,4 @@
-{% if isAdmin %}
-    {% extends "sample_admin.html" %}
-{% else %}
-    {% extends "sample_user.html" %}
-{% endif %}
-
+{% extends "sample_admin_page.html" %}
 {% block title %}Чаты{% endblock %}
 
 {% block styles %}
@@ -11,34 +6,18 @@
 {% endblock %}
 
 {% block content %}
-<section class="main_nav">
-    <h1>Чаты</h1>
-    <form class="search_form -separete_block">
-        <input type="text" class="search_input -separete_main -input_separete" id="search" placeholder="Поиск чатов">
-        <input type="button" class="search_button -separete_second -button_separete" value="Поиск">
-    </form>
-    <a href="{{url_for('admin_chats.admin_delet_chats_irrevocably_api')}}" class="button_del_all -button_del_close -button">Удалить все чаты</a>
+
+<div class="button_left">
+    <button class="button_del -button_del_close -button" id="button_del">Удалить все чаты</button>
+    <button class="button_recov_select -button" id="button_recov_select">Восстановить выбранное</button>
+    <button class="button_del_select -button_del_close -button" id="button_del_select">Удалить выбранное</button>
+</div>
+<section id="chats_delete">
 </section>
-<form class="form_del_chats">
-    <div class="button_left">
-        <button class="button_recov_select -button" id="button_recov_select">Восстановить выбранное</button>
-        <button class="button_del_select -button_del_close -button" id="button_del_select">Удалить выбранное</button>
-    </div>
-    {% for chat in chats_del %}
-        <div class="chat_block -separete_block">
-            <div class="text_block -separete_main">
-                <p class="chat_name search_element">{{chat['chat_name']}}</p>
-                <p class="chat_name search_element">{{chat['user']}}</p>
-            </div>
-            <div class="checkbox_container -separete_second -button_del_close">
-                <input class="checkbox_chat" type="checkbox" name="select_chat" id="{{chat['chat_id']}}">
-            </div>
-        </div>
-    {% endfor %}
-</form>
 {% endblock %}
 
 {% block scripts %}
+<script src="/static/js/admin/admin.js"></script>
 <script src="/static/js/delet_chats.js"></script>
 <script src="/static/js/search.js"></script>
 {% endblock %}

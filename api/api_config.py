@@ -40,7 +40,7 @@ async def start_configs_ai_api(
     response: Response,
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role == "admin":
+    if current_user.isAdmin == True:
         result = create_config_ai_start_query(
             model=configs_start_ai.model,
             model_chunk=configs_start_ai.model_chunk,
@@ -66,7 +66,7 @@ async def start_configs_ai_api(
 async def get_configs_ai_api(
     response: Response, current_user: User = Depends(get_current_user)
 ):
-    if current_user.role == "admin":
+    if current_user.isAdmin == True:
         result = get_configs_ai_query()
     else:
         result = {
@@ -86,7 +86,7 @@ async def update_config_ai_api(
     response: Response,
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role == "admin":
+    if current_user.isAdmin == True:
         result = update_config_ai_query(name=config_data.name, value=config_data.value)
     else:
         result = {
@@ -104,7 +104,7 @@ async def update_config_ai_api(
 async def get_configs_app_api(
     response: Response, current_user: User = Depends(get_current_user)
 ):
-    if current_user.role == "admin":
+    if current_user.isAdmin == True:
         result = get_configs_query()
     else:
         result = {
@@ -124,7 +124,7 @@ async def update_config_app_api(
     response: Response,
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role == "admin":
+    if current_user.isAdmin == True:
         result = update_config_query(name=config_data.name, value=config_data.value)
     else:
         result = {

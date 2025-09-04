@@ -8,7 +8,7 @@ from db_modules.db_query import check_user
 from db_modules.db_query_config import get_config
 
 
-def create_token(data: dict, expires_use: bool = False):
+def create_token(data: dict, expires_use: bool):
     try:
         expire = datetime.utcnow()
         if expires_use == True:
@@ -38,7 +38,7 @@ def get_current_user_query(login: str):
         session = session_create
         try:
             user = session.execute(
-                select(Users.login, Users.user_name, Users.user_role).where(
+                select(Users.login, Users.user_name,Users.isAdmin).where(
                     Users.login == login
                 )
             ).one_or_none()
@@ -55,7 +55,7 @@ def get_current_user_query(login: str):
     return result
 
 
-def auth_query(login: str, password: str):
+def auth_query(login: str, password: str,expires_use:bool =False):
     result_no_auth = {
         "result": False,
         "message": "Неверный логин или пароль",
@@ -81,7 +81,7 @@ def auth_query(login: str, password: str):
         finally:
             session.close()
         if check_auth == True:
-            token = create_token(data={"sub": login})
+            token = create_token(data={"sub": login},expires_use=expires_use)
             if token != False:
                 result = {
                     "result": True,

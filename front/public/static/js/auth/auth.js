@@ -1,10 +1,12 @@
 function auth(event){
     event.preventDefault();
-    login=$("#user").val()
-    password=$("#password").val()
+    login=$("#user").val();
+    password=$("#password").val();
+    expires_use=$("expires").prop('checked');
     send_data={
         "username":login,
-        "password":password
+        "password":password,
+        "expires_use":expires_use
     }
     if (login!="" && password!=""){
         $.ajax({

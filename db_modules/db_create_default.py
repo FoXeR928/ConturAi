@@ -1,4 +1,4 @@
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, func
 from loguru import logger
 import secrets
 
@@ -10,9 +10,7 @@ def create_default_users(
     admin_login: str = "admin",
     admin_password: str = "admin",
     admin_name: str = "админ",
-    admin_role: str = "admin",
     system_login: str = "system",
-    system_role: str = "system",
     system_chat_role: str = "assistant",
 ):
     session = session_create
@@ -26,9 +24,9 @@ def create_default_users(
             logger.error(f"Не удалось удалить строки таблицы Users Ошибка {err}")
     add_list = list()
     try:
-        check_admin = session.scalars(
-            select(base).where(base.login == admin_login)
-        ).first()
+        check_admin = session.scalar(
+            select(func.count(base.login)).where(base.isAdmin == True)
+        )
         check_system = session.scalars(
             select(base).where(base.login == system_login)
         ).first()
@@ -37,9 +35,10 @@ def create_default_users(
         logger.error(
             f"Не удалось проверить существование записей таблицы Users Ошибка {err}"
         )
-    if check_admin == None:
+    print(check_admin)
+    if check_admin == 0:
         try:
-            admin = base(login=admin_login, user_name=admin_name, user_role=admin_role)
+            admin = base(login=admin_login, user_name=admin_name,isAdmin=True)
             admin.set_password(admin_password)
             add_list.append(admin)
             logger.debug(f"Создан запрос на добавление {admin_login} в базу Users")
@@ -51,8 +50,8 @@ def create_default_users(
         try:
             system = base(
                 login=system_login,
-                user_role=system_role,
                 chat_role=system_chat_role,
+                isSystem=True
             )
             add_list.append(system)
             logger.debug(f"Создан запрос на добавление {system_login} в базу Users")

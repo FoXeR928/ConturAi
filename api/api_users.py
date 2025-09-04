@@ -35,7 +35,7 @@ class UpdateRole(LoginUpdate):
 async def get_users_api(
     response: Response, current_user: User = Depends(get_current_user)
 ):
-    if current_user.role == "admin":
+    if current_user.isAdmin == True:
         result = get_users_query()
     else:
         result = {
@@ -55,7 +55,7 @@ async def registration_user_api(
     registration_user: RegistrationUser,
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role == "admin":
+    if current_user.isAdmin == True:
         result = registration_user_query(
             login=registration_user.login,
             user_name=registration_user.user_name,
@@ -91,7 +91,7 @@ async def update_password_user_api(
 async def update_role_user_api(
     response: Response, role: UpdateRole, current_user: User = Depends(get_current_user)
 ):
-    if current_user.role == "admin":
+    if current_user.isAdmin == True:
         result = update_role_user_query(
             user_update=current_user, login=role.login, role=role.role
         )
@@ -111,7 +111,7 @@ async def update_role_user_api(
 async def delet_user_api(
     response: Response, login: str, current_user: User = Depends(get_current_user)
 ):
-    if current_user.role == "admin":
+    if current_user.isAdmin == True:
         result = delete_user_query(user_delet=current_user, login=login)
     else:
         result = {
