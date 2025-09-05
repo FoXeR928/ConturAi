@@ -1,5 +1,5 @@
 $(document).ready(function(){
-    get_messages(get_token(),get_chat_id())
+    get_messages(get_chat_id())
 });
 
 function get_chat_id(){
@@ -8,13 +8,13 @@ function get_chat_id(){
     return chat_id
 }
 
-function get_messages(token,chat_id){
+function get_messages(chat_id){
     $.ajax({
         url:'messages/get?chat_id='+chat_id,
         method:'GET',
         headers:{
             "Content-Type":"application/json",
-            "Authorization": "Bearer "+token
+            "Authorization": "Bearer "+get_token()
         },
         success : function(result) {
             if (result["result"]==false){
@@ -35,7 +35,6 @@ function get_messages(token,chat_id){
 
 function send_message(event){
     event.preventDefault();
-    token=get_token()
     chat_id=get_chat_id()
     var message_send=$('#message').val();
     var message_ai=$('#message_ai').prop('checked');
@@ -52,12 +51,12 @@ function send_message(event){
             method:'POST',
             headers:{
                 "Content-Type":"application/json",
-                "Authorization": "Bearer "+token
+                "Authorization": "Bearer "+get_token()
             },
             data:JSON.stringify({'text':message_send}),
             success : function() {
                 $('.loader').remove();
-                get_messages(token,chat_id)
+                get_messages(chat_id)
             },
             error: function(error){
                 $('.loader').remove();

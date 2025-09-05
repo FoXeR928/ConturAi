@@ -95,7 +95,7 @@ async def create_message_api(
     return result
 
 
-@chat_app.delete("/messages/delet", summary="Удаление сообщения")
+@chat_app.delete("/messages/delete", summary="Удаление сообщения")
 async def create_message_api(
     response: Response,
     chat_id: int,

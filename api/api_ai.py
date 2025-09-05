@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Response, Depends, UploadFile, File
+from fastapi import APIRouter, Response, Depends, UploadFile
 from pydantic import BaseModel
 
 from db_modules.db_query_ai import create_message_ai_query

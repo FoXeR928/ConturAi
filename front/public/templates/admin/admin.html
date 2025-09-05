@@ -1,7 +1,13 @@
-{% extends "sample_admin.html" %}
+{% extends "sample_user.html" %}
 {% block title %}Администрирование{% endblock %}
 {% block styles %}
 <link rel="stylesheet" href="/static/style/style_admin.css">
+<link rel="stylesheet" href="/static/style/style_chats.css">
+<link rel="stylesheet" href="/static/style/style_form.css">
+<link rel="stylesheet" href="/static/style/style_table.css">
+<link rel="stylesheet" href="/static/style/style_config.css">
+<link rel="stylesheet" href="/static/style/style_docs.css">
+<link rel="stylesheet" href="/static/style/style_users.css">
 {% endblock %}
 
 {% block content %}
@@ -11,15 +17,196 @@
         <button onclick="open_page('page_chats')" class="nav_interior_element -button">Чаты</button>
         <button onclick="open_page('page_users')" class="nav_interior_element -button">Пользователи</button>
         <button onclick="open_page('page_docs')" class="nav_interior_element -button">Документы</button>
-        <button onclick="open_page('page_configs')" class="nav_interior_element -button">Конфигурация AI</button>
-        <button onclick="open_page('page_configs_ai')" class="nav_interior_element -button">Конфигурации</button>
+        <button onclick="open_page('page_configs_ai')" class="nav_interior_element -button">Конфигурация AI</button>
+        <button onclick="open_page('page_configs')" class="nav_interior_element -button">Конфигурации</button>
     </nav>
 </section>
-<iframe id="page_chats" class="pages" src="chats" frameborder="0"></iframe>
-<iframe id="page_users" class="pages" src="users" frameborder="0"></iframe>
-<iframe id="page_docs" class="pages" src="docs" frameborder="0"></iframe>
-<iframe id="page_configs" class="pages" src="configs" frameborder="0"></iframe>
-<iframe id="page_configs_ai" class="pages" src="configs_ai" frameborder="0"></iframe>
+<section id="page_chats" class="pages">
+    <h1>Администрирование чатов</h1>
+    <div class="button_left">
+        <button class="button_del -button_del_close -button" onclick="delete_all_chats()" id="button_del">Удалить все чаты</button>
+        <button class="button_recov_select -button" onclick="recovery_checked_chats()" id="button_recov_select">Восстановить выбранное</button>
+        <button class="button_del_select -button_del_close -button" onclick="delete_checked_chats()" id="button_del_select">Удалить выбранное</button>
+    </div>
+    <section id="chats_delete">
+    </section>
+</section>
+<section id="page_users" class="pages">
+    <dialog class="form_background" id="hide_form_update">
+        <div class="form_hide -element_block">
+            <div class="form_header">
+                <h2 class="form_h">Настройки пользователя</h2>
+                <button onclick="close_form_update()" class="form_close_button -button_del_close -button">X</button>
+            </div>
+            <button id="button_del_user" class='send_del -button_del_close -button' value="">Удалить пользователя</button>
+            <form id="form_update_user" class="form_users -form_column">
+                <div class="input_block -separete_block">
+                    <label for="login" class='label_input -input_label'>Пользоватль</label>
+                    <input type="text" readonly value="" class="login -input_with_label">
+                </div>
+                <div class="input_block -separete_block">
+                    <label for="role" class='label_input -input_label'>Роль</label>
+                    <select class="select_role -input_with_label">
+                        <option value="" selected disabled hidden>Выбрать роль пользователя</option>
+                        <option value="0">Пользователь</option>
+                        <option value="1">Администратор</option>
+                    </select>
+                </div>
+                <div class="input_block -separete_block">
+                    <label for="password" class='label_input -input_label'>Пароль</label>
+                    <input type="password" value="" class="password -input_with_label">
+                </div>
+                <div class="input_block -separete_block">
+                    <label for="password_check" class='label_input -input_label'>Пароль</label>
+                    <input type="password" value="" class="password_check -input_with_label">
+                </div>
+                <button id="send_update" class="button_send -button">Изменить</button>
+            </form>
+        </div>
+    </dialog>
+    <dialog class="form_background" id="hide_form">
+        <div class="form_hide -element_block">
+            <div class="form_header">
+                <h2 class="form_h">Создание пользователя</h2>
+                <button onclick="close_form()" class="form_close_button -button_del_close -button">X</button>
+            </div>
+            <form id="form_create_user" class="form_users -form_column">
+                <div class="input_block -separete_block">
+                    <label for="login_reg" class='label_input -input_label'>Логин</label>
+                    <input type="login_reg" value="" class="login_reg -input_with_label">
+                </div>
+                <div class="input_block -separete_block">
+                    <label for="user_name" class='label_input -input_label'>Имя пользователя</label>
+                    <input type="text" value="" class="user_name -input_with_label">
+                </div>
+                <div class="input_block -separete_block">
+                    <label for="password_reg" class='label_input -input_label'>Пароль</label>
+                    <input type="password" value="" class="password_reg -input_with_label">
+                </div>
+                <div class="input_block -separete_block">
+                    <label for="password_check" class='label_input -input_label'>Пароль</label>
+                    <input type="password" value="" class="password_check -input_with_label">
+                </div>
+                <button id="send_reg" class="button_send -button">Создать</button>
+            </form>
+        </div>
+    </dialog>
+    <section class="main_nav">
+        <h1>Пользователи</h1>
+        <form class="search_form -separete_block">
+            <input type="text" class="search_input -separete_main -input_separete" placeholder="Поиск пользователей">
+            <input type="button" class="search_button -separete_second -button_separete" value="Поиск">
+        </form>
+        <button onclick="open_form()" class="button_add_user -button_image" id="add_button"><img src="/static/image/add.svg" alt="Добавить пользователя"></button>
+    </section>
+    <table class="table">
+        <thead>
+            <tr class="table_header">
+                <th class="table_element -table_header_first">Логин</th>
+                <th class="table_element">Имя</th>
+                <th class="table_element">Роль</th>
+                <th class="table_element -table_header_end -table-button"></th>
+            </tr>
+        </thead>
+        <tbody id="table_block_users">
+        </tbody>
+    </table>
+</section>
+<section id="page_docs" class="pages">
+    <section class="main_nav">
+        <h1>Документы AI</h1>
+        <input onchange="file_read(event)" hidden required id="file" name="file" type="file" placeholder="Выберите файл для чтения" class="input_file -separete_main -input_separate" accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+        <label for="file"><img src="/static/image/add.svg" alt="Добавить пользователя"></label>
+    </section>
+    <div class="form_text_file -form_column">
+        <div class="input_block -separete_block">
+            <label class='label -input_label' for="">Название документа</label>
+            <input type="text" id="file_name_text" class="file_name_text -input_with_label">  
+        </div>
+        <textarea name="file_text" id="file_text" class="file_text -separete_column_main"></textarea>
+        <button onclick="send_text(event)" id="send_text" class="send_text -separete_column_second">Сохранить</button>
+    </div>
+</section>
+<section id="page_configs_ai" class="pages">
+    <dialog class="form_background" id="hide_form">
+        <div class="form_hide -element_block">
+            <div class="form_header">
+                <h2 class="form_h">Настройки конфигураций AI</h2>
+                <button onclick="close_form()" class="form_close_button -button_del_close -button">X</button>
+            </div>
+            <form id="form_ai" class="form_ai -form_column">
+                <div class="input_block -separete_block">
+                    <label for="model_chunk" class='label_input -input_label'>Модель для создания чанков</label>
+                    <input id="model_chunk" type="text" class="model_chunk -input_with_label">
+                </div>
+                <div class="input_block -separete_block">
+                    <label for="model" class='label_input -input_label'>Модель AI</label>
+                    <input id="model" type="text" class="model -input_with_label">
+                </div>
+                <div class="input_block -separete_block">
+                    <label for="collection" class='label_input -input_label'>Имя коллекции</label>
+                    <input id="collection" type="text" class="collection -input_with_label" value="ragi_docs">
+                </div>
+                <div class="input_block -separete_block">
+                    <label for="rag_host" class='label_input -input_label'>Хост Qdrant</label>
+                    <input id="rag_host" type="text" class="rag_host -input_with_label" value="localhost">
+                </div>
+                <div class="input_block -separete_block">
+                    <label for="rag_port_http" class='label_input -input_label'>Порт HTTP Qdrant</label>
+                    <input id="rag_port_http" type="number" class="rag_port_http -input_with_label" value="6333">
+                </div>
+                <div class="input_block -separete_block">
+                    <label for="rag_port_grpc" class='label_input -input_label'>Порт GRPC Qdrant</label>
+                    <input id="rag_port_grpc" type="number" class="rag_port_grpc -input_with_label" value="6334">
+                </div>
+                <div class="input_block -separete_block">
+                    <label for="rag_grpc" class='label_input -input_label'>Включить GRPC</label>
+                    <input id="rag_grpc" type="checkbox" class="rag_grpc -input_with_label">
+                </div>
+                <button class="button_send -button">Сохранить</button>
+            </form>
+        </div>
+        </dialog>
+        <section class="main_nav">
+        <h1>Конфигурации AI</h1>
+        <form class="search_form -separete_block">
+            <input oninput="search_on_page(event)" type="text" class="search_input -separete_main -input_separete" placeholder="Поиск чатов">
+            <input onclick="search_on_page(event)" type="button" class="search_button -separete_second -button_separete" value="Поиск">
+        </form>
+        <button onclick="open_form()" class="button_add_ai -button" id="add_button">Настройка AI</button>
+        </section>
+        <table class="table">
+        <thead>
+            <tr class="table_header">
+                <th class="table_element -table_header_first">Конфиг</th>
+                <th class="table_element">Описание</th>
+                <th class="table_element -table_header_end -table-input">Значение</th>
+            </tr>
+        </thead>
+        <tbody id="table_block_ai">
+        </tbody>
+    </table>
+</section>
+<section id="page_configs" class="pages">
+    <section class="main_nav">
+    <h1>Конфигурации</h1>
+    <form class="search_form -separete_block">
+        <input oninput="search_on_page(event)" type="text" class="search_input -separete_main -input_separete" placeholder="Поиск чатов">
+        <input onclick="search_on_page(event)" type="button" class="search_button -separete_second -button_separete" value="Поиск">
+    </form>
+</section>
+    <table class="table">
+        <thead>
+            <tr class="table_header">
+                <th class="table_element -table_header_first">Конфиг</th>
+                <th class="table_element">Описание</th>
+                <th class="table_element -table_header_end -table-input">Значение</th>
+            </tr>
+        </thead>
+        <tbody id="table_block">
+        </tbody>
+    </table>
+</section>
 {% endblock %}
 {% block scripts %}
 <script src="/static/js/admin/admin.js"></script>
