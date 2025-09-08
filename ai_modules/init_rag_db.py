@@ -35,7 +35,7 @@ def init_rag():
     rag_host = get_config_ai(name="rag_host")
     rag_port_http = get_config_ai(name="rag_port_http")
     rag_port_grpc = get_config_ai(name="rag_port_grpc")
-    rag_grpc = bool(int(get_config_ai(name="rag_grpc")))
+    rag_grpc = bool((get_config_ai(name="rag_grpc")))
     rag_collection = get_config_ai(name="collection")
     try:
         client = QdrantClient(
