@@ -35,7 +35,6 @@ def create_default_users(
         logger.error(
             f"Не удалось проверить существование записей таблицы Users Ошибка {err}"
         )
-    print(check_admin)
     if check_admin == 0:
         try:
             admin = base(login=admin_login, user_name=admin_name,isAdmin=True)
@@ -166,7 +165,7 @@ def create_default_config_ai(
             "promt",
             "Параметр отвечающий за промт вопроса для нейросети",
             promt,
-            "textextarea",
+            "textarea",
         ),
         ("search_rag", "Лимит поиска по RAG базе", search_rag, "number"),
         ("batch_size", "Размер чанков для загрузки в RAG базу", batch_size, "number"),

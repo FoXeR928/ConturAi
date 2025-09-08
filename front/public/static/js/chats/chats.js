@@ -44,7 +44,7 @@ function get_chats(token){
             }else{
                 $("#chats").empty()
                 $.each(result.chats, function(index,chat){
-                    $("#chats").append("<article class='chat_block -separete_block'><a class='chat_name -separete_main search_element' href='messages?chat="+chat.id+"'>"+chat.chat_name+"</a><button class='button_del_chat -button_del_close -separete_second' onclick='delete_chat(event,"+chat.id+")'>Удалить</a></article>")
+                    $("#chats").append("<article class='chat_block -separete_block'><a class='chat_name -separete_main search_element_chats' href='messages?chat="+chat.id+"'>"+chat.chat_name+"</a><button class='button_del_chat -button_del_close -separete_second' onclick='delete_chat(event,"+chat.id+")'>Удалить</a></article>")
                 })
             }
         },

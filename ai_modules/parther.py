@@ -61,5 +61,6 @@ def check_file_type(file_type: str, file_dytes: bytes):
     elif file_type == get_config("excel"):
         file_type = "xlsx"
         file_text = read_excel(file_dytes)
-    logger.debug("Файл прочитан")
+    else:
+        file_text=None
     return file_text

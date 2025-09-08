@@ -19,11 +19,37 @@ def create_token(data: dict, expires_use: bool):
         encoded_jwt = jwt.encode(
             payload=data, key=get_config(name="skey"), algorithm="HS256"
         )
-        result = encoded_jwt
+        result = {
+                "result": True,
+                "access_token": encoded_jwt,
+                "token_type": "bearer",
+                "message": "Авторизация прошла успешно",
+                "category": "success",
+                "cod": 200,
+            } 
         logger.debug(f"Токен создан для пользователя {data['sub']}")
+    except jwt.ExpiredSignatureError:
+        result={
+            "result": False,
+            "message": "Ошибка токен истек",
+            "category": "error",
+            "cod": 401,
+        }
+    except jwt.InvalidSignatureError:
+        result={
+            "result": False,
+            "message": "Ошибка неверный токен",
+            "category": "error",
+            "cod": 401,
+        }
     except Exception as err:
         logger.error(f"Ошибка сервера создания токена: {err}")
-        raise False
+        result={
+            "result": False,
+            "message": "Ошибка создания токен",
+            "category": "error",
+            "cod": 500,
+        }
     return result
 
 
@@ -81,18 +107,7 @@ def auth_query(login: str, password: str,expires_use:bool =False):
         finally:
             session.close()
         if check_auth == True:
-            token = create_token(data={"sub": login},expires_use=expires_use)
-            if token != False:
-                result = {
-                    "result": True,
-                    "access_token": token,
-                    "token_type": "bearer",
-                    "message": "Авторизация прошла успешно",
-                    "category": "success",
-                    "cod": 200,
-                }
-            else:
-                result = result_error
+            result = create_token(data={"sub": login},expires_use=expires_use)
         else:
             result = result_no_auth
     else:

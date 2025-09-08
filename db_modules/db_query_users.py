@@ -151,9 +151,9 @@ def update_password_user_query(user_update: User, login: str, password: str):
     return result
 
 
-def update_role_user_query(user_update: User, login: str, role: str):
+def update_role_user_query(user_update: User, login: str, isAdmin: bool):
     if check_user(login=login) == True:
-        if role == "user":
+        if isAdmin == True:
             opportunity = check_user_opportunity(user=user_update.login, login=login)
         else:
             opportunity = True
@@ -161,7 +161,7 @@ def update_role_user_query(user_update: User, login: str, role: str):
             session = session_create
             try:
                 session.execute(
-                    update(Users).where(Users.login == login).values(user_role=role)
+                    update(Users).where(Users.login == login).values(isAdmin=isAdmin)
                 )
                 session.commit()
                 result = {

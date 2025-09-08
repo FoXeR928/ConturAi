@@ -11,6 +11,104 @@
 {% endblock %}
 
 {% block content %}
+<dialog class="form_background" id="hide_form">
+    <div class="form_hide -element_block">
+        <div class="form_header">
+            <h2 class="form_h">Создание пользователя</h2>
+            <button onclick="close_form()" class="form_close_button -button_del_close -button">X</button>
+        </div>
+        <div id="form_create_user" class="form_users -form_column">
+            <div class="input_block -separete_block">
+                <label for="registration_login" class='label_input -input_label'>Логин</label>
+                <input type="text" value="" id="registration_login" class="registration_login -input_with_label">
+            </div>
+            <div class="input_block -separete_block">
+                <label for="registration_user_name" class='label_input -input_label'>Имя пользователя</label>
+                <input type="text" value="" id="registration_user_name" class="registration_user_name -input_with_label">
+            </div>
+            <div class="input_block -separete_block">
+                <label for="registration_password" class='label_input -input_label'>Пароль</label>
+                <input type="password" value="" oninput="password_check('registration_')" id="registration_password" class="registration_password -input_with_label">
+            </div>
+            <div class="input_block -separete_block">
+                <label for="registration_password_check" class='label_input -input_label'>Пароль</label>
+                <input type="password" value="" id="registration_password_check" oninput="password_check('registration_')" class="password_check -input_with_label">
+            </div>
+            <button id="send_reg" onclick="create_user()" class="button_send -button">Создать</button>
+        </div>
+    </div>
+</dialog>
+<dialog class="form_background" id="hide_form_update">
+    <div class="form_hide -element_block">
+        <div class="form_header">
+            <h2 class="form_h">Настройки пользователя</h2>
+            <button onclick="close_form_update()" class="form_close_button -button_del_close -button">X</button>
+        </div>
+        <button id="button_del_user" class='send_del -button_del_close -button' value="">Удалить пользователя</button>
+        <div id="form_update_user" class="form_users -form_column">
+            <div class="input_block -separete_block">
+                <label for="update_login" class='label_input -input_label'>Пользоватль</label>
+                <input type="text" id="update_login" readonly value="" class="login -input_with_label">
+            </div>
+            <div class="input_block -separete_block">
+                <label for="update_user_role" class='label_input -input_label'>Роль</label>
+                <select id="update_user_role" class="select_role -input_with_label">
+                    <option value="" selected disabled hidden>Выбрать роль пользователя</option>
+                    <option value="0">Пользователь</option>
+                    <option value="1">Администратор</option>
+                </select>
+            </div>
+            <div class="input_block -separete_block">
+                <label for="update_password" class='label_input -input_label'>Пароль</label>
+                <input type="password" id="update_password" oninput="password_check('update_')" value="" class="password -input_with_label">
+            </div>
+            <div class="input_block -separete_block">
+                <label for="update_password_check" class='label_input -input_label'>Пароль</label>
+                <input type="password" id="update_password_check" oninput="password_check('update_')" value="" class="password_check -input_with_label">
+            </div>
+            <button id="send_update" onclick="update_user()" class="button_send -button">Изменить</button>
+        </div>
+    </div>
+</dialog>
+<dialog class="form_background" id="hide_form_config">
+    <div class="form_hide -element_block">
+        <div class="form_header">
+            <h2 class="form_h">Настройки конфигураций AI</h2>
+            <button onclick="close_form_config()" class="form_close_button -button_del_close -button">X</button>
+        </div>
+        <div id="form_ai" class="form_ai -form_column">
+            <div class="input_block -separete_block">
+                <label for="set_model_chunk" class='label_input -input_label'>Модель для создания чанков</label>
+                <input id="set_model_chunk" type="text" class="model_chunk -input_with_label">
+            </div>
+            <div class="input_block -separete_block">
+                <label for="set_model" class='label_input -input_label'>Модель AI</label>
+                <input id="set_model" type="text" class="model -input_with_label">
+            </div>
+            <div class="input_block -separete_block">
+                <label for="set_collection" class='label_input -input_label'>Имя коллекции</label>
+                <input id="set_collection" type="text" class="collection -input_with_label" value="ragi_docs">
+            </div>
+            <div class="input_block -separete_block">
+                <label for="set_rag_host" class='label_input -input_label'>Хост Qdrant</label>
+                <input id="set_rag_host" type="text" class="rag_host -input_with_label" value="localhost">
+            </div>
+            <div class="input_block -separete_block">
+                <label for="set_rag_port_http" class='label_input -input_label'>Порт HTTP Qdrant</label>
+                <input id="set_rag_port_http" type="number" class="rag_port_http -input_with_label" value="6333">
+            </div>
+            <div class="input_block -separete_block">
+                <label for="set_rag_port_grpc" class='label_input -input_label'>Порт GRPC Qdrant</label>
+                <input id="set_rag_port_grpc" type="number" class="rag_port_grpc -input_with_label" value="6334">
+            </div>
+            <div class="input_block -separete_block">
+                <label for="set_rag_grpc" class='label_input -input_label'>Включить GRPC</label>
+                <input id="set_rag_grpc" type="checkbox" class="rag_grpc -input_with_label">
+            </div>
+            <button onclick="set_configs_ai()" class="button_send -button">Сохранить</button>
+        </div>
+    </div>
+</dialog>
 <section class="main_nav">
     <h1>Администрирование</h1>
     <nav>
@@ -23,6 +121,10 @@
 </section>
 <section id="page_chats" class="pages">
     <h1>Администрирование чатов</h1>
+    <div class="search_form -separete_block">
+        <input oninput="search_on_page('_chats')" id="search_chats" type="text" class="search_input -separete_main -input_separete" placeholder="Поиск чатов">
+        <input onclick="search_on_page('_chats')" id="search_chats" type="button" class="search_button -separete_second -button_separete" value="Поиск">
+    </div>
     <div class="button_left">
         <button class="button_del -button_del_close -button" onclick="delete_all_chats()" id="button_del">Удалить все чаты</button>
         <button class="button_recov_select -button" onclick="recovery_checked_chats()" id="button_recov_select">Восстановить выбранное</button>
@@ -32,70 +134,11 @@
     </section>
 </section>
 <section id="page_users" class="pages">
-    <dialog class="form_background" id="hide_form_update">
-        <div class="form_hide -element_block">
-            <div class="form_header">
-                <h2 class="form_h">Настройки пользователя</h2>
-                <button onclick="close_form_update()" class="form_close_button -button_del_close -button">X</button>
-            </div>
-            <button id="button_del_user" class='send_del -button_del_close -button' value="">Удалить пользователя</button>
-            <form id="form_update_user" class="form_users -form_column">
-                <div class="input_block -separete_block">
-                    <label for="login" class='label_input -input_label'>Пользоватль</label>
-                    <input type="text" readonly value="" class="login -input_with_label">
-                </div>
-                <div class="input_block -separete_block">
-                    <label for="role" class='label_input -input_label'>Роль</label>
-                    <select class="select_role -input_with_label">
-                        <option value="" selected disabled hidden>Выбрать роль пользователя</option>
-                        <option value="0">Пользователь</option>
-                        <option value="1">Администратор</option>
-                    </select>
-                </div>
-                <div class="input_block -separete_block">
-                    <label for="password" class='label_input -input_label'>Пароль</label>
-                    <input type="password" value="" class="password -input_with_label">
-                </div>
-                <div class="input_block -separete_block">
-                    <label for="password_check" class='label_input -input_label'>Пароль</label>
-                    <input type="password" value="" class="password_check -input_with_label">
-                </div>
-                <button id="send_update" class="button_send -button">Изменить</button>
-            </form>
-        </div>
-    </dialog>
-    <dialog class="form_background" id="hide_form">
-        <div class="form_hide -element_block">
-            <div class="form_header">
-                <h2 class="form_h">Создание пользователя</h2>
-                <button onclick="close_form()" class="form_close_button -button_del_close -button">X</button>
-            </div>
-            <form id="form_create_user" class="form_users -form_column">
-                <div class="input_block -separete_block">
-                    <label for="login_reg" class='label_input -input_label'>Логин</label>
-                    <input type="login_reg" value="" class="login_reg -input_with_label">
-                </div>
-                <div class="input_block -separete_block">
-                    <label for="user_name" class='label_input -input_label'>Имя пользователя</label>
-                    <input type="text" value="" class="user_name -input_with_label">
-                </div>
-                <div class="input_block -separete_block">
-                    <label for="password_reg" class='label_input -input_label'>Пароль</label>
-                    <input type="password" value="" class="password_reg -input_with_label">
-                </div>
-                <div class="input_block -separete_block">
-                    <label for="password_check" class='label_input -input_label'>Пароль</label>
-                    <input type="password" value="" class="password_check -input_with_label">
-                </div>
-                <button id="send_reg" class="button_send -button">Создать</button>
-            </form>
-        </div>
-    </dialog>
     <section class="main_nav">
         <h1>Пользователи</h1>
         <form class="search_form -separete_block">
-            <input type="text" class="search_input -separete_main -input_separete" placeholder="Поиск пользователей">
-            <input type="button" class="search_button -separete_second -button_separete" value="Поиск">
+            <input type="text" oninput="search_on_page('_users')" id="search_users" class="search_input -separete_main -input_separete" placeholder="Поиск пользователей">
+            <input type="button" onclick="search_on_page('_users')" class="search_button -separete_second -button_separete" value="Поиск">
         </form>
         <button onclick="open_form()" class="button_add_user -button_image" id="add_button"><img src="/static/image/add.svg" alt="Добавить пользователя"></button>
     </section>
@@ -128,54 +171,15 @@
     </div>
 </section>
 <section id="page_configs_ai" class="pages">
-    <dialog class="form_background" id="hide_form">
-        <div class="form_hide -element_block">
-            <div class="form_header">
-                <h2 class="form_h">Настройки конфигураций AI</h2>
-                <button onclick="close_form()" class="form_close_button -button_del_close -button">X</button>
-            </div>
-            <form id="form_ai" class="form_ai -form_column">
-                <div class="input_block -separete_block">
-                    <label for="model_chunk" class='label_input -input_label'>Модель для создания чанков</label>
-                    <input id="model_chunk" type="text" class="model_chunk -input_with_label">
-                </div>
-                <div class="input_block -separete_block">
-                    <label for="model" class='label_input -input_label'>Модель AI</label>
-                    <input id="model" type="text" class="model -input_with_label">
-                </div>
-                <div class="input_block -separete_block">
-                    <label for="collection" class='label_input -input_label'>Имя коллекции</label>
-                    <input id="collection" type="text" class="collection -input_with_label" value="ragi_docs">
-                </div>
-                <div class="input_block -separete_block">
-                    <label for="rag_host" class='label_input -input_label'>Хост Qdrant</label>
-                    <input id="rag_host" type="text" class="rag_host -input_with_label" value="localhost">
-                </div>
-                <div class="input_block -separete_block">
-                    <label for="rag_port_http" class='label_input -input_label'>Порт HTTP Qdrant</label>
-                    <input id="rag_port_http" type="number" class="rag_port_http -input_with_label" value="6333">
-                </div>
-                <div class="input_block -separete_block">
-                    <label for="rag_port_grpc" class='label_input -input_label'>Порт GRPC Qdrant</label>
-                    <input id="rag_port_grpc" type="number" class="rag_port_grpc -input_with_label" value="6334">
-                </div>
-                <div class="input_block -separete_block">
-                    <label for="rag_grpc" class='label_input -input_label'>Включить GRPC</label>
-                    <input id="rag_grpc" type="checkbox" class="rag_grpc -input_with_label">
-                </div>
-                <button class="button_send -button">Сохранить</button>
-            </form>
-        </div>
-        </dialog>
-        <section class="main_nav">
+    <section class="main_nav">
         <h1>Конфигурации AI</h1>
-        <form class="search_form -separete_block">
-            <input oninput="search_on_page(event)" type="text" class="search_input -separete_main -input_separete" placeholder="Поиск чатов">
-            <input onclick="search_on_page(event)" type="button" class="search_button -separete_second -button_separete" value="Поиск">
-        </form>
-        <button onclick="open_form()" class="button_add_ai -button" id="add_button">Настройка AI</button>
-        </section>
-        <table class="table">
+        <div class="search_form -separete_block">
+            <input oninput="search_on_page('_configs_ai')" id="search_configs_ai" type="text" class="search_input -separete_main -input_separete" placeholder="Поиск чатов">
+            <input onclick="search_on_page('_configs_ai')" type="button" class="search_button -separete_second -button_separete" value="Поиск">
+        </div>
+        <button onclick="open_form_config()" class="button_add_ai -button" id="add_button">Настройка AI</button>
+    </section>
+    <table class="table">
         <thead>
             <tr class="table_header">
                 <th class="table_element -table_header_first">Конфиг</th>
@@ -190,10 +194,10 @@
 <section id="page_configs" class="pages">
     <section class="main_nav">
     <h1>Конфигурации</h1>
-    <form class="search_form -separete_block">
-        <input oninput="search_on_page(event)" type="text" class="search_input -separete_main -input_separete" placeholder="Поиск чатов">
-        <input onclick="search_on_page(event)" type="button" class="search_button -separete_second -button_separete" value="Поиск">
-    </form>
+    <div class="search_form -separete_block">
+        <input oninput="search_on_page('_configs')" id="search_configs" type="text" class="search_input -separete_main -input_separete" placeholder="Поиск чатов">
+        <input onclick="search_on_page('_configs')" type="button" class="search_button -separete_second -button_separete" value="Поиск">
+    </div>
 </section>
     <table class="table">
         <thead>

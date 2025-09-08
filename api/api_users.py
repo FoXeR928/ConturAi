@@ -28,7 +28,7 @@ class UpdatePassword(LoginUpdate):
 
 
 class UpdateRole(LoginUpdate):
-    role: str
+    isAdmin: bool
 
 
 @users_app.get("/get", summary="Получение списка пользователей")
@@ -93,7 +93,7 @@ async def update_role_user_api(
 ):
     if current_user.isAdmin == True:
         result = update_role_user_query(
-            user_update=current_user, login=role.login, role=role.role
+            user_update=current_user, login=role.login, isAdmin=role.isAdmin
         )
     else:
         result = {

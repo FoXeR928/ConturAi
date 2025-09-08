@@ -179,16 +179,16 @@ def create_config_ai_start_query(
     )
     session = session_create
     try:
-        for configs in configs_list:
+        for config in configs_list:
             check_conf = session.scalars(
-                select(Configs_ai).where(Configs_ai.name == configs[0])
+                select(Configs_ai).where(Configs_ai.name == config[0])
             ).one_or_none()
             if check_conf == None:
                 config = Configs_ai(
-                    name=configs[0],
-                    about=configs[1],
-                    value=configs[2],
-                    input_format=configs[3],
+                    name=config[0],
+                    about=config[1],
+                    value=config[2],
+                    input_format=config[3],
                 )
                 session.add(config)
             else:

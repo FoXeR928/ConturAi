@@ -41,14 +41,24 @@ async def read_doc_api(
         file_type = doc.content_type
         file_dytes = doc.file
         text = check_file_type(file_type=file_type, file_dytes=file_dytes)
-        result = {
-            "result": True,
-            "file_name": file_name,
-            "file_text": text,
-            "message": "Текст получен",
-            "category": "success",
-            "cod": 200,
-        }
+        if text==None:
+            result = {
+                "result": False,
+                "file_name": file_name,
+                "file_text": text,
+                "message": "Формат не поддерживается",
+                "category": "warning",
+                "cod": 415,
+            }
+        else:
+            result = {
+                "result": True,
+                "file_name": file_name,
+                "file_text": text,
+                "message": "Текст получен",
+                "category": "success",
+                "cod": 200,
+            }
     else:
         result = {
             "result": False,
