@@ -74,7 +74,7 @@ def optimizate_base():
 def add_docs_rquery(doc_name: str, doc_text: str):
     chunks = chunk_create(text=doc_text)
     normal_text = normalize_text(text=doc_text)
-    batch_size = get_config_ai(name="batch_size") or 256
+    batch_size = int(get_config_ai(name="batch_size")) or 256
     if chunks != False and normal_text != False:
         rag_collection = get_config_ai("collection")
         points = list()
@@ -146,9 +146,9 @@ def search_docs_rquery(query: str):
         result_search = client.search(
             collection_name=rag_collection,
             query_vector=query_embedding,
-            limit=get_config_ai(name="search_rag"),
+            limit=int(get_config_ai(name="search_rag")),
         )
-        result = str()
+        result=str()
         for hit in result_search:
             result += hit.payload["text"][:200]
         logger.trace(f"Выполнен поиск по RAG базе")

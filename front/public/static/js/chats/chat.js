@@ -57,6 +57,7 @@ function send_message(event){
             success : function() {
                 $('.loader').remove();
                 get_messages(chat_id)
+                $('#message').val("");
             },
             error: function(error){
                 $('.loader').remove();

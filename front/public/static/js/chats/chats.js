@@ -1,5 +1,5 @@
 $(document).ready(function(){
-    get_chats(get_token())
+    get_chats()
 });
 
 function create_chat(event){
@@ -15,9 +15,11 @@ function create_chat(event){
                 "Authorization": "Bearer "+get_token()
             },
             success : function(result) {
-                get_chats(get_token())
-                get_chats_nav(get_token())
+                get_chats()
+                get_chats_nav()
+                $("#name_chat").val("")
                 close_form()
+
                 create_flash(flash_status=result["category"],message=result["message"])  
             },
             error: function(error){
@@ -30,13 +32,13 @@ function create_chat(event){
     
 }
 
-function get_chats(token){
+function get_chats(){
     $.ajax({
         url:'/chats/get',
         method:'GET',
         headers:{
             "Content-Type":"application/json",
-            "Authorization": "Bearer "+token
+            "Authorization": "Bearer "+get_token()
         },
         success : function(result) {
             if (result["result"]==false){

@@ -114,6 +114,7 @@ body{
     padding: 10px;
     font-size: 14pt;
     height: 100%;
+    width: 320px;
     position: fixed;
     overflow-x: hidden;
 }

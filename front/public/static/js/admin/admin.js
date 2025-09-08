@@ -24,9 +24,9 @@ function get_chats_delete(){
             if (result["result"]==false){
                 create_flash(result["category"],result["message"])
             }else{
-                $("#chats").empty()
+                $("#table_block_chats").empty()
                 $.each(result.chats, function(index,chat){
-                    $("#chats_delete").append("<article class='chat_block -separete_block'><div class='text_block -separete_main'><p class='chat_name search_element_chats'>"+chat.chat_name+"</p><p class='chat_name search_element'>"+chat.user_login+"</p></div><div class='checkbox_container -separete_second -button_del_close'><input class='checkbox_chat' type='checkbox' name='select_chat' id="+chat.id+"></div></article>")
+                    $("#table_block_chats").append('<tr class="table_body_element_block"><td class="table_element -table_body_element search_element search_element_chats">'+chat.chat_name+'</td><td class="table_element -table_body_element">'+chat.user_login+'</td><td class="table_element -table_body_element"><input class="checkbox_chat" type="checkbox" name="select_chat" id='+chat.id+'></td><tb>')
                 })
             }
         },
@@ -46,9 +46,7 @@ function delete_all_chats(){
             "Authorization": "Bearer "+get_token()
         },
         success : function(result) {
-            if (result["result"]==true){
-                    get_chats_delete()
-                }
+            get_chats_delete()
             create_flash(result["category"],result["message"])
         },
         error: function(error){
@@ -75,9 +73,7 @@ function delete_checked_chats(){
             },
             data:JSON.stringify(chats_id),
             success : function(result) {
-                if (result["result"]==true){
-                    get_chats_delete()
-                }
+                get_chats_delete()
                 create_flash(result["category"],result["message"])
             },
             error: function(error){
@@ -105,9 +101,7 @@ function recovery_checked_chats(){
             },
             data:JSON.stringify(chats_id),
             success : function(result) {
-                if (result["result"]==true){
-                    get_chats_delete()
-                }
+                get_chats_delete()
                 create_flash(result["category"],result["message"])
             },
             error: function(error){
@@ -433,18 +427,22 @@ function file_read(){
     }
 }
 
-function send_text(event){
-    event.preventDefault()
+function send_text(){
     text_name=$('#file_name_text').val()
     text=$('#file_text').val()
-    if (text.length>0){
+    if (text_name!="" && text!=""){
         $.ajax({
-            url:'/AI/docs/read',
+            url:'/AI/docs/create',
             method:'POST',
-            data:{},
-            success : function() {
+            headers:{
+                "Content-Type":"application/json",
+                "Authorization": "Bearer "+get_token()
+            },
+            data:JSON.stringify({"name":text_name,"text":text}),
+            success : function(result) {
                 $('#file_name_text').val('')
                 $('#file_text').val('')
+                create_flash(result["category"],result["message"])
             },
             error: function(error){
                 alert('Ошибка '+error)

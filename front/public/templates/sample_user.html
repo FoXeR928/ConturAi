@@ -16,7 +16,7 @@
                     <article class="nav_article">
                         <div class="nav_element -separete_block">
                             <a class="nav_link -separete_main" href="/chats">Чаты</a>
-                            <button class="button_nav_open -separete_second">^</button>    
+                            <button onclick="open_nav_hide()" class="button_nav_open -separete_second">^</button>    
                         </div>
                         <div class="nav_hide_block">
                             <div class="nav_interior_block" id="chats_nav">
@@ -24,21 +24,12 @@
                         </div>
                         
                     </article>
-                    <article class="nav_article">
-                        <div class="nav_element -separete_block">
-                            <a class="nav_link -separete_main" href="/admin">Администрирование</a>
-                            <button class="button_nav_open -separete_second">^</button>    
-                        </div>
-                        <div class="nav_hide_block">
-                            <div class="nav_interior_block" id="chats_nav">
-                            </div>
-                        </div>
-                    </article>
+                    <a class="nav_link -button" href="/admin">Администрирование</a>    
                     {% block admin %}{% endblock %}
                 </section>
                 <a class="nav_link -button" href="/auth/logout">Выйти</a>
             </div>
-            <button class="button_nav -button_image" id="button_nav"><img src="/static/image/menu.svg" alt="Кнопка открытия меню"></button>
+            <button onclick="open_nav()" class="button_nav -button_image" id="button_nav"><img src="/static/image/menu.svg" alt="Кнопка открытия меню"></button>
         </nav>
     </header>
     <main class="main_with_nav" id="main">
@@ -46,7 +37,6 @@
     </main>
 </body>
 {% block scripts %}{% endblock %}
-<script src="/static/js/default/open_nav.js"></script>
 <script src="/static/js/default/functions.js"></script>
 <script src="/static/js/default/default_create.js"></script>
 </html>

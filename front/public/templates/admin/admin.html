@@ -120,16 +120,29 @@
     </nav>
 </section>
 <section id="page_chats" class="pages">
-    <h1>Администрирование чатов</h1>
-    <div class="search_form -separete_block">
-        <input oninput="search_on_page('_chats')" id="search_chats" type="text" class="search_input -separete_main -input_separete" placeholder="Поиск чатов">
-        <input onclick="search_on_page('_chats')" id="search_chats" type="button" class="search_button -separete_second -button_separete" value="Поиск">
-    </div>
-    <div class="button_left">
-        <button class="button_del -button_del_close -button" onclick="delete_all_chats()" id="button_del">Удалить все чаты</button>
-        <button class="button_recov_select -button" onclick="recovery_checked_chats()" id="button_recov_select">Восстановить выбранное</button>
-        <button class="button_del_select -button_del_close -button" onclick="delete_checked_chats()" id="button_del_select">Удалить выбранное</button>
-    </div>
+    <section class="main_nav">
+        <h1>Администрирование чатов</h1>
+        <div class="search_form -separete_block">
+            <input oninput="search_on_page('_chats')" id="search_chats" type="text" class="search_input -separete_main -input_separete" placeholder="Поиск чатов">
+            <input onclick="search_on_page('_chats')" id="search_chats" type="button" class="search_button -separete_second -button_separete" value="Поиск">
+        </div>
+        <div class="button_left">
+            <button class="button_del -button_del_close -button" onclick="delete_all_chats()" id="button_del">Удалить все чаты</button>
+            <button class="button_recov_select -button" onclick="recovery_checked_chats()" id="button_recov_select">Восстановить выбранное</button>
+            <button class="button_del_select -button_del_close -button" onclick="delete_checked_chats()" id="button_del_select">Удалить выбранное</button>
+        </div>
+    </section>
+    <table class="table">
+        <thead>
+            <tr class="table_header">
+                <th class="table_element -table_header_first">Нвзвание чата</th>
+                <th class="table_element">Владелец</th>
+                <th class="table_element -table_header_end -table-button"></th>
+            </tr>
+        </thead>
+        <tbody id="table_block_chats">
+        </tbody>
+    </table>
     <section id="chats_delete">
     </section>
 </section>
@@ -167,7 +180,7 @@
             <input type="text" id="file_name_text" class="file_name_text -input_with_label">  
         </div>
         <textarea name="file_text" id="file_text" class="file_text -separete_column_main"></textarea>
-        <button onclick="send_text(event)" id="send_text" class="send_text -separete_column_second">Сохранить</button>
+        <button onclick="send_text()" id="send_text" class="send_text -separete_column_second">Сохранить</button>
     </div>
 </section>
 <section id="page_configs_ai" class="pages">

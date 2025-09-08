@@ -27,13 +27,13 @@ function search_on_page(table){
     }
 }
 
-function get_chats_nav(token){
+function get_chats_nav(){
     $.ajax({
         url:'/chats/get',
         method:'GET',
         headers:{
             "Content-Type":"application/json",
-            "Authorization": "Bearer "+token
+            "Authorization": "Bearer "+get_token()
         },
         success : function(result) {
             if (result["result"]==false){
@@ -71,4 +71,28 @@ function password_check(form){
     }else{
         $('#'+form+'password_check').css('border','1px solid red');
     }
+}
+function open_nav(){
+    var left_shift='-283px'
+    if($('#header').css('left')!='0px'){
+        $('#header').animate({
+            left:'0'
+        },400)
+        $('main').animate({
+            'margin-left':'360px'
+        },400)
+
+    }
+    else{
+        $('#header').animate({
+            left:left_shift,
+        },400)
+        $('main').animate({
+            'margin-left':'75px'
+        },400)
+    }
+}
+
+function open_nav_hide(){
+    $('.nav_hide_block').slideToggle()
 }
