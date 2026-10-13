@@ -1,0 +1,65 @@
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.deps import get_admin_user, get_current_user
+from app.db.models import User
+from app.db.session import get_session
+from app.schemas.users import RegistrationUser, UpdatePassword, UpdateRole
+from app.services import user_service
+
+router = APIRouter()
+
+
+@router.get("/get")
+async def get_users(
+    _: User = Depends(get_admin_user),
+    session: AsyncSession = Depends(get_session),
+):
+    return {
+        "result": True,
+        "users": await user_service.list_users(session),
+        "message": "Пользователи получены",
+        "category": "success",
+    }
+
+
+@router.post("/registration")
+async def registration(
+    payload: RegistrationUser,
+    _: User = Depends(get_admin_user),
+    session: AsyncSession = Depends(get_session),
+):
+    await user_service.create_user(
+        session, payload.login, payload.user_name, payload.password
+    )
+    return {"result": True, "message": "Пользователь создан", "category": "success"}
+
+
+@router.patch("/change/password")
+async def change_password(
+    payload: UpdatePassword,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    await user_service.update_password(session, user, payload.login, payload.password)
+    return {"result": True, "message": "Пароль изменен", "category": "success"}
+
+
+@router.patch("/change/role")
+async def change_role(
+    payload: UpdateRole,
+    actor: User = Depends(get_admin_user),
+    session: AsyncSession = Depends(get_session),
+):
+    await user_service.update_role(session, actor, payload.login, payload.is_admin)
+    return {"result": True, "message": "Роль изменена", "category": "success"}
+
+
+@router.delete("/delete")
+async def delete_user(
+    login: str,
+    actor: User = Depends(get_admin_user),
+    session: AsyncSession = Depends(get_session),
+):
+    await user_service.delete_user(session, actor, login)
+    return {"result": True, "message": "Пользователь удален", "category": "success"}

@@ -1,8 +1,0 @@
-.send_del{
-    margin-bottom: 10px;
-    align-self: flex-end;
-}
-.update_button{
-    width: 100%;
-    background: var(--chat-block-color);
-}

@@ -1,8 +1,7 @@
+.venv/
 __pycache__/
-/ai_chat/models/sbert_large_nlu_ru/
-*.log
-*.db
-/venv
-config.json
-poetry.lock
-dist/
+*.pyc
+.env
+logs/
+.idea/
+.vscode/
