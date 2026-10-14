@@ -9,32 +9,26 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
-    # App
     app_name: str = "Ragi_AI"
     app_port: int = 8000
     debug: bool = False
 
-    # Database
     db_host: str = "postgres"
     db_port: int = 5432
     db_name: str = "ragi"
     db_user: str = "ragi"
     db_password: str = "ragi"
-    auto_create_schema: bool = False  # если True — создаёт таблицы при старте
+    auto_create_schema: bool = False
 
-    # Auth
-    secret_key: str = "change-me"
     token_expire_minutes: int = 30
     token_expire_days: int = 7
 
-    # vLLM
     vllm_base_url: str = "http://vllm:8000/v1"
     vllm_api_key: str = "EMPTY"
-    vllm_model: str = "Qwen/Qwen2.5-7B-Instruct"
+    vllm_model: str = "Qwen/Qwen2.5-0.5B-Instruct"
     vllm_temperature: float = 0.7
     vllm_max_tokens: int = 2048
 
-    # Embeddings / RAG
     embedding_model: str = "intfloat/multilingual-e5-large"
     embedding_dim: int = 1024
     rag_search_limit: int = 5
@@ -42,17 +36,10 @@ class Settings(BaseSettings):
     rag_chunk_size: int = 500
     rag_chunk_overlap: int = 100
 
-    # Default admin
-    default_admin_login: str = "admin"
-    default_admin_password: str = "admin"
-    default_admin_name: str = "админ"
-    system_login: str = "system"
-
-    # AI prompts
     ai_name: str = "Раги"
     system_prompt: str = (
-        "Ты - {name}, твоя задача отвечать на вопросы используя информацию из базы, "
-        "а если информации нет — генерировать ответ самостоятельно и добавлять "
+        "Ты - {name}. Отвечай на вопросы, используя контекст из базы. "
+        "Если данных нет — отвечай самостоятельно и добавляй "
         "'Ответ сгенерирован самостоятельно'"
     )
     user_prompt: str = "Контекст: {context}\nВопрос: {quest}"

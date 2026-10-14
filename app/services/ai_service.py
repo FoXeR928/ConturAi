@@ -2,6 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.constants import SYSTEM_LOGIN
 from app.core.exceptions import AppError
 from app.db.models import Chat, Message, User
 from app.llm.vllm_client import chat_completion
@@ -61,7 +62,7 @@ async def ask(
     # 5. сохраняем ответ
     session.add(
         Message(
-            user_login=settings.system_login,
+            user_login=SYSTEM_LOGIN,
             chat_id=chat_id,
             text=answer,
         )

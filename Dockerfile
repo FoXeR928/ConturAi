@@ -4,10 +4,12 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
-    UV_PROJECT_ENVIRONMENT=/app/.venv
+    UV_PROJECT_ENVIRONMENT=/app/.venv \
+    HF_HOME=/root/.cache/huggingface \
+    SENTENCE_TRANSFORMERS_HOME=/root/.cache/huggingface
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    tesseract-ocr tesseract-ocr-rus poppler-utils \
+    tesseract-ocr tesseract-ocr-rus poppler-utils curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=ghcr.io/astral-sh/uv:0.5.11 /uv /uvx /usr/local/bin/
@@ -18,6 +20,10 @@ COPY pyproject.toml uv.lock* ./
 RUN uv sync --no-install-project --no-dev
 
 COPY app ./app
+
+# каталог для логов и секретов (в реальном запуске — том)
+RUN mkdir -p /app/data/logs /app/data/secret
+
 ENV PATH="/app/.venv/bin:$PATH"
 
 EXPOSE 8000
