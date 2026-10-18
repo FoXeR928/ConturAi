@@ -1,19 +1,19 @@
-name: ragi_ai
+name: conturai
 
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: ragi_postgres
+    container_name: conturai_postgres
     environment:
-      POSTGRES_USER: ${RAGI_DB_USER:-ragi}
-      POSTGRES_PASSWORD: ${RAGI_DB_PASSWORD:-ragi}
-      POSTGRES_DB: ${RAGI_DB_NAME:-ragi}
+      POSTGRES_USER: ${CONTURAI_DB_USER:-conturai}
+      POSTGRES_PASSWORD: ${CONTURAI_DB_PASSWORD:-conturai}
+      POSTGRES_DB: ${CONTURAI_DB_NAME:-conturai}
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${RAGI_DB_USER:-ragi} -d ${RAGI_DB_NAME:-ragi}"]
+      test: ["CMD-SHELL", "pg_isready -U ${CONTURAI_DB_USER:-conturai} -d ${CONTURAI_DB_NAME:-conturai}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -21,26 +21,28 @@ services:
 
   vllm:
     image: vllm/vllm-openai:latest
-    container_name: ragi_vllm
+    container_name: conturai_vllm
     command: >
-      --model ${RAGI_VLLM_MODEL:-Qwen/Qwen2.5-0.5B-Instruct}
+      --model /models/Qwen2.5-0.5B-Instruct
+      --served-model-name local-model
       --host 0.0.0.0
       --port 8000
       --max-model-len 4096
       --gpu-memory-utilization 0.85
     environment:
-      HUGGING_FACE_HUB_TOKEN: ${HF_TOKEN:-}
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
     ports:
       - "8080:8000"
     volumes:
-      - hf_cache:/root/.cache/huggingface
+      - ./models:/models:ro
     ipc: host
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 30
-      start_period: 180s
+      start_period: 120s
     restart: unless-stopped
     deploy:
       resources:
@@ -50,15 +52,16 @@ services:
               count: all
               capabilities: [gpu]
 
-  app:
+  backend:
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: ragi_app
+      dockerfile: backend/Dockerfile
+    container_name: conturai_backend
     env_file: .env
     environment:
-      RAGI_DB_HOST: postgres
-      RAGI_VLLM_BASE_URL: http://vllm:8000/v1
+      CONTURAI_DB_HOST: postgres
+      CONTURAI_VLLM_BASE_URL: http://vllm:8000/v1
+      CONTURAI_EMBEDDING_MODEL_PATH: /models/multilingual-e5-large
     ports:
       - "8000:8000"
     depends_on:
@@ -67,11 +70,10 @@ services:
       vllm:
         condition: service_healthy
     volumes:
-      - app_data:/app/data              # ← логи + секреты
-      - hf_cache:/root/.cache/huggingface
+      - app_data:/app/data
+      - ./models:/models:ro
     restart: unless-stopped
 
 volumes:
   pgdata:
-  hf_cache:
-  app_data:                             # ← том для /app/data
+  app_data:
