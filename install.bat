@@ -1,110 +1,95 @@
 @echo off
 setlocal enabledelayedexpansion
 
-echo ==================================================
-echo   ConturAI - установка и запуск
-echo ==================================================
-echo.
+set MODE=%1
+if "%MODE%"=="" set MODE=full
 
-REM --- 1. Проверка Docker ---
+echo ==================================================
+echo   ConturAI - Установка (режим: %MODE%)
+echo ==================================================
+
 docker --version >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] Docker не найден. Установите Docker Desktop и повторите.
+    echo [ERROR] Docker не найден.
     exit /b 1
 )
 
-docker compose version >nul 2>&1
-if errorlevel 1 (
-    echo [ERROR] Docker Compose не найден. Обновите Docker Desktop.
-    exit /b 1
-)
-
-echo [OK] Docker и Docker Compose найдены.
-echo.
-
-REM --- 2. Подготовка .env ---
+REM --- Генерация .env ---
 if not exist .env (
-    echo [INFO] Файл .env не найден. Будет создан с автоматическими паролями.
-    echo.
-
-    REM Собираем образ бэкенда, чтобы был доступен manage.py setup-env
-    echo [INFO] Сборка образа backend...
-    docker compose build backend
+    python scripts\generate_env.py
     if errorlevel 1 (
-        echo [ERROR] Не удалось собрать образ backend.
-        exit /b 1
-    )
-
-    echo [INFO] Генерация .env и случайных паролей...
-    docker compose run --rm --no-deps backend python scripts/manage.py setup-env
-    if errorlevel 1 (
-        echo [ERROR] Не удалось сгенерировать .env.
+        echo [ERROR] Не удалось создать .env. Убедитесь, что Python установлен.
         exit /b 1
     )
 ) else (
-    echo [OK] Файл .env уже существует, используем его.
+    echo [OK] Файл .env уже существует.
 )
-echo.
 
-REM --- 3. Запуск контейнеров ---
-echo [INFO] Сборка и запуск контейнеров...
-docker compose up --build -d
-if errorlevel 1 (
-    echo [ERROR] Не удалось запустить контейнеры.
-    exit /b 1
-)
-echo.
+REM --- Маршрутизация режимов ---
+if /I "%MODE%"=="full" goto :full
+if /I "%MODE%"=="backend" goto :backend
+if /I "%MODE%"=="test" goto :backend
+if /I "%MODE%"=="frontend" goto :frontend
 
-REM --- 4. Ожидание готовности PostgreSQL ---
-echo [INFO] Ожидание готовности PostgreSQL...
-set /a retries=30
-:wait_db
-docker compose exec -T postgres pg_isready -U conturai >nul 2>&1
-if not errorlevel 1 goto db_ready
+echo [ERROR] Неизвестный режим: %MODE%
+echo Доступные режимы: full, backend, frontend, test
+exit /b 1
 
-set /a retries-=1
-if !retries! leq 0 (
-    echo [ERROR] PostgreSQL не запустился за отведённое время.
-    echo         Проверьте логи: docker compose logs postgres
-    exit /b 1
-)
-timeout /t 2 /nobreak >nul
-echo    ожидание... осталось !retries! попыток
-goto wait_db
+REM --- Режим FULL ---
+:full
+call :run_backend
+call :run_frontend
+goto :done
 
-:db_ready
-echo [OK] PostgreSQL готов.
-echo.
+REM --- Режим FRONTEND ---
+:frontend
+echo [INFO] Сборка и запуск Фронтенда...
+docker compose up -d --build frontend
+goto :done
 
-REM --- 5. Инициализация БД ---
-echo [INFO] Инициализация схемы базы данных и промтов...
+REM --- Режим BACKEND / TEST ---
+:backend
+call :run_backend
+goto :done
+
+REM --- Функция запуска бэкенда ---
+:run_backend
+echo [INFO] Сборка и запуск БД, vLLM и Бэкенда...
+docker compose up -d --build postgres vllm backend
+
+echo [INFO] Ожидание PostgreSQL...
+timeout /t 10 /nobreak >nul
+
+echo [INFO] Инициализация БД...
 docker compose exec -T backend python scripts/manage.py init-db
-if errorlevel 1 (
-    echo [ERROR] Ошибка инициализации БД.
-    exit /b 1
-)
-echo.
+if errorlevel 1 exit /b 1
 
-REM --- 6. Создание администратора ---
 echo [INFO] Создание администратора...
 docker compose exec -T backend python scripts/manage.py reset-admin
-if errorlevel 1 (
-    echo [ERROR] Не удалось создать администратора.
-    exit /b 1
-)
-echo.
+if errorlevel 1 exit /b 1
+exit /b 0
 
-REM --- 7. Итог ---
+REM --- Завершение ---
+:done
 echo ==================================================
-echo   ConturAI успешно запущен
+echo   Установка завершена (режим: %MODE%)
 echo ==================================================
-echo   Frontend:  http://localhost:3000
-echo   API:       http://localhost:8000/docs
-echo   Status:    http://localhost:8000/status
-echo.
-echo   Логин и пароль администратора - см. выше в выводе
-echo   команды reset-admin. Пароль показывается один раз.
+if /I "%MODE%"=="full" (
+    echo Frontend: http://localhost:3000
+    echo API:      http://localhost:8000/docs
+    echo Status:   http://localhost:8000/status
+)
+if /I "%MODE%"=="backend" (
+    echo API:      http://localhost:8000/docs
+    echo Status:   http://localhost:8000/status
+)
+if /I "%MODE%"=="test" (
+    echo API:      http://localhost:8000/docs
+    echo Status:   http://localhost:8000/status
+)
+if /I "%MODE%"=="frontend" (
+    echo Frontend: http://localhost:3000
+)
 echo ==================================================
-echo.
 
 endlocal
