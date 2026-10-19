@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 from loguru import logger
 
 from app.api.router import api_router
-from app.core.config import settings
+from app.core.config import settings, APP_VERSION
 from app.core.exceptions import AppError
 from app.core.logging import setup_logging
 
@@ -18,7 +18,7 @@ async def lifespan(_: FastAPI):
     logger.info("Shutdown")
 
 
-app = FastAPI(title=settings.app_name, version="2.0.0", lifespan=lifespan)
+app = FastAPI(title=settings.app_name, version=APP_VERSION, lifespan=lifespan)
 
 
 @app.exception_handler(AppError)

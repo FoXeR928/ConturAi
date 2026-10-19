@@ -1,4 +1,18 @@
+from pathlib import Path
+import tomllib
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# --- Чтение версии из pyproject.toml ---
+def _get_version() -> str:
+    try:
+        toml_path = Path(__file__).resolve().parent.parent.parent / "pyproject.toml"
+        with open(toml_path, "rb") as f:
+            data = tomllib.load(f)
+            return data["project"]["version"]
+    except Exception:
+        return "unknown"
+
+APP_VERSION = _get_version()
 
 ADMIN_LOGIN = "admin"
 ADMIN_NAME = "админ"
