@@ -113,7 +113,7 @@ def cmd_setup_env() -> None:
         return
 
     logger.info("Генерация паролей и создание .env")
-    db_user = "db_" + _generate_password(8).lower()
+    db_user = "conturai_user"
     db_password = _generate_password(32)
 
     content = ENV_EXAMPLE.read_text(encoding="utf-8")

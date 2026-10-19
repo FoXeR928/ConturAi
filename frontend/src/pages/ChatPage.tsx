@@ -35,15 +35,25 @@ export function ChatPage({ onLogout }: { onLogout: () => void }) {
 
   const sendMessage = async (text: string) => {
     if (!activeChat) return;
-    setMessages(prev => [...prev, { role: 'user', text }]);
+
+    // 1. Сначала оптимистично добавляем сообщение пользователя
+    setMessages(prev => [...prev, { chat_role: 'user', text }]);
     setLoading(true);
+
     try {
+      // 2. Отправляем запрос к бэкенду
       const res = await api.askAi(activeChat, text);
+      
+      // 3. Если всё ок, добавляем ответ ИИ
       if (res.result) {
-        setMessages(prev => [...prev, { role: 'assistant', chat_role: 'assistant', text: res.answer }]);
+        setMessages(prev => [...prev, { chat_role: 'assistant', text: res.answer }]);
+      } else {
+        // Если бэкенд вернул ошибку (например, 503, когда нет vLLM)
+        setMessages(prev => [...prev, { chat_role: 'assistant', text: res.message || 'Ошибка сервера' }]);
       }
     } catch (e) {
-      setMessages(prev => [...prev, { role: 'assistant', chat_role: 'assistant', text: 'Ошибка сети' }]);
+      // 4. Если упала сеть
+      setMessages(prev => [...prev, { chat_role: 'assistant', text: 'Ошибка сети' }]);
     } finally {
       setLoading(false);
     }

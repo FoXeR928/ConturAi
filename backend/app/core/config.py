@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     db_host: str = "localhost"
     db_port: int = 5432
     db_name: str = "conturai"
-    db_user: str = "conturai"
+    db_user: str = "conturai_user"
     db_password: str = "conturai"
 
     token_expire_minutes: int = 30
@@ -56,7 +56,7 @@ class Settings(BaseSettings):
     rag_chunk_size: int = 500
     rag_chunk_overlap: int = 100
 
-    ai_name: str = "Раги"
+    ai_name: str = "Контур"
     system_prompt: str = (
         "Ты - {name}. Отвечай на вопросы, используя контекст из базы. "
         "Если данных нет — отвечай самостоятельно и добавляй "

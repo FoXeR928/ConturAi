@@ -31,7 +31,7 @@ export function ChatWindow({ messages, onSendMessage, loading }: ChatWindowProps
       {/* Область сообщений */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {messages.map((msg, idx) => {
-          const isUser = msg.chat_role === 'user';
+          const isUser = msg.chat_role === 'user' || msg.role === 'user';
           return (
             <div key={idx} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[75%] p-4 rounded-2xl ${

@@ -35,20 +35,22 @@ services:
     volumes:
       - ./models:/models:ro
     ipc: host
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
     restart: unless-stopped
     # Порты наружу не нужны, бэкенд общается по внутренней сети
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        PYTORCH_INDEX: ${PYTORCH_INDEX:-https://download.pytorch.org/whl/cpu}
     container_name: conturai_backend
     env_file: .env
     environment:
@@ -61,8 +63,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      vllm:
-        condition: service_started
+      # vllm:
+      #   condition: service_started
     volumes:
       - app_data:/app/data
       - ./models:/models:ro

@@ -7,3 +7,15 @@ __pycache__
 .idea
 .vscode
 logs
+node_modules
+dist
+.env
+.git
+.vscode
+.git
+.idea
+.vscode
+**/__pycache__
+**/*.pyc
+frontend/node_modules
+frontend/dist

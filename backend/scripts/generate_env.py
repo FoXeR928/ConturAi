@@ -2,8 +2,10 @@ import secrets
 import string
 from pathlib import Path
 
-ENV_FILE = Path(".env")
-ENV_EXAMPLE = Path(".env.example")
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+
+ENV_FILE = ROOT_DIR / ".env"
+ENV_EXAMPLE = ROOT_DIR / ".env.example"
 
 
 def generate_password(length=32):
@@ -21,7 +23,7 @@ def main():
         return
 
     print("[INFO] Генерация паролей и создание .env...")
-    db_user = "db_" + generate_password(8).lower()
+    db_user = "conturai_user"
     db_password = generate_password(32)
 
     content = ENV_EXAMPLE.read_text(encoding="utf-8")
