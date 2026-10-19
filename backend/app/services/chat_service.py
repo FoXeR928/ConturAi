@@ -36,6 +36,7 @@ async def list_chats(session: AsyncSession, user: User) -> list[dict]:
 async def get_messages(
     session: AsyncSession, user: User, chat_id: int
 ) -> tuple[str, list[dict]]:
+    # Админ может смотреть даже удаленные чаты
     chat = await _get_chat(session, chat_id, include_deleted=user.is_admin)
     
     if chat.user_login != user.login and not user.is_admin:
@@ -54,6 +55,7 @@ async def get_messages(
 async def create_message(
     session: AsyncSession, user: User, chat_id: int, text: str
 ) -> int:
+    # В удаленный чат писать нельзя никому
     chat = await _get_chat(session, chat_id, include_deleted=False)
     
     if chat.user_login != user.login and not user.is_admin:

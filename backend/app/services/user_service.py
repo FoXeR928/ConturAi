@@ -116,6 +116,7 @@ async def delete_user(session: AsyncSession, actor: User, login: str) -> None:
     if user.is_admin and await _admins_count(session) <= 1:
         raise AppError("Нельзя удалить последнего администратора", "warning", 403)
 
+    # Мягкое удаление: блокируем и меняем логин
     user.disabled = True
     user.login = f"{login}_deleted_{int(time.time())}" 
     

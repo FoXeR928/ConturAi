@@ -1,3 +1,4 @@
+from loguru import logger
 from openai import AsyncOpenAI
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -61,7 +62,7 @@ async def ask(
     chat = (
         await session.execute(select(Chat).where(Chat.id == chat_id))
     ).scalar_one_or_none()
-    if not chat:
+    if not chat or chat.is_deleted:
         raise AppError("Не найден чат", "warning", 404)
     if chat.user_login != user.login and not user.is_admin:
         raise AppError("Нет доступа", "warning", 403)
@@ -83,7 +84,6 @@ async def ask(
     try:
         answer = await _chat_completion(history)
     except Exception as err:
-        from loguru import logger
         logger.error(f"Ошибка при запросе к vLLM: {err}")
         raise AppError("Нейросеть временно недоступна", "error", 503)
 
