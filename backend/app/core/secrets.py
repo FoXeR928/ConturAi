@@ -10,10 +10,9 @@ from loguru import logger
 from app.core.config import settings
 
 # ---------- Пути ----------
-DATA_DIR = Path(os.getenv("CONTURAI_DATA_DIR", "/app/data"))
+DATA_DIR = Path(settings.data_dir).resolve()
 LOGS_DIR = DATA_DIR / "logs"
 SECRET_DIR = DATA_DIR / "secret"
-MODELS_DIR = Path(os.getenv("CONTURAI_MODELS_DIR", "/models"))
 
 for _d in (DATA_DIR, LOGS_DIR, SECRET_DIR):
     _d.mkdir(parents=True, exist_ok=True)
