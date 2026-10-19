@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
-echo "🚀 Запуск установки ConturAI..."
+echo "Запуск установки ConturAI..."
 
 # 1. Генерируем .env, если его нет
 if [ ! -f .env ]; then
-    echo "🔧 Генерация конфигурации..."
+    echo "Генерация конфигурации..."
     # Простой генератор паролей (или можно вызвать ваш python-скрипт)
     DB_PASS=$(openssl rand -hex 16)
     JWT_KEY=$(openssl rand -hex 32)
@@ -38,38 +38,38 @@ EMBEDDING_DIM=1024
 HF_HUB_OFFLINE=1
 TRANSFORMERS_OFFLINE=1
 EOF
-    echo "✅ .env создан"
+    echo ".env создан"
 fi
 
 # 2. Собираем и запускаем контейнеры (кроме бэкенда, чтобы сначала настроить БД)
-echo "📦 Сборка образов..."
+echo "Сборка образов..."
 docker compose build
 
-echo "⏳ Запуск базы данных и vLLM..."
+echo "Запуск базы данных и vLLM..."
 docker compose up -d postgres vllm
 
-echo "⏳ Ожидание готовности PostgreSQL..."
+echo "Ожидание готовности PostgreSQL..."
 until docker compose exec -T postgres pg_isready -U conturai > /dev/null 2>&1; do
     sleep 2
 done
 
 # 3. Инициализация БД
-echo "🗄️ Инициализация базы данных..."
+echo "Инициализация базы данных..."
 docker compose run --rm backend python scripts/manage.py init-db
 
 # 4. Создание администратора
-echo "🔑 Создание администратора..."
+echo "Создание администратора..."
 docker compose run --rm backend python scripts/manage.py reset-admin
 
 # 5. Запуск бэкенда и фронтенда
-echo "🚀 Запуск приложения..."
+echo "Запуск приложения..."
 docker compose up -d backend frontend
 
 echo "================================================="
-echo "✅ ConturAI успешно запущен!"
-echo "🌐 Веб-интерфейс: http://localhost:3000"
-echo "📖 Swagger UI:    http://localhost:8000/docs"
-echo "❤️  Статус:        http://localhost:8000/status"
+echo "ConturAI успешно запущен!"
+echo "Веб-интерфейс: http://localhost:3000"
+echo "Swagger UI:    http://localhost:8000/docs"
+echo "Статус:        http://localhost:8000/status"
 echo ""
 echo "Проверьте логи для получения пароля администратора:"
 echo "docker compose logs backend | grep -A 2 'ДАННЫЕ ДЛЯ ВХОДА'"
