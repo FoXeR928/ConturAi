@@ -1,35 +1,40 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "Установка ConturAI..."
+echo "🚀 Установка ConturAI..."
 
-if [ ! -f .env ]; then
-    cp .env.example .env
-    echo "Создан файл .env"
+# 1. Генерируем .env с паролями, если его нет
+if [ ! -f backend/.env ]; then
+    cd backend
+    # Предполагается, что uv установлен
+    uv run python scripts/setup_env.py
+    cd ..
 fi
 
-echo "Сборка контейнеров..."
-docker compose build
-
-echo "Запуск базы данных и vLLM (ожидание)..."
+# 2. Поднимаем базу и vLLM
+echo "⏳ Запуск базы данных и vLLM..."
 docker compose up -d postgres vllm
 
-# Ждем, пока Postgres будет готов
-until docker compose exec -T postgres pg_isready -U conturai > /dev/null 2>&1; do
+# 3. Ждем готовности БД
+until docker compose exec -T postgres pg_isready -U $(grep DB_USER backend/.env | cut -d '=' -f2) > /dev/null 2>&1; do
     echo "Ожидание PostgreSQL..."
     sleep 2
 done
 
-echo "Инициализация базы данных..."
+# 4. Инициализация схемы БД
+echo "🗄️ Инициализация базы данных..."
 docker compose run --rm backend python scripts/manage.py init-db
 
-echo "Генерация пароля администратора..."
+# 5. Создание админа
+echo "🔑 Создание администратора..."
 docker compose run --rm backend python scripts/manage.py reset-admin
 
-echo "Запуск основного приложения..."
+# 6. Запуск бэкенда
+echo "🚀 Запуск бэкенда..."
 docker compose up -d backend
 
 echo "================================================="
-echo "ConturAI успешно запущен!"
-echo "API: http://localhost:8000/docs"
+echo "✅ ConturAI запущен!"
+echo "Проверьте логи для получения пароля администратора:"
+echo "docker compose logs backend | grep -A 2 'ДАННЫЕ ДЛЯ ВХОДА'"
 echo "================================================="

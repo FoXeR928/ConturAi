@@ -5,15 +5,15 @@ services:
     image: pgvector/pgvector:pg16
     container_name: conturai_postgres
     environment:
-      POSTGRES_USER: ${CONTURAI_DB_USER:-conturai}
-      POSTGRES_PASSWORD: ${CONTURAI_DB_PASSWORD:-conturai}
-      POSTGRES_DB: ${CONTURAI_DB_NAME:-conturai}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${CONTURAI_DB_USER:-conturai} -d ${CONTURAI_DB_NAME:-conturai}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -59,9 +59,9 @@ services:
     container_name: conturai_backend
     env_file: .env
     environment:
-      CONTURAI_DB_HOST: postgres
-      CONTURAI_VLLM_BASE_URL: http://vllm:8000/v1
-      CONTURAI_EMBEDDING_MODEL_PATH: /models/multilingual-e5-large
+      DB_HOST: postgres
+      VLLM_BASE_URL: http://vllm:8000/v1
+      EMBEDDING_MODEL_PATH: /models/multilingual-e5-large
     ports:
       - "8000:8000"
     depends_on:
