@@ -3,32 +3,34 @@ from openai import AsyncOpenAI
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import SYSTEM_LOGIN, settings
+from app.core.config import SYSTEM_LOGIN
 from app.core.exceptions import AppError
 from app.db.models import Chat, Message, User
 from app.rag import format_context, search_documents
-from app.services import prompt_service
+from app.services import llm_config_service, prompt_service
 
 _client: AsyncOpenAI | None = None
+_client_key: tuple[str, str] | None = None
 
 
-def _get_client() -> AsyncOpenAI:
-    global _client
-    if _client is None:
-        _client = AsyncOpenAI(
-            base_url=settings.vllm_base_url,
-            api_key=settings.vllm_api_key,
-            timeout=120.0,
-        )
+def _get_client(base_url: str, api_key: str) -> AsyncOpenAI:
+    global _client, _client_key
+    key = (base_url, api_key)
+    if _client is None or _client_key != key:
+        _client = AsyncOpenAI(base_url=base_url, api_key=api_key, timeout=120.0)
+        _client_key = key
     return _client
 
 
-async def _chat_completion(messages: list[dict[str, str]]) -> str:
-    response = await _get_client().chat.completions.create(
-        model=settings.vllm_model_name,
+async def _chat_completion(
+    llm: dict, messages: list[dict[str, str]]
+) -> str:
+    client = _get_client(llm["base_url"], llm["api_key"])
+    response = await client.chat.completions.create(
+        model=llm["model"],
         messages=messages,
-        temperature=settings.vllm_temperature,
-        max_tokens=settings.vllm_max_tokens,
+        temperature=llm["temperature"],
+        max_tokens=llm["max_tokens"],
         stream=False,
     )
     return response.choices[0].message.content or ""
@@ -67,29 +69,26 @@ async def ask(
     if chat.user_login != user.login and not user.is_admin:
         raise AppError("Нет доступа", "warning", 403)
 
-    # 1. Ищем контекст
     docs = await search_documents(session, question)
     context = format_context(docs)
 
-    # 2. Готовим промт
     prompts = await prompt_service.get_all_prompts(session)
     user_prompt = prompts.get("user_prompt", "Контекст: {context}\nВопрос: {quest}")
     prompt = user_prompt.format(context=context, quest=question)
 
-    # 3. Собираем историю (без сохранения в БД!)
     history = await _build_history(session, chat_id)
     history.append({"role": "user", "content": prompt})
 
-    # 4. Спрашиваем vLLM
+    llm = await llm_config_service.get_typed(session)
+
     try:
-        answer = await _chat_completion(history)
+        answer = await _chat_completion(llm, history)
     except Exception as err:
         logger.error(f"Ошибка при запросе к vLLM: {err}")
         raise AppError("Нейросеть временно недоступна", "error", 503)
 
-    # 5. Сохраняем вопрос и ответ одной транзакцией
     session.add(Message(user_login=user.login, chat_id=chat_id, text=question))
     session.add(Message(user_login=SYSTEM_LOGIN, chat_id=chat_id, text=answer))
     await session.commit()
-    
+
     return answer

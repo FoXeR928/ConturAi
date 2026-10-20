@@ -118,3 +118,16 @@ class Prompt(Base):
     updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), onupdate=func.now()
     )
+
+
+class LlmConfig(Base):
+    __tablename__ = "llm_configs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    key: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    value: Mapped[str] = mapped_column(Text)
+    description: Mapped[str | None] = mapped_column(String(255))
+    input_type: Mapped[str] = mapped_column(String(32), default="text")
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), onupdate=func.now()
+    )

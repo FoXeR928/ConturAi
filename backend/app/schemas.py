@@ -30,10 +30,16 @@ class UpdateRole(BaseModel):
     is_admin: bool
 
 
+class UpdateStatus(BaseModel):
+    login: str
+    disabled: bool
+
+
 class PromptUpdate(BaseModel):
     key: str
     value: str
 
-class UpdateStatus(BaseModel):
-    login: str
-    disabled: bool
+
+class LlmConfigUpdate(BaseModel):
+    key: str
+    value: str

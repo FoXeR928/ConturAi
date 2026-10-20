@@ -5,7 +5,7 @@ services:
     image: pgvector/pgvector:pg16
     container_name: conturai_postgres
     environment:
-      POSTGRES_USER: ${DB_USER:-conturai}
+      POSTGRES_USER: ${DB_USER:-conturai_user}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-conturai}
       POSTGRES_DB: ${DB_NAME:-conturai}
     ports:
@@ -20,30 +20,35 @@ services:
     restart: unless-stopped
 
   vllm:
-    image: vllm/vllm-openai:latest
+    # Официальный CPU-образ vLLM (x86_64)
+    image: vllm/vllm-openai-cpu:latest
     container_name: conturai_vllm
     command: >
       --model /models/Qwen2.5-0.5B-Instruct
       --served-model-name local-model
       --host 0.0.0.0
       --port 8000
-      --max-model-len 4096
-      --gpu-memory-utilization 0.85
+      --max-model-len 2048
+      --dtype float32
     environment:
       HF_HUB_OFFLINE: "1"
       TRANSFORMERS_OFFLINE: "1"
+      # Резервируем память под KV-кэш (в ГБ). Подстройте под вашу RAM.
+      VLLM_CPU_KVCACHE_SPACE: "4"
+      # Привязка к ядрам CPU (опционально, ускоряет работу).
+      # Пример для 8 ядер: "0-7". Если не уверены — закомментируйте.
+      # VLLM_CPU_OMP_THREADS_BIND: "0-7"
+    ports:
+      - "8080:8000"
     volumes:
       - ./models:/models:ro
     ipc: host
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]
+    # Явно указываем, что GPU не нужен
+    deploy:
+      resources:
+        reservations:
+          devices: []
     restart: unless-stopped
-    # Порты наружу не нужны, бэкенд общается по внутренней сети
 
   backend:
     build:
@@ -54,17 +59,16 @@ services:
     container_name: conturai_backend
     env_file: .env
     environment:
-      # Переопределяем хост, так как внутри docker-сети база называется "postgres"
       DB_HOST: postgres
       VLLM_BASE_URL: http://vllm:8000/v1
       DATA_DIR: /app/data
     ports:
-      - "8000:8000" # Оставляем для Swagger и проверки /status
+      - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
-      # vllm:
-      #   condition: service_started
+      vllm:
+        condition: service_started
     volumes:
       - app_data:/app/data
       - ./models:/models:ro
@@ -76,7 +80,7 @@ services:
       dockerfile: Dockerfile
     container_name: conturai_frontend
     ports:
-      - "3000:80" # Фронт будет доступен на http://localhost:3000
+      - "3000:80"
     depends_on:
       - backend
     restart: unless-stopped

@@ -1,8 +1,9 @@
 from pathlib import Path
 import tomllib
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# --- Чтение версии из pyproject.toml ---
+
 def _get_version() -> str:
     try:
         toml_path = Path(__file__).resolve().parent.parent.parent / "pyproject.toml"
@@ -12,12 +13,14 @@ def _get_version() -> str:
     except Exception:
         return "unknown"
 
+
 APP_VERSION = _get_version()
 
 ADMIN_LOGIN = "admin"
 ADMIN_NAME = "админ"
 SYSTEM_LOGIN = "system"
 SYSTEM_CHAT_ROLE = "assistant"
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -40,23 +43,26 @@ class Settings(BaseSettings):
     token_expire_minutes: int = 30
     token_expire_days: int = 7
 
-    vllm_base_url: str = "http://localhost:8000/v1"
-    vllm_api_key: str = "EMPTY"
-    vllm_model_name: str = "local-model"
-    vllm_temperature: float = 0.7
-    vllm_max_tokens: int = 2048
-
+    # Пути
     data_dir: str = "./data"
     models_dir: str = "./models"
+
+    # Что качать в models/ (список через запятую)
+    # Формат: "repo_id:local_name,repo_id:local_name"
+    models_to_download: str = (
+        "intfloat/multilingual-e5-large:multilingual-e5-large,"
+        "Qwen/Qwen2.5-0.5B-Instruct:Qwen2.5-0.5B-Instruct"
+    )
+
     embedding_model_path: str = "./models/multilingual-e5-large"
     embedding_dim: int = 1024
-    
+
     rag_search_limit: int = 5
     rag_batch_size: int = 64
     rag_chunk_size: int = 500
     rag_chunk_overlap: int = 100
 
-    ai_name: str = "Контур"
+    ai_name: str = "Раги"
     system_prompt: str = (
         "Ты - {name}. Отвечай на вопросы, используя контекст из базы. "
         "Если данных нет — отвечай самостоятельно и добавляй "
@@ -70,5 +76,6 @@ class Settings(BaseSettings):
             f"postgresql+asyncpg://{self.db_user}:{self.db_password}"
             f"@{self.db_host}:{self.db_port}/{self.db_name}"
         )
+
 
 settings = Settings()
