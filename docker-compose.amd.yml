@@ -1,7 +1,26 @@
 name: conturai
 
 services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: conturai_postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-conturai_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-conturai}
+      POSTGRES_DB: ${DB_NAME:-conturai}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
   vllm:
+    # Используем официальный Docker-образ vLLM, оптимизированный под AMD ROCm
     image: rocm/vllm:latest
     container_name: conturai_vllm
     command: >
@@ -11,10 +30,12 @@ services:
       --port 8000
       --max-model-len 4096
     environment:
-      HF_HUB_OFFLINE: "1"
-      TRANSFORMERS_OFFLINE: "1"
+      HF_HUB_OFFLINE: ${HF_HUB_OFFLINE:-1}
+      TRANSFORMERS_OFFLINE: ${TRANSFORMERS_OFFLINE:-1}
     volumes:
-      - ./models:/models:ro
+      # ВНИМАНИЕ: Убран флаг :ro, теперь контейнер сможет скачивать и сохранять модели
+      - ./models:/models
+    # Проброс аппаратных интерфейсов AMD ядра Linux (Kernel Fusion Driver и Direct Rendering Infrastructure)
     devices:
       - /dev/kfd
       - /dev/dri
@@ -30,15 +51,46 @@ services:
       retries: 30
       start_period: 300s
     restart: unless-stopped
-    # Убираем nvidia-блок из базового файла
     deploy:
       resources:
         reservations:
           devices: []
 
   backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        PYTORCH_INDEX: ${PYTORCH_INDEX:-https://pytorch.org}
+    container_name: conturai_backend
+    env_file: .env
+    environment:
+      DB_HOST: postgres
+      VLLM_BASE_URL: http://vllm:8000/v1
+      DATA_DIR: /app/data
+    ports:
+      - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
       vllm:
         condition: service_healthy
+    volumes:
+      - app_data:/app/data
+      - ./models:/models
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: conturai_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  app_data:

@@ -23,17 +23,20 @@ services:
   vllm:
     image: vllm/vllm-openai-cpu:latest
     container_name: conturai_vllm
+    privileged: true
     command: >
       --model /models/Qwen2.5-0.5B-Instruct
       --served-model-name local-model
       --host 0.0.0.0
       --port 8000
       --max-model-len 1024
-      --dtype float32
+      --kv-cache-dtype fp8
+      --distributed-executor-backend mp
     environment:
-      HF_HUB_OFFLINE: "1"
-      TRANSFORMERS_OFFLINE: "1"
-      VLLM_CPU_KVCACHE_SPACE: "1"
+      HF_HUB_OFFLINE: ${HF_HUB_OFFLINE:-1}
+      TRANSFORMERS_OFFLINE: ${TRANSFORMERS_OFFLINE:-1}
+      VLLM_WORKER_MULTIPROC_METHOD: "spawn"
+      OMP_NUM_THREADS: "4"
     ports:
       - "8080:8000"
     volumes:
@@ -71,7 +74,7 @@ services:
         condition: service_healthy
     volumes:
       - app_data:/app/data
-      - ./models:/models:ro
+      - ./models:/models
     restart: unless-stopped
     mem_limit: 1g
 

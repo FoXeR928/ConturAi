@@ -12,11 +12,11 @@ services:
       --max-model-len 2048
       --dtype float32
     environment:
-      HF_HUB_OFFLINE: "1"
-      TRANSFORMERS_OFFLINE: "1"
+      HF_HUB_OFFLINE: ${HF_HUB_OFFLINE:-1}
+      TRANSFORMERS_OFFLINE: ${TRANSFORMERS_OFFLINE:-1}
       VLLM_CPU_KVCACHE_SPACE: "4"
     volumes:
-      - ./models:/models:ro
+      - ./models:/models
     ipc: host
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]

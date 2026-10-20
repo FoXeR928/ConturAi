@@ -14,12 +14,12 @@ echo "  4) Слабый ПК (4–8 ГБ ОЗУ, CPU) — легкие моде�
 echo "  5) Только backend (без vLLM)   — API + БД"
 echo "  6) Только frontend             — интерфейс"
 echo ""
-read -r -p "Введите номер [1]: " PLATFORM
+read -r -p "Введите номер: " PLATFORM
 PLATFORM="${PLATFORM:-1}"
 
 case "$PLATFORM" in
     1) MODE="nvidia";       COMPOSE_BASE="-f docker-compose.yml";;
-    2) MODE="amd";          COMPOSE_BASE="-f docker-compose.yml -f docker-compose.amd.yml";;
+    2) MODE="amd";          COMPOSE_BASE="-f docker-compose.yml";; # Изменено: amd теперь основной в docker-compose.yml
     3) MODE="cpu";          COMPOSE_BASE="-f docker-compose.yml -f docker-compose.cpu.yml";;
     4) MODE="dev";          COMPOSE_BASE="-f docker-compose.dev.yml";;
     5) MODE="backend-only"; COMPOSE_BASE="-f docker-compose.yml -f docker-compose.cpu.yml";;
@@ -74,6 +74,7 @@ update_env() {
     local key="$1" value="$2"
     if grep -q "^${key}=" .env; then
         sed -i.bak "s|^${key}=.*|${key}=${value}|" .env
+        rm -f .env.bak # Чистим за собой временные файлы sed
     else
         echo "${key}=${value}" >> .env
     fi
@@ -83,10 +84,9 @@ update_env "PYTORCH_INDEX" "$PYTORCH_INDEX"
 update_env "EMBEDDING_MODEL_PATH" "$EMB_PATH"
 update_env "EMBEDDING_DIM" "$EMB_DIM"
 update_env "MODELS_TO_DOWNLOAD" "${LLM_MODEL},${EMB_MODEL}"
+update_env "HF_HUB_OFFLINE" "0" # Принудительно отключаем оффлайн-режим HuggingFace
 
-echo "[OK] PYTORCH_INDEX = $PYTORCH_INDEX"
-echo "[OK] EMBEDDING_DIM = $EMB_DIM"
-echo "[OK] MODELS_TO_DOWNLOAD = $LLM_MODEL,$EMB_MODEL"
+echo "[OK] Конфигурация .env обновлена."
 
 # --- 3. Скачивание моделей ---
 if [ "$MODE" != "frontend-only" ] && [ "$MODE" != "backend-only" ]; then
@@ -111,15 +111,16 @@ if [ "$MODE" != "frontend-only" ]; then
     echo ""
     echo "[INFO] Ожидание PostgreSQL..."
     for _ in $(seq 1 40); do
+        # ИСПРАВЛЕНО: Явно указан юзер 'conturai_user' во избежание падения из-за пустого grep
         if docker compose $COMPOSE_BASE exec -T postgres \
-            pg_isready -U "$(grep '^DB_USER=' .env | cut -d= -f2)" >/dev/null 2>&1; then
+            pg_isready -U "conturai_user" >/dev/null 2>&1; then
             echo "[OK] PostgreSQL готов."
             break
         fi
         sleep 2
     done
 
-    echo "[INFO] Инициализация БД, промтов и llm_configs..."
+    echo "[INFO] Инициализация БД..."
     docker compose $COMPOSE_BASE exec -T backend \
         python scripts/manage.py init-db
 

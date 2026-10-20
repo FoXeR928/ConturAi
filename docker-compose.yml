@@ -30,8 +30,8 @@ services:
       --max-model-len 4096
       --gpu-memory-utilization 0.85
     environment:
-      HF_HUB_OFFLINE: "1"
-      TRANSFORMERS_OFFLINE: "1"
+      HF_HUB_OFFLINE: ${HF_HUB_OFFLINE:-1}
+      TRANSFORMERS_OFFLINE: ${TRANSFORMERS_OFFLINE:-1}
     volumes:
       - ./models:/models:ro
     ipc: host
@@ -72,7 +72,7 @@ services:
       #   condition: service_healthy
     volumes:
       - app_data:/app/data
-      - ./models:/models:ro
+      - ./models:/models
     restart: unless-stopped
 
   frontend:
