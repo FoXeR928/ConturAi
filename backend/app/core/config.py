@@ -36,7 +36,7 @@ class Settings(BaseSettings):
 
     db_host: str = "localhost"
     db_port: int = 5432
-    db_name: str = "conturai"
+    db_name: str = "conturai_db"
     db_user: str = "conturai_user"
     db_password: str = "conturai"
 
