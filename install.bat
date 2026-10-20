@@ -17,6 +17,7 @@ echo   6^) Только frontend               - интерфейс
 echo.
 set /p PLATFORM="Введите номер [1]: "
 if "%PLATFORM%"=="" set PLATFORM=1
+set "PLATFORM=%PLATFORM: =%"
 
 if "%PLATFORM%"=="1" ( set MODE=nvidia & set COMPOSE_BASE=-f docker-compose.yml )
 if "%PLATFORM%"=="2" ( set MODE=amd & set COMPOSE_BASE=-f docker-compose.yml -f docker-compose.amd.yml )
@@ -58,34 +59,63 @@ if not exist .env (
     echo [OK] .env уже существует.
 )
 
-REM --- 2. Параметры моделей под режим ---
-if "%MODE%"=="nvidia" set PYTORCH_INDEX=https://download.pytorch.org/whl/cu121
-if "%MODE%"=="amd"    set PYTORCH_INDEX=https://download.pytorch.org/whl/rocm6.1
-if "%MODE%"=="cpu"    set PYTORCH_INDEX=https://download.pytorch.org/whl/cpu
-if "%MODE%"=="dev"    set PYTORCH_INDEX=https://download.pytorch.org/whl/cpu
-if "%MODE%"=="backend-only" set PYTORCH_INDEX=https://download.pytorch.org/whl/cpu
-if "%MODE%"=="frontend-only" set PYTORCH_INDEX=https://download.pytorch.org/whl/cpu
+REM --- 2. Значения по умолчанию ---
+set "PYTORCH_INDEX=https://download.pytorch.org/whl/cpu"
+set "LLM_MODEL=Qwen/Qwen2.5-0.5B-Instruct:Qwen2.5-0.5B-Instruct"
+set "EMB_MODEL=intfloat/multilingual-e5-large:multilingual-e5-large"
+set "EMB_PATH=/models/multilingual-e5-large"
+set "EMB_DIM=1024"
+
+if "%MODE%"=="nvidia" set "PYTORCH_INDEX=https://download.pytorch.org/whl/cu121"
+if "%MODE%"=="amd"    set "PYTORCH_INDEX=https://download.pytorch.org/whl/rocm6.1"
 
 if "%MODE%"=="dev" (
-    set LLM_MODEL=Qwen/Qwen2.5-0.5B-Instruct:Qwen2.5-0.5B-Instruct
-    set EMB_MODEL=ibm-granite/granite-embedding-97m-multilingual-r2:granite-embedding-97m-multilingual-r2
-    set EMB_PATH=/models/granite-embedding-97m-multilingual-r2
-    set EMB_DIM=384
-) else (
-    set LLM_MODEL=Qwen/Qwen2.5-0.5B-Instruct:Qwen2.5-0.5B-Instruct
-    set EMB_MODEL=intfloat/multilingual-e5-large:multilingual-e5-large
-    set EMB_PATH=/models/multilingual-e5-large
-    set EMB_DIM=1024
+    set "LLM_MODEL=Qwen/Qwen2.5-0.5B-Instruct:Qwen2.5-0.5B-Instruct"
+    set "EMB_MODEL=ibm-granite/granite-embedding-97m-multilingual-r2:granite-embedding-97m-multilingual-r2"
+    set "EMB_PATH=/models/granite-embedding-97m-multilingual-r2"
+    set "EMB_DIM=384"
 )
 
-powershell -NoProfile -Command ^
-  "$keys = @{ 'PYTORCH_INDEX'='%PYTORCH_INDEX%'; 'EMBEDDING_MODEL_PATH'='%EMB_PATH%'; 'EMBEDDING_DIM'='%EMB_DIM%'; 'MODELS_TO_DOWNLOAD'='%LLM_MODEL%,%EMB_MODEL%' }; $c = Get-Content -Raw -Encoding UTF8 '.env'; foreach ($k in $keys.Keys) { if ($c -match \"$k=\") { $c = $c -replace \"$k=.*\", \"$k=$($keys[$k])\" } else { $c += \"`n$k=$($keys[$k])\" } }; Set-Content -NoNewline -Encoding UTF8 '.env' $c"
+set "MODELS_TO_DOWNLOAD=%LLM_MODEL%,%EMB_MODEL%"
 
-echo [OK] PYTORCH_INDEX = %PYTORCH_INDEX%
-echo [OK] EMBEDDING_DIM = %EMB_DIM%
-echo [OK] MODELS_TO_DOWNLOAD = %LLM_MODEL%,%EMB_MODEL%
+echo [INFO] PYTORCH_INDEX      = %PYTORCH_INDEX%
+echo [INFO] EMBEDDING_MODEL_PATH = %EMB_PATH%
+echo [INFO] EMBEDDING_DIM      = %EMB_DIM%
+echo [INFO] MODELS_TO_DOWNLOAD = %MODELS_TO_DOWNLOAD%
 
-REM --- 3. Скачивание моделей ---
+REM --- 3. Обновление .env через PS-скрипт ---
+(
+    echo $ErrorActionPreference = 'Stop'
+    echo $path = '.env'
+    echo $content = Get-Content -Raw -Encoding UTF8 $path
+    echo function Set-Key($k, $v) {
+    echo   if ($script:content -match "(?m)^$k=") {
+    echo     $script:content = [regex]::Replace($script:content, "(?m)^$k=.*", "$k=$v")
+    echo   } else {
+    echo     if (-not $script:content.EndsWith("`n")) { $script:content += "`n" }
+    echo     $script:content += "$k=$v`n"
+    echo   }
+    echo }
+    echo Set-Key 'PYTORCH_INDEX' '%PYTORCH_INDEX%'
+    echo Set-Key 'EMBEDDING_MODEL_PATH' '%EMB_PATH%'
+    echo Set-Key 'EMBEDDING_DIM' '%EMB_DIM%'
+    echo Set-Key 'MODELS_TO_DOWNLOAD' '%MODELS_TO_DOWNLOAD%'
+    echo Set-Content -NoNewline -Encoding UTF8 $path $content
+) > .env_upd.ps1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File .env_upd.ps1
+if errorlevel 1 (
+    echo [ERROR] Не удалось обновить .env через PowerShell.
+    del .env_upd.ps1 >nul 2>&1
+    exit /b 1
+)
+del .env_upd.ps1 >nul 2>&1
+
+echo.
+echo [OK] .env обновлён. Текущие значения:
+findstr /B /C:"PYTORCH_INDEX=" /C:"EMBEDDING_MODEL_PATH=" /C:"EMBEDDING_DIM=" /C:"MODELS_TO_DOWNLOAD=" .env
+
+REM --- 4. Скачивание моделей ---
 if not "%MODE%"=="frontend-only" if not "%MODE%"=="backend-only" (
     echo.
     echo [INFO] Скачивание моделей ^(может занять время^)...
@@ -94,7 +124,7 @@ if not "%MODE%"=="frontend-only" if not "%MODE%"=="backend-only" (
     echo [OK] Модели скачаны.
 )
 
-REM --- 4. Запуск ---
+REM --- 5. Запуск ---
 echo.
 echo [INFO] Запуск контейнеров...
 if "%MODE%"=="backend-only" (
@@ -106,7 +136,7 @@ if "%MODE%"=="backend-only" (
 )
 if errorlevel 1 ( echo [ERROR] Не удалось запустить контейнеры. & exit /b 1 )
 
-REM --- 5. Инициализация БД ---
+REM --- 6. Инициализация БД ---
 if not "%MODE%"=="frontend-only" (
     echo.
     echo [INFO] Ожидание PostgreSQL...
@@ -129,7 +159,7 @@ if not "%MODE%"=="frontend-only" (
     if errorlevel 1 exit /b 1
 )
 
-REM --- 6. Итог ---
+REM --- 7. Итог ---
 echo.
 echo ==================================================
 echo   Установка завершена ^(%MODE%^)
