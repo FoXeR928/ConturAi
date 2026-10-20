@@ -8,22 +8,22 @@ echo   ConturAI - Установка
 echo ==================================================
 echo.
 echo Выберите режим установки:
-echo   1^) NVIDIA GPU ^(CUDA^)          - полный стек
-echo   2^) AMD GPU ^(ROCm^)             - полный стек
-echo   3^) CPU ^(8+ ГБ ОЗУ^)            - полный стек
-echo   4^) Слабый ПК ^(4-8 ГБ ОЗУ^)     - только легкие модели
-echo   5^) Только backend ^(без vLLM^)  - API + БД для тестов
-echo   6^) Только frontend              - интерфейс
+echo   1^) NVIDIA GPU ^(CUDA^)           - полный стек
+echo   2^) AMD GPU ^(ROCm^)              - полный стек
+echo   3^) CPU ^(8+ ГБ ОЗУ^)             - полный стек
+echo   4^) Слабый ПК ^(4-8 ГБ ОЗУ, CPU^) - легкие модели
+echo   5^) Только backend ^(без vLLM^)   - API + БД
+echo   6^) Только frontend               - интерфейс
 echo.
 set /p PLATFORM="Введите номер [1]: "
 if "%PLATFORM%"=="" set PLATFORM=1
 
-if "%PLATFORM%"=="1" ( set MODE=nvidia & set OVERRIDE= )
-if "%PLATFORM%"=="2" ( set MODE=amd & set OVERRIDE=docker-compose.amd.yml )
-if "%PLATFORM%"=="3" ( set MODE=cpu & set OVERRIDE=docker-compose.cpu.yml )
-if "%PLATFORM%"=="4" ( set MODE=dev & set OVERRIDE=docker-compose.dev.yml )
-if "%PLATFORM%"=="5" ( set MODE=backend-only & set OVERRIDE=docker-compose.cpu.yml )
-if "%PLATFORM%"=="6" ( set MODE=frontend-only & set OVERRIDE= )
+if "%PLATFORM%"=="1" ( set MODE=nvidia & set COMPOSE_BASE=-f docker-compose.yml )
+if "%PLATFORM%"=="2" ( set MODE=amd & set COMPOSE_BASE=-f docker-compose.yml -f docker-compose.amd.yml )
+if "%PLATFORM%"=="3" ( set MODE=cpu & set COMPOSE_BASE=-f docker-compose.yml -f docker-compose.cpu.yml )
+if "%PLATFORM%"=="4" ( set MODE=dev & set COMPOSE_BASE=-f docker-compose.dev.yml )
+if "%PLATFORM%"=="5" ( set MODE=backend-only & set COMPOSE_BASE=-f docker-compose.yml -f docker-compose.cpu.yml )
+if "%PLATFORM%"=="6" ( set MODE=frontend-only & set COMPOSE_BASE=-f docker-compose.yml )
 
 if not defined MODE (
     echo [ERROR] Неверный выбор.
@@ -34,7 +34,7 @@ echo.
 echo [INFO] Режим: %MODE%
 echo.
 
-REM ---------- Проверки ----------
+REM --- Проверки ---
 docker --version >nul 2>&1
 if errorlevel 1 ( echo [ERROR] Docker не найден. & exit /b 1 )
 docker compose version >nul 2>&1
@@ -42,11 +42,7 @@ if errorlevel 1 ( echo [ERROR] Docker Compose не найден. & exit /b 1 )
 python --version >nul 2>&1
 if errorlevel 1 ( echo [ERROR] python не найден. & exit /b 1 )
 
-REM ---------- Compose-файлы ----------
-set COMPOSE_FILES=-f docker-compose.yml
-if defined OVERRIDE if exist "%OVERRIDE%" set COMPOSE_FILES=%COMPOSE_FILES% -f %OVERRIDE%
-
-REM ---------- 1. .env ----------
+REM --- 1. .env ---
 if not exist .env (
     echo [INFO] Генерация .env...
     if exist scripts\generate_env.py (
@@ -62,7 +58,7 @@ if not exist .env (
     echo [OK] .env уже существует.
 )
 
-REM ---------- 2. PYTORCH_INDEX / модели ----------
+REM --- 2. Параметры моделей под режим ---
 if "%MODE%"=="nvidia" set PYTORCH_INDEX=https://download.pytorch.org/whl/cu121
 if "%MODE%"=="amd"    set PYTORCH_INDEX=https://download.pytorch.org/whl/rocm6.1
 if "%MODE%"=="cpu"    set PYTORCH_INDEX=https://download.pytorch.org/whl/cpu
@@ -87,34 +83,35 @@ powershell -NoProfile -Command ^
 
 echo [OK] PYTORCH_INDEX = %PYTORCH_INDEX%
 echo [OK] EMBEDDING_DIM = %EMB_DIM%
+echo [OK] MODELS_TO_DOWNLOAD = %LLM_MODEL%,%EMB_MODEL%
 
-REM ---------- 3. Скачивание моделей ----------
+REM --- 3. Скачивание моделей ---
 if not "%MODE%"=="frontend-only" if not "%MODE%"=="backend-only" (
     echo.
     echo [INFO] Скачивание моделей ^(может занять время^)...
-    docker compose %COMPOSE_FILES% run --rm backend python scripts/manage.py download-models
+    docker compose %COMPOSE_BASE% run --rm --no-deps backend python scripts/manage.py download-models
     if errorlevel 1 ( echo [ERROR] Не удалось скачать модели. & exit /b 1 )
     echo [OK] Модели скачаны.
 )
 
-REM ---------- 4. Запуск ----------
+REM --- 4. Запуск ---
 echo.
 echo [INFO] Запуск контейнеров...
 if "%MODE%"=="backend-only" (
-    docker compose %COMPOSE_FILES% up -d --build postgres backend
+    docker compose %COMPOSE_BASE% up -d --build postgres backend
 ) else if "%MODE%"=="frontend-only" (
-    docker compose %COMPOSE_FILES% up -d --build frontend
+    docker compose %COMPOSE_BASE% up -d --build frontend
 ) else (
-    docker compose %COMPOSE_FILES% up -d --build
+    docker compose %COMPOSE_BASE% up -d --build
 )
 if errorlevel 1 ( echo [ERROR] Не удалось запустить контейнеры. & exit /b 1 )
 
-REM ---------- 5. Инициализация ----------
+REM --- 5. Инициализация БД ---
 if not "%MODE%"=="frontend-only" (
     echo.
     echo [INFO] Ожидание PostgreSQL...
-    for /l %%i in (1,1,30) do (
-        docker compose %COMPOSE_FILES% exec -T postgres pg_isready -U conturai_user >nul 2>&1
+    for /l %%i in (1,1,40) do (
+        docker compose %COMPOSE_BASE% exec -T postgres pg_isready -U conturai_user >nul 2>&1
         if not errorlevel 1 goto db_ready
         timeout /t 2 /nobreak >nul
     )
@@ -124,15 +121,15 @@ if not "%MODE%"=="frontend-only" (
     echo [OK] PostgreSQL готов.
 
     echo [INFO] Инициализация БД...
-    docker compose %COMPOSE_FILES% exec -T backend python scripts/manage.py init-db
+    docker compose %COMPOSE_BASE% exec -T backend python scripts/manage.py init-db
     if errorlevel 1 exit /b 1
 
     echo [INFO] Создание администратора...
-    docker compose %COMPOSE_FILES% exec -T backend python scripts/manage.py reset-admin
+    docker compose %COMPOSE_BASE% exec -T backend python scripts/manage.py reset-admin
     if errorlevel 1 exit /b 1
 )
 
-REM ---------- 6. Итог ----------
+REM --- 6. Итог ---
 echo.
 echo ==================================================
 echo   Установка завершена ^(%MODE%^)
@@ -142,29 +139,11 @@ if "%MODE%"=="backend-only" (
     echo API:      http://localhost:8000/docs
     echo Status:   http://localhost:8000/status
 )
-if "%MODE%"=="nvidia" (
+if not "%MODE%"=="frontend-only" if not "%MODE%"=="backend-only" (
     echo Frontend: http://localhost:3000
     echo API:      http://localhost:8000/docs
     echo Status:   http://localhost:8000/status
     echo vLLM:     http://localhost:8080/v1
-)
-if "%MODE%"=="amd" (
-    echo Frontend: http://localhost:3000
-    echo API:      http://localhost:8000/docs
-    echo Status:   http://localhost:8000/status
-    echo vLLM:     http://localhost:8080/v1
-)
-if "%MODE%"=="cpu" (
-    echo Frontend: http://localhost:3000
-    echo API:      http://localhost:8000/docs
-    echo Status:   http://localhost:8000/status
-    echo vLLM:     http://localhost:8080/v1 ^(CPU^)
-)
-if "%MODE%"=="dev" (
-    echo Frontend: http://localhost:3000
-    echo API:      http://localhost:8000/docs
-    echo Status:   http://localhost:8000/status
-    echo vLLM:     http://localhost:8080/v1 ^(CPU, легкие модели^)
 )
 echo.
 echo Пароль администратора — см. вывод reset-admin выше.

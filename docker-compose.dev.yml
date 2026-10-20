@@ -2,6 +2,22 @@ name: conturai
 
 services:
   postgres:
+    image: pgvector/pgvector:pg16
+    container_name: conturai_postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-conturai_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-conturai}
+      POSTGRES_DB: ${DB_NAME:-conturai}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
     mem_limit: 1g
 
   vllm:
@@ -18,6 +34,8 @@ services:
       HF_HUB_OFFLINE: "1"
       TRANSFORMERS_OFFLINE: "1"
       VLLM_CPU_KVCACHE_SPACE: "1"
+    ports:
+      - "8080:8000"
     volumes:
       - ./models:/models:ro
     ipc: host
@@ -29,18 +47,46 @@ services:
       start_period: 600s
     restart: unless-stopped
     mem_limit: 3g
-    deploy:
-      resources:
-        reservations:
-          devices: []
 
   backend:
-    mem_limit: 1g
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        PYTORCH_INDEX: https://download.pytorch.org/whl/cpu
+    container_name: conturai_backend
+    env_file: .env
+    environment:
+      DB_HOST: postgres
+      VLLM_BASE_URL: http://vllm:8000/v1
+      DATA_DIR: /app/data
+      EMBEDDING_MODEL_PATH: /models/granite-embedding-97m-multilingual-r2
+      EMBEDDING_DIM: "384"
+    ports:
+      - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
       vllm:
         condition: service_healthy
+    volumes:
+      - app_data:/app/data
+      - ./models:/models:ro
+    restart: unless-stopped
+    mem_limit: 1g
 
   frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: conturai_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
     mem_limit: 256m
+
+volumes:
+  pgdata:
+  app_data:

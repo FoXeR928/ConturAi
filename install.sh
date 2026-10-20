@@ -2,29 +2,28 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-# ---------- Заголовок ----------
 echo "=================================================="
 echo "  ConturAI - Установка"
 echo "=================================================="
 echo ""
 echo "Выберите режим установки:"
-echo "  1) NVIDIA GPU (CUDA)          — полный стек"
-echo "  2) AMD GPU (ROCm)             — полный стек"
-echo "  3) CPU (8+ ГБ ОЗУ)            — полный стек"
-echo "  4) Слабый ПК (4–8 ГБ ОЗУ)     — только легкие модели"
-echo "  5) Только backend (без vLLM)  — API + БД для тестов"
-echo "  6) Только frontend            — интерфейс"
+echo "  1) NVIDIA GPU (CUDA)           — полный стек"
+echo "  2) AMD GPU (ROCm)              — полный стек"
+echo "  3) CPU (8+ ГБ ОЗУ)             — полный стек"
+echo "  4) Слабый ПК (4–8 ГБ ОЗУ, CPU) — легкие модели"
+echo "  5) Только backend (без vLLM)   — API + БД"
+echo "  6) Только frontend             — интерфейс"
 echo ""
 read -r -p "Введите номер [1]: " PLATFORM
 PLATFORM="${PLATFORM:-1}"
 
 case "$PLATFORM" in
-    1) MODE="nvidia";       OVERRIDE="";;
-    2) MODE="amd";          OVERRIDE="docker-compose.amd.yml";;
-    3) MODE="cpu";          OVERRIDE="docker-compose.cpu.yml";;
-    4) MODE="dev";          OVERRIDE="docker-compose.dev.yml";;
-    5) MODE="backend-only"; OVERRIDE="docker-compose.cpu.yml";;
-    6) MODE="frontend-only";OVERRIDE="";;
+    1) MODE="nvidia";       COMPOSE_BASE="-f docker-compose.yml";;
+    2) MODE="amd";          COMPOSE_BASE="-f docker-compose.yml -f docker-compose.amd.yml";;
+    3) MODE="cpu";          COMPOSE_BASE="-f docker-compose.yml -f docker-compose.cpu.yml";;
+    4) MODE="dev";          COMPOSE_BASE="-f docker-compose.dev.yml";;
+    5) MODE="backend-only"; COMPOSE_BASE="-f docker-compose.yml -f docker-compose.cpu.yml";;
+    6) MODE="frontend-only";COMPOSE_BASE="-f docker-compose.yml";;
     *) echo "[ERROR] Неверный выбор"; exit 1;;
 esac
 
@@ -32,18 +31,12 @@ echo ""
 echo "[INFO] Режим: $MODE"
 echo ""
 
-# Проверки
+# --- Проверки ---
 command -v docker >/dev/null 2>&1 || { echo "[ERROR] Docker не найден."; exit 1; }
 docker compose version >/dev/null 2>&1 || { echo "[ERROR] Docker Compose не найден."; exit 1; }
 command -v python3 >/dev/null 2>&1 || { echo "[ERROR] python3 не найден."; exit 1; }
 
-# Compose-файлы
-COMPOSE_FILES="-f docker-compose.yml"
-if [ -n "$OVERRIDE" ] && [ -f "$OVERRIDE" ]; then
-    COMPOSE_FILES="$COMPOSE_FILES -f $OVERRIDE"
-fi
-
-# .env
+# --- 1. .env ---
 if [ ! -f .env ]; then
     echo "[INFO] Генерация .env..."
     if [ -f scripts/generate_env.py ]; then
@@ -51,14 +44,14 @@ if [ ! -f .env ]; then
     elif [ -f backend/scripts/generate_env.py ]; then
         python3 backend/scripts/generate_env.py
     else
-        echo "[ERROR] generate_env.py не найден ни в scripts/, ни в backend/scripts/"
+        echo "[ERROR] generate_env.py не найден."
         exit 1
     fi
 else
     echo "[OK] .env уже существует."
 fi
 
-# PYTORCH_INDEX и модели
+# --- 2. Параметры моделей под режим ---
 case "$MODE" in
     nvidia) PYTORCH_INDEX="https://download.pytorch.org/whl/cu121";;
     amd)    PYTORCH_INDEX="https://download.pytorch.org/whl/rocm6.1";;
@@ -93,31 +86,32 @@ update_env "MODELS_TO_DOWNLOAD" "${LLM_MODEL},${EMB_MODEL}"
 
 echo "[OK] PYTORCH_INDEX = $PYTORCH_INDEX"
 echo "[OK] EMBEDDING_DIM = $EMB_DIM"
+echo "[OK] MODELS_TO_DOWNLOAD = $LLM_MODEL,$EMB_MODEL"
 
-# Модели
+# --- 3. Скачивание моделей ---
 if [ "$MODE" != "frontend-only" ] && [ "$MODE" != "backend-only" ]; then
     echo ""
     echo "[INFO] Скачивание моделей (может занять время)..."
-    docker compose $COMPOSE_FILES run --rm backend \
+    docker compose $COMPOSE_BASE run --rm --no-deps backend \
         python scripts/manage.py download-models
     echo "[OK] Модели скачаны."
 fi
 
-# Запуск
+# --- 4. Запуск контейнеров ---
 echo ""
 echo "[INFO] Запуск контейнеров..."
 case "$MODE" in
-    backend-only)  docker compose $COMPOSE_FILES up -d --build postgres backend;;
-    frontend-only) docker compose $COMPOSE_FILES up -d --build frontend;;
-    *)             docker compose $COMPOSE_FILES up -d --build;;
+    backend-only)  docker compose $COMPOSE_BASE up -d --build postgres backend;;
+    frontend-only) docker compose $COMPOSE_BASE up -d --build frontend;;
+    *)             docker compose $COMPOSE_BASE up -d --build;;
 esac
 
-# Инициализация
+# --- 5. Инициализация БД ---
 if [ "$MODE" != "frontend-only" ]; then
     echo ""
     echo "[INFO] Ожидание PostgreSQL..."
-    for _ in $(seq 1 30); do
-        if docker compose $COMPOSE_FILES exec -T postgres \
+    for _ in $(seq 1 40); do
+        if docker compose $COMPOSE_BASE exec -T postgres \
             pg_isready -U "$(grep '^DB_USER=' .env | cut -d= -f2)" >/dev/null 2>&1; then
             echo "[OK] PostgreSQL готов."
             break
@@ -126,15 +120,15 @@ if [ "$MODE" != "frontend-only" ]; then
     done
 
     echo "[INFO] Инициализация БД, промтов и llm_configs..."
-    docker compose $COMPOSE_FILES exec -T backend \
+    docker compose $COMPOSE_BASE exec -T backend \
         python scripts/manage.py init-db
 
     echo "[INFO] Создание администратора..."
-    docker compose $COMPOSE_FILES exec -T backend \
+    docker compose $COMPOSE_BASE exec -T backend \
         python scripts/manage.py reset-admin
 fi
 
-# Итог
+# --- 6. Итог ---
 echo ""
 echo "=================================================="
 echo "  Установка завершена ($MODE)"
