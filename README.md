@@ -350,5 +350,103 @@ volumes:
   pgdata:
   app_data:
 ```
+## Запуск
 
-**Требования:** достаточно обычного Docker без GPU. На CPU рекомендуется модель `Qwen2.5-0.5B` (маленькая) и `--dtype float32`.
+### Способ 1. Универсальный скрипт (рекомендуется)
+
+Скрипт сам спросит платформу, создаст `.env` со случайными паролями, скачает модели, инициализирует БД и создаст администратора.
+
+**Linux / macOS:**
+```bash
+chmod +x install.sh
+./install.sh
+```
+
+**Windows:**
+```cmd
+install.bat
+```
+
+При запуске нужно выбрать режим:
+
+```
+1) NVIDIA GPU (CUDA)          — полный стек
+2) AMD GPU (ROCm)             — полный стек
+3) CPU (8+ ГБ ОЗУ)            — полный стек
+4) Слабый ПК (4–8 ГБ ОЗУ)     — только легкие модели
+5) Только backend (без vLLM)  — API + БД для тестов
+6) Только frontend            — интерфейс
+```
+
+В конце скрипт выведет адреса и **пароль администратора** (см. вывод `reset-admin`).
+
+### Способ 2. Ручной запуск через Docker Compose
+
+#### NVIDIA (по умолчанию)
+
+```bash
+docker compose up -d --build
+```
+
+#### AMD (ROCm)
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.amd.yml up -d --build
+```
+
+#### CPU (8+ ГБ ОЗУ)
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.cpu.yml up -d --build
+```
+
+#### Слабый ПК (4–8 ГБ ОЗУ, легкие модели)
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+```
+
+#### Только backend (без vLLM, для тестов API)
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.cpu.yml up -d --build postgres backend
+```
+
+#### Только frontend
+
+```bash
+docker compose up -d --build frontend
+```
+
+#### Первый запуск: инициализация
+
+После того как контейнеры поднялись, выполните:
+
+```bash
+# Создать таблицы, промты и параметры LLM
+docker compose exec backend python scripts/manage.py init-db
+
+# Создать администратора (пароль будет выведен в консоль)
+docker compose exec backend python scripts/manage.py reset-admin
+```
+
+Если вы использовали `install.sh` / `install.bat`, эти шаги уже выполнены.
+
+## Управление
+
+Все команды выполняются из корня проекта.
+
+```bash
+# Инициализация БД (первый запуск)
+docker compose exec backend python scripts/manage.py init-db
+
+# Сброс пароля администратора (создаст, если удален)
+docker compose exec backend python scripts/manage.py reset-admin
+
+# Скачать модели (по списку из .env)
+docker compose exec backend python scripts/manage.py download-models
+
+# Скачать конкретные модели
+docker compose exec backend python scripts/manage.py download-models \
+  --only "Qwen/Qwen2.5-0.5B-Instruct:Qwen2.5-0.5B-Instruct"
+

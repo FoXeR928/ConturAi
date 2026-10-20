@@ -1,0 +1,44 @@
+name: conturai
+
+services:
+  vllm:
+    image: rocm/vllm:latest
+    container_name: conturai_vllm
+    command: >
+      --model /models/Qwen2.5-0.5B-Instruct
+      --served-model-name local-model
+      --host 0.0.0.0
+      --port 8000
+      --max-model-len 4096
+    environment:
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+    volumes:
+      - ./models:/models:ro
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+    security_opt:
+      - seccomp:unconfined
+    ipc: host
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 300s
+    restart: unless-stopped
+    # Убираем nvidia-блок из базового файла
+    deploy:
+      resources:
+        reservations:
+          devices: []
+
+  backend:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      vllm:
+        condition: service_healthy

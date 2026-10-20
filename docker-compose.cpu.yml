@@ -1,0 +1,38 @@
+name: conturai
+
+services:
+  vllm:
+    image: vllm/vllm-openai-cpu:latest
+    container_name: conturai_vllm
+    command: >
+      --model /models/Qwen2.5-0.5B-Instruct
+      --served-model-name local-model
+      --host 0.0.0.0
+      --port 8000
+      --max-model-len 2048
+      --dtype float32
+    environment:
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      VLLM_CPU_KVCACHE_SPACE: "4"
+    volumes:
+      - ./models:/models:ro
+    ipc: host
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 300s
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices: []
+
+  backend:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      vllm:
+        condition: service_healthy
