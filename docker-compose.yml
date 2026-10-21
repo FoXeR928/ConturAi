@@ -18,20 +18,25 @@ services:
       timeout: 5s
       retries: 10
     restart: unless-stopped
+    mem_limit: ${PG_MEM_LIMIT:-1g}
 
   vllm:
-    image: vllm/vllm-openai:latest
+    image: ${VLLM_IMAGE:-vllm/vllm-openai:latest}
     container_name: conturai_vllm
     command: >
-      --model /models/Qwen2.5-0.5B-Instruct
-      --served-model-name local-model
+      --model ${VLLM_MODEL_PATH:-/models/Qwen2.5-0.5B-Instruct}
+      --served-model-name ${VLLM_SERVED_NAME:-local-model}
       --host 0.0.0.0
       --port 8000
-      --max-model-len 4096
-      --gpu-memory-utilization 0.85
+      --max-model-len ${VLLM_MAX_MODEL_LEN:-2048}
+      --dtype ${VLLM_DTYPE:-auto}
+      ${VLLM_EXTRA_ARGS:-}
     environment:
-      HF_HUB_OFFLINE: ${HF_HUB_OFFLINE:-1}
-      TRANSFORMERS_OFFLINE: ${TRANSFORMERS_OFFLINE:-1}
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      VLLM_CPU_KVCACHE_SPACE: ${VLLM_CPU_KVCACHE_SPACE:-}
+    ports:
+      - "8080:8000"
     volumes:
       - ./models:/models:ro
     ipc: host
@@ -39,16 +44,21 @@ services:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 30
-      start_period: 180s
+      retries: 60
+      start_period: 300s
     restart: unless-stopped
-    # GPU-проброс включён в .amd/.cpu/.dev override-файлах
+    mem_limit: ${VLLM_MEM_LIMIT:-6g}
+    # Платформенные устройства. Пустые значения → CPU.
+    devices:
+      - ${VLLM_DEVICE_KFD:-/dev/null:/dev/null}
+      - ${VLLM_DEVICE_DRI:-/dev/null:/dev/null}
+    # NVIDIA-only. Пустая секция = CPU/AMD.
     deploy:
       resources:
         reservations:
           devices:
-            - driver: nvidia
-              count: all
+            - driver: ${VLLM_GPU_DRIVER:-none}
+              count: ${VLLM_GPU_COUNT:-0}
               capabilities: [gpu]
 
   backend:
@@ -68,12 +78,11 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # vllm:  # включается в .amd/.cpu/.dev override
-      #   condition: service_healthy
     volumes:
       - app_data:/app/data
-      - ./models:/models
+      - ./models:/models:ro
     restart: unless-stopped
+    mem_limit: ${BACKEND_MEM_LIMIT:-1g}
 
   frontend:
     build:
@@ -85,6 +94,7 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+    mem_limit: ${FRONTEND_MEM_LIMIT:-256m}
 
 volumes:
   pgdata:

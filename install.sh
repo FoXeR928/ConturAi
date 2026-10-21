@@ -2,149 +2,161 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-echo "=================================================="
-echo "  ConturAI - Установка"
-echo "=================================================="
-echo ""
-echo "Выберите режим установки:"
-echo "  1) NVIDIA GPU (CUDA)           — полный стек"
-echo "  2) AMD GPU (ROCm)              — полный стек"
-echo "  3) CPU (8+ ГБ ОЗУ)             — полный стек"
-echo "  4) Слабый ПК (4–8 ГБ ОЗУ, CPU) — легкие модели"
-echo "  5) Только backend (без vLLM)   — API + БД"
-echo "  6) Только frontend             — интерфейс"
-echo ""
-read -r -p "Введите номер: " PLATFORM
-PLATFORM="${PLATFORM:-1}"
-
-case "$PLATFORM" in
-    1) MODE="nvidia";       COMPOSE_BASE="-f docker-compose.yml";;
-    2) MODE="amd";          COMPOSE_BASE="-f docker-compose.yml";; # Изменено: amd теперь основной в docker-compose.yml
-    3) MODE="cpu";          COMPOSE_BASE="-f docker-compose.yml -f docker-compose.cpu.yml";;
-    4) MODE="dev";          COMPOSE_BASE="-f docker-compose.dev.yml";;
-    5) MODE="backend-only"; COMPOSE_BASE="-f docker-compose.yml -f docker-compose.cpu.yml";;
-    6) MODE="frontend-only";COMPOSE_BASE="-f docker-compose.yml";;
-    *) echo "[ERROR] Неверный выбор"; exit 1;;
-esac
-
-echo ""
-echo "[INFO] Режим: $MODE"
-echo ""
-
-# --- Проверки ---
-command -v docker >/dev/null 2>&1 || { echo "[ERROR] Docker не найден."; exit 1; }
-docker compose version >/dev/null 2>&1 || { echo "[ERROR] Docker Compose не найден."; exit 1; }
-command -v python3 >/dev/null 2>&1 || { echo "[ERROR] python3 не найден."; exit 1; }
-
-# --- 1. .env ---
-if [ ! -f .env ]; then
-    echo "[INFO] Генерация .env..."
-    if [ -f scripts/generate_env.py ]; then
-        python3 scripts/generate_env.py
-    elif [ -f backend/scripts/generate_env.py ]; then
-        python3 backend/scripts/generate_env.py
-    else
-        echo "[ERROR] generate_env.py не найден."
-        exit 1
-    fi
-else
-    echo "[OK] .env уже существует."
+PY=$(command -v python3 || command -v python || true)
+if [ -z "$PY" ]; then
+    echo "[ERROR] Не найден python3/python. Установите Python 3.11+."
+    exit 1
+fi
+if ! command -v docker >/dev/null 2>&1; then
+    echo "[ERROR] Docker не найден."
+    exit 1
+fi
+if ! docker compose version >/dev/null 2>&1; then
+    echo "[ERROR] Docker Compose не найден."
+    exit 1
 fi
 
-# --- 2. Параметры моделей под режим ---
-case "$MODE" in
-    nvidia) PYTORCH_INDEX="https://download.pytorch.org/whl/cu121";;
-    amd)    PYTORCH_INDEX="https://download.pytorch.org/whl/rocm6.1";;
-    *)      PYTORCH_INDEX="https://download.pytorch.org/whl/cpu";;
-esac
+MANAGE_HOST="$PY backend/scripts/manage.py"
+MANAGE_DOCKER="docker compose exec -T backend python scripts/manage.py"
+MANAGE_RUN="docker compose run --rm --no-deps backend python scripts/manage.py"
 
-if [ "$MODE" = "dev" ]; then
-    LLM_MODEL="Qwen/Qwen2.5-0.5B-Instruct:Qwen2.5-0.5B-Instruct"
-    EMB_MODEL="ibm-granite/granite-embedding-97m-multilingual-r2:granite-embedding-97m-multilingual-r2"
-    EMB_PATH="/models/granite-embedding-97m-multilingual-r2"
-    EMB_DIM="384"
-else
-    LLM_MODEL="Qwen/Qwen2.5-0.5B-Instruct:Qwen2.5-0.5B-Instruct"
-    EMB_MODEL="intfloat/multilingual-e5-large:multilingual-e5-large"
-    EMB_PATH="/models/multilingual-e5-large"
-    EMB_DIM="1024"
-fi
-
-update_env() {
-    local key="$1" value="$2"
-    if grep -q "^${key}=" .env; then
-        sed -i.bak "s|^${key}=.*|${key}=${value}|" .env
-        rm -f .env.bak # Чистим за собой временные файлы sed
-    else
-        echo "${key}=${value}" >> .env
+ensure_env() {
+    if [ ! -f .env ]; then
+        echo "[INFO] Генерация .env..."
+        $MANAGE_HOST setup-env
     fi
 }
 
-update_env "PYTORCH_INDEX" "$PYTORCH_INDEX"
-update_env "EMBEDDING_MODEL_PATH" "$EMB_PATH"
-update_env "EMBEDDING_DIM" "$EMB_DIM"
-update_env "MODELS_TO_DOWNLOAD" "${LLM_MODEL},${EMB_MODEL}"
-update_env "HF_HUB_OFFLINE" "0" # Принудительно отключаем оффлайн-режим HuggingFace
-
-echo "[OK] Конфигурация .env обновлена."
-
-# --- 3. Скачивание моделей ---
-if [ "$MODE" != "frontend-only" ] && [ "$MODE" != "backend-only" ]; then
+pick_platform() {
     echo ""
-    echo "[INFO] Скачивание моделей (может занять время)..."
-    docker compose $COMPOSE_BASE run --rm --no-deps backend \
-        python scripts/manage.py download-models
-    echo "[OK] Модели скачаны."
-fi
+    echo "Выберите платформу:"
+    echo "  1) nvidia  — GPU NVIDIA (CUDA)"
+    echo "  2) amd     — GPU AMD (ROCm)"
+    echo "  3) cpu     — CPU, 8+ ГБ ОЗУ"
+    echo "  4) dev     — CPU, 4–8 ГБ ОЗУ (лёгкие модели)"
+    read -r -p "Номер [1]: " p
+    p="${p:-1}"
+    case "$p" in
+        1) MODE=nvidia;;
+        2) MODE=amd;;
+        3) MODE=cpu;;
+        4) MODE=dev;;
+        *) echo "[ERROR] Неверный выбор"; return 1;;
+    esac
+    ensure_env
+    $MANAGE_HOST use-platform "$MODE"
+}
 
-# --- 4. Запуск контейнеров ---
-echo ""
-echo "[INFO] Запуск контейнеров..."
-case "$MODE" in
-    backend-only)  docker compose $COMPOSE_BASE up -d --build postgres backend;;
-    frontend-only) docker compose $COMPOSE_BASE up -d --build frontend;;
-    *)             docker compose $COMPOSE_BASE up -d --build;;
-esac
-
-# --- 5. Инициализация БД ---
-if [ "$MODE" != "frontend-only" ]; then
-    echo ""
+full_install() {
+    pick_platform || return 1
+    echo "[INFO] Скачивание моделей..."
+    $MANAGE_RUN download-models
+    echo "[INFO] Сборка и запуск контейнеров..."
+    docker compose up -d --build
     echo "[INFO] Ожидание PostgreSQL..."
     for _ in $(seq 1 40); do
-        # ИСПРАВЛЕНО: Явно указан юзер 'conturai_user' во избежание падения из-за пустого grep
-        if docker compose $COMPOSE_BASE exec -T postgres \
-            pg_isready -U "conturai_user" >/dev/null 2>&1; then
-            echo "[OK] PostgreSQL готов."
+        if docker compose exec -T postgres \
+            pg_isready -U "$(grep '^DB_USER=' .env | cut -d= -f2)" >/dev/null 2>&1; then
             break
         fi
         sleep 2
     done
+    echo "[INFO] Инициализация БД и администратора..."
+    $MANAGE_DOCKER init-db
+    $MANAGE_DOCKER reset-admin
+    echo "[OK] Установка завершена."
+}
 
-    echo "[INFO] Инициализация БД..."
-    docker compose $COMPOSE_BASE exec -T backend \
-        python scripts/manage.py init-db
+containers_menu() {
+    while true; do
+        echo ""
+        echo "--- Контейнеры ---"
+        echo "  1) Запустить (up -d)"
+        echo "  2) Остановить (stop)"
+        echo "  3) Перезапустить (restart)"
+        echo "  4) Пересобрать и запустить (up -d --build)"
+        echo "  5) Удалить (down)"
+        echo "  6) Удалить вместе с томами (down -v) — ВНИМАНИЕ: удалит БД"
+        echo "  7) Логи (follow)"
+        echo "  8) Статус (ps)"
+        echo "  0) Назад"
+        read -r -p "Номер: " c
+        case "$c" in
+            1) docker compose up -d;;
+            2) docker compose stop;;
+            3) docker compose restart;;
+            4) docker compose up -d --build;;
+            5) docker compose down;;
+            6) read -r -p "Точно удалить тома с БД? (y/N): " ok
+               [ "$ok" = "y" ] && docker compose down -v;;
+            7) docker compose logs -f;;
+            8) docker compose ps;;
+            0) return;;
+            *) echo "Неверный выбор";;
+        esac
+    done
+}
 
-    echo "[INFO] Создание администратора..."
-    docker compose $COMPOSE_BASE exec -T backend \
-        python scripts/manage.py reset-admin
-fi
+manage_menu() {
+    ensure_env
+    while true; do
+        echo ""
+        echo "--- manage.py ---"
+        echo "  1) setup-env (создать .env)"
+        echo "  2) use-platform nvidia"
+        echo "  3) use-platform amd"
+        echo "  4) use-platform cpu"
+        echo "  5) use-platform dev"
+        echo "  6) download-models"
+        echo "  7) download-models --only ..."
+        echo "  8) init-db"
+        echo "  9) reset-admin"
+        echo " 10) set-llm (интерактивно)"
+        echo "  0) Назад"
+        read -r -p "Номер: " m
+        case "$m" in
+            1) $MANAGE_HOST setup-env;;
+            2|3|4|5)
+               case "$m" in
+                   2) P=nvidia;; 3) P=amd;; 4) P=cpu;; 5) P=dev;;
+               esac
+               $MANAGE_HOST use-platform "$P";;
+            6) $MANAGE_RUN download-models;;
+            7) read -r -p "repo:name,repo:name: " only
+               $MANAGE_RUN download-models --only "$only";;
+            8) $MANAGE_DOCKER init-db;;
+            9) $MANAGE_DOCKER reset-admin;;
+            10)
+               read -r -p "model: " model
+               read -r -p "temperature: " temp
+               read -r -p "max-tokens: " mt
+               args=""
+               [ -n "$model" ] && args="$args --model $model"
+               [ -n "$temp" ]  && args="$args --temperature $temp"
+               [ -n "$mt" ]    && args="$args --max-tokens $mt"
+               # shellcheck disable=SC2086
+               $MANAGE_DOCKER set-llm $args;;
+            0) return;;
+            *) echo "Неверный выбор";;
+        esac
+    done
+}
 
-# --- 6. Итог ---
-echo ""
-echo "=================================================="
-echo "  Установка завершена ($MODE)"
-echo "=================================================="
-case "$MODE" in
-    frontend-only) echo "Frontend: http://localhost:3000";;
-    backend-only)
-        echo "API:      http://localhost:8000/docs"
-        echo "Status:   http://localhost:8000/status";;
-    *)
-        echo "Frontend: http://localhost:3000"
-        echo "API:      http://localhost:8000/docs"
-        echo "Status:   http://localhost:8000/status"
-        echo "vLLM:     http://localhost:8080/v1";;
-esac
-echo ""
-echo "Пароль администратора — см. вывод reset-admin выше."
-echo "=================================================="
+while true; do
+    echo ""
+    echo "=================================================="
+    echo "  ConturAI — установка и управление"
+    echo "=================================================="
+    echo "  1) Полная установка (выбор платформы + модели + БД)"
+    echo "  2) Управление контейнерами"
+    echo "  3) Команды manage.py"
+    echo "  4) Выход"
+    read -r -p "Номер [1]: " main_choice
+    case "${main_choice:-1}" in
+        1) full_install;;
+        2) containers_menu;;
+        3) manage_menu;;
+        4) exit 0;;
+        *) echo "Неверный выбор";;
+    esac
+done

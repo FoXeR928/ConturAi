@@ -3,187 +3,143 @@ chcp 65001 >nul
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
-echo ==================================================
-echo   ConturAI - Установка
-echo ==================================================
-echo.
-echo Выберите режим установки:
-echo   1^) NVIDIA GPU ^(CUDA^)           - полный стек
-echo   2^) AMD GPU ^(ROCm^)              - полный стек
-echo   3^) CPU ^(8+ ГБ ОЗУ^)             - полный стек
-echo   4^) Слабый ПК ^(4-8 ГБ ОЗУ, CPU^) - легкие модели
-echo   5^) Только backend ^(без vLLM^)   - API + БД
-echo   6^) Только frontend               - интерфейс
-echo.
-set /p PLATFORM="Введите номер: "
-if "%PLATFORM%"=="" set PLATFORM=1
-set "PLATFORM=%PLATFORM: =%"
-
-:: Корректная установка режимов без концевых пробелов
-if "%PLATFORM%"=="1" (set "MODE=nvidia" & set "COMPOSE_BASE=-f docker-compose.yml")
-if "%PLATFORM%"=="2" (set "MODE=amd" & set "COMPOSE_BASE=-f docker-compose.yml -f docker-compose.amd.yml")
-if "%PLATFORM%"=="3" (set "MODE=cpu" & set "COMPOSE_BASE=-f docker-compose.yml -f docker-compose.cpu.yml")
-if "%PLATFORM%"=="4" (set "MODE=dev" & set "COMPOSE_BASE=-f docker-compose.dev.yml")
-if "%PLATFORM%"=="5" (set "MODE=backend-only" & set "COMPOSE_BASE=-f docker-compose.yml -f docker-compose.cpu.yml")
-if "%PLATFORM%"=="6" (set "MODE=frontend-only" & set "COMPOSE_BASE=-f docker-compose.yml")
-
-if not defined MODE (
-    echo [ERROR] Неверный выбор.
+where python >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] python не найден.
     exit /b 1
 )
-
-echo.
-echo [INFO] Режим: !MODE!
-echo.
-
-REM --- Проверки ---
 docker --version >nul 2>&1
 if errorlevel 1 ( echo [ERROR] Docker не найден. & exit /b 1 )
 docker compose version >nul 2>&1
 if errorlevel 1 ( echo [ERROR] Docker Compose не найден. & exit /b 1 )
-python --version >nul 2>&1
-if errorlevel 1 ( echo [ERROR] python не найден. & exit /b 1 )
 
-REM --- 1. .env ---
+set "MANAGE_HOST=python backend\scripts\manage.py"
+set "MANAGE_DOCKER=docker compose exec -T backend python scripts/manage.py"
+set "MANAGE_RUN=docker compose run --rm --no-deps backend python scripts/manage.py"
+
+goto main_menu
+
+:ensure_env
 if not exist .env (
     echo [INFO] Генерация .env...
-    if exist scripts\generate_env.py (
-        python scripts\generate_env.py
-    ) else if exist backend\scripts\generate_env.py (
-        python backend\scripts\generate_env.py
-    ) else (
-        echo [ERROR] generate_env.py не найден.
-        exit /b 1
-    )
-    if errorlevel 1 exit /b 1
-) else (
-    echo [OK] .env уже существует.
+    %MANAGE_HOST% setup-env
 )
+exit /b 0
 
-REM --- 2. Значения по умолчанию ---
-set "PYTORCH_INDEX=https://download.pytorch.org/whl/cpu"
-set "LLM_MODEL=Qwen/Qwen2.5-0.5B-Instruct:Qwen2.5-0.5B-Instruct"
-set "EMB_MODEL=intfloat/multilingual-e5-large:multilingual-e5-large"
-set "EMB_PATH=/models/multilingual-e5-large"
-set "EMB_DIM=1024"
-
-if "%MODE%"=="nvidia" set "PYTORCH_INDEX=https://download.pytorch.org/whl/cu121"
-if "%MODE%"=="amd"    set "PYTORCH_INDEX=https://download.pytorch.org/whl/rocm6.1"
-
-if "!MODE!"=="dev" (
-    set "LLM_MODEL=Qwen/Qwen2.5-0.5B-Instruct:Qwen2.5-0.5B-Instruct"
-    set "EMB_MODEL=ibm-granite/granite-embedding-97m-multilingual-r2:granite-embedding-97m-multilingual-r2"
-    set "EMB_PATH=/models/granite-embedding-97m-multilingual-r2"
-    set "EMB_DIM=384"
-)
-
-set "MODELS_TO_DOWNLOAD=!LLM_MODEL!,!EMB_MODEL!"
-
-echo [INFO] PYTORCH_INDEX      = !PYTORCH_INDEX!
-echo [INFO] EMBEDDING_MODEL_PATH = !EMB_PATH!
-echo [INFO] EMBEDDING_DIM      = !EMB_DIM!
-echo [INFO] MODELS_TO_DOWNLOAD = !MODELS_TO_DOWNLOAD!
-
-REM --- 3. Обновление .env средствами чистой Windows ---
+:pick_platform
 echo.
-echo [INFO] Обновление конфигурации .env...
+echo Выберите платформу:
+echo   1^) nvidia
+echo   2^) amd
+echo   3^) cpu
+echo   4^) dev
+set /p P=[1]: 
+if "%P%"=="" set P=1
+if "%P%"=="1" set MODE=nvidia
+if "%P%"=="2" set MODE=amd
+if "%P%"=="3" set MODE=cpu
+if "%P%"=="4" set MODE=dev
+if not defined MODE ( echo [ERROR] Неверный выбор. & exit /b 1 )
+call :ensure_env
+%MANAGE_HOST% use-platform !MODE!
+exit /b 0
 
-:: Создаем пустой временный файл стандартной командой CMD
-type nul > .env.tmp
+:full_install
+call :pick_platform
+if errorlevel 1 exit /b 1
+echo [INFO] Скачивание моделей...
+%MANAGE_RUN% download-models
+if errorlevel 1 exit /b 1
+echo [INFO] Сборка и запуск...
+docker compose up -d --build
+echo [INFO] Ожидание...
+timeout /t 10 /nobreak >nul
+%MANAGE_DOCKER% init-db
+%MANAGE_DOCKER% reset-admin
+echo [OK] Установка завершена.
+exit /b 0
 
-:: Читаем файл .env построчно. Если ключ совпадает, пишем новое значение, иначе копируем старую строку.
-for /f "tokens=1* delims==" %%A in (.env) do (
-    set "KEY=%%A"
-    set "VAL=%%B"
-    set "MATCH="
-    if "!KEY!"=="PYTORCH_INDEX"       (echo PYTORCH_INDEX=!PYTORCH_INDEX!>>.env.tmp & set "MATCH=1")
-    if "!KEY!"=="EMBEDDING_MODEL_PATH" (echo EMBEDDING_MODEL_PATH=!EMB_PATH!>>.env.tmp & set "MATCH=1")
-    if "!KEY!"=="EMBEDDING_DIM"       (echo EMBEDDING_DIM=!EMB_DIM!>>.env.tmp & set "MATCH=1")
-    if "!KEY!"=="MODELS_TO_DOWNLOAD"  (echo MODELS_TO_DOWNLOAD=!MODELS_TO_DOWNLOAD!>>.env.tmp & set "MATCH=1")
-    if "!KEY!"=="HF_HUB_OFFLINE"      (echo HF_HUB_OFFLINE=0>>.env.tmp & set "MATCH=1")
-    
-    :: Если это любой другой ключ проекта, переносим его как есть
-    if not defined MATCH (
-        if "%%B"=="" (echo %%A>>.env.tmp) else (echo %%A=%%B>>.env.tmp)
-    )
-)
-
-:: Проверяем, если каких-то ключей вообще не было в файле, дописываем их в конец
-findstr /B /C:"PYTORCH_INDEX=" .env.tmp >nul 2>&1 || echo PYTORCH_INDEX=!PYTORCH_INDEX!>>.env.tmp
-findstr /B /C:"EMBEDDING_MODEL_PATH=" .env.tmp >nul 2>&1 || echo EMBEDDING_MODEL_PATH=!EMB_PATH!>>.env.tmp
-findstr /B /C:"EMBEDDING_DIM=" .env.tmp >nul 2>&1 || echo EMBEDDING_DIM=!EMB_DIM!>>.env.tmp
-findstr /B /C:"MODELS_TO_DOWNLOAD=" .env.tmp >nul 2>&1 || echo MODELS_TO_DOWNLOAD=!MODELS_TO_DOWNLOAD!>>.env.tmp
-findstr /B /C:"HF_HUB_OFFLINE=" .env.tmp >nul 2>&1 || echo HF_HUB_OFFLINE=0>>.env.tmp
-
-:: Заменяем старый .env обновленным
-move /y .env.tmp .env >nul
-
-echo [OK] .env успешно обновлен встроенными средствами Windows.
+:containers_menu
 echo.
-findstr /B /C:"PYTORCH_INDEX=" /C:"EMBEDDING_MODEL_PATH=" /C:"EMBEDDING_DIM=" /C:"MODELS_TO_DOWNLOAD=" /C:"HF_HUB_OFFLINE=" .env
-
-REM --- 4. Скачивание моделей ---
-if not "!MODE!"=="frontend-only" if not "!MODE!"=="backend-only" (
-    echo.
-    echo [INFO] Скачивание моделей ^(может занять время^)...
-    docker compose %COMPOSE_BASE% run --rm --no-deps backend python scripts/manage.py download-models
-    if errorlevel 1 ( echo [ERROR] Не удалось скачать модели. & exit /b 1 )
-    echo [OK] Модели скачаны.
+echo --- Контейнеры ---
+echo   1^) up -d
+echo   2^) stop
+echo   3^) restart
+echo   4^) up -d --build
+echo   5^) down
+echo   6^) down -v (удалит БД)
+echo   7^) logs -f
+echo   8^) ps
+echo   0^) Назад
+set /p C=Номер: 
+if "%C%"=="0" exit /b 0
+if "%C%"=="1" docker compose up -d
+if "%C%"=="2" docker compose stop
+if "%C%"=="3" docker compose restart
+if "%C%"=="4" docker compose up -d --build
+if "%C%"=="5" docker compose down
+if "%C%"=="6" (
+    set /p ok=Точно удалить тома? (y/N): 
+    if /i "!ok!"=="y" docker compose down -v
 )
+if "%C%"=="7" docker compose logs -f
+if "%C%"=="8" docker compose ps
+goto containers_menu
 
-REM --- 5. Запуск ---
+:manage_menu
+call :ensure_env
 echo.
-echo [INFO] Запуск контейнеров...
-if "!MODE!"=="backend-only" (
-    docker compose %COMPOSE_BASE% up -d --build postgres backend
-) else if "!MODE!"=="frontend-only" (
-    docker compose %COMPOSE_BASE% up -d --build frontend
-) else (
-    docker compose %COMPOSE_BASE% up -d --build
+echo --- manage.py ---
+echo   1^) setup-env
+echo   2^) use-platform nvidia
+echo   3^) use-platform amd
+echo   4^) use-platform cpu
+echo   5^) use-platform dev
+echo   6^) download-models
+echo   7^) download-models --only
+echo   8^) init-db
+echo   9^) reset-admin
+echo  10^) set-llm
+echo   0^) Назад
+set /p M=Номер: 
+if "%M%"=="0" exit /b 0
+if "%M%"=="1" %MANAGE_HOST% setup-env
+if "%M%"=="2" %MANAGE_HOST% use-platform nvidia
+if "%M%"=="3" %MANAGE_HOST% use-platform amd
+if "%M%"=="4" %MANAGE_HOST% use-platform cpu
+if "%M%"=="5" %MANAGE_HOST% use-platform dev
+if "%M%"=="6" %MANAGE_RUN% download-models
+if "%M%"=="7" (
+    set /p only=repo:name,repo:name: 
+    %MANAGE_RUN% download-models --only "!only!"
 )
-if errorlevel 1 ( echo [ERROR] Не удалось запустить контейнеры. & exit /b 1 )
-
-REM --- 6. Инициализация БД ---
-if not "!MODE!"=="frontend-only" (
-    echo.
-    echo [INFO] Ожидание PostgreSQL...
-    for /l %%i in (1,1,40) do (
-        docker compose %COMPOSE_BASE% exec -T postgres pg_isready -U conturai_user >nul 2>&1
-        if not errorlevel 1 goto db_ready
-        timeout /t 2 /nobreak >nul
-    )
-    echo [ERROR] PostgreSQL не запустился вовремя.
-    exit /b 1
-    :db_ready
-    echo [OK] PostgreSQL готов.
-
-    echo [INFO] Инициализация БД...
-    docker compose %COMPOSE_BASE% exec -T backend python scripts/manage.py init-db
-    if errorlevel 1 exit /b 1
-
-    echo [INFO] Создание администратора...
-    docker compose %COMPOSE_BASE% exec -T backend python scripts/manage.py reset-admin
-    if errorlevel 1 exit /b 1
+if "%M%"=="8" %MANAGE_DOCKER% init-db
+if "%M%"=="9" %MANAGE_DOCKER% reset-admin
+if "%M%"=="10" (
+    set /p model=model: 
+    set /p temp=temperature: 
+    set /p mt=max-tokens: 
+    set "args="
+    if not "!model!"=="" set "args=!args! --model !model!"
+    if not "!temp!"=="" set "args=!args! --temperature !temp!"
+    if not "!mt!"=="" set "args=!args! --max-tokens !mt!"
+    %MANAGE_DOCKER% set-llm !args!
 )
+goto manage_menu
 
-REM --- 7. Итог ---
+:main_menu
 echo.
 echo ==================================================
-echo   Установка завершена ^(!MODE!^)
+echo   ConturAI - установка и управление
 echo ==================================================
-if "!MODE!"=="frontend-only" ( echo Frontend: http://localhost:3000 )
-if "!MODE!"=="backend-only" (
-    echo API:      http://localhost:8000/docs
-    echo Status:   http://localhost:8000/status
-)
-if not "!MODE!"=="frontend-only" if not "!MODE!"=="backend-only" (
-    echo Frontend: http://localhost:3000
-    echo API:      http://localhost:8000/docs
-    echo Status:   http://localhost:8000/status
-    echo vLLM:     http://localhost:8080/v1
-)
-echo.
-echo Пароль администратора — см. вывод reset-admin выше.
-echo.
-
-endlocal
+echo   1^) Полная установка
+echo   2^) Управление контейнерами
+echo   3^) Команды manage.py
+echo   4^) Выход
+set /p MAIN=[1]: 
+if "%MAIN%"=="" set MAIN=1
+if "%MAIN%"=="1" call :full_install & goto main_menu
+if "%MAIN%"=="2" call :containers_menu & goto main_menu
+if "%MAIN%"=="3" call :manage_menu & goto main_menu
+if "%MAIN%"=="4" exit /b 0
+goto main_menu
