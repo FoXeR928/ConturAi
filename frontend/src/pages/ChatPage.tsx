@@ -1,21 +1,32 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { Layout } from '../components/Layout';
+import { Header } from '../components/Header';
 import { Sidebar } from '../features/chat/Sidebar';
 import { ChatWindow } from '../features/chat/ChatWindow';
 
-export function ChatPage({ onLogout }: { onLogout: () => void }) {
+export function ChatPage({
+  userName,
+  onLogout,
+}: {
+  userName: string;
+  onLogout: () => void;
+}) {
   const [chats, setChats] = useState<any[]>([]);
   const [activeChat, setActiveChat] = useState<number | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => { loadChats(); }, []);
+  const stored = localStorage.getItem('me');
+  const isAdmin = stored ? JSON.parse(stored).isAdmin : false;
 
   const loadChats = async () => {
     const data = await api.getChats();
     if (data.result) setChats(data.chats);
   };
+
+  useEffect(() => {
+    loadChats();
+  }, []);
 
   const loadMessages = async (chatId: number) => {
     setActiveChat(chatId);
@@ -35,40 +46,39 @@ export function ChatPage({ onLogout }: { onLogout: () => void }) {
 
   const sendMessage = async (text: string) => {
     if (!activeChat) return;
-
-    // 1. Сначала оптимистично добавляем сообщение пользователя
-    setMessages(prev => [...prev, { chat_role: 'user', text }]);
+    setMessages((prev) => [...prev, { chat_role: 'user', text }]);
     setLoading(true);
-
     try {
-      // 2. Отправляем запрос к бэкенду
       const res = await api.askAi(activeChat, text);
-      
-      // 3. Если всё ок, добавляем ответ ИИ
       if (res.result) {
-        setMessages(prev => [...prev, { chat_role: 'assistant', text: res.answer }]);
+        setMessages((prev) => [...prev, { chat_role: 'assistant', text: res.answer }]);
       } else {
-        // Если бэкенд вернул ошибку (например, 503, когда нет vLLM)
-        setMessages(prev => [...prev, { chat_role: 'assistant', text: res.message || 'Ошибка сервера' }]);
+        setMessages((prev) => [
+          ...prev,
+          { chat_role: 'assistant', text: res.message || 'Ошибка' },
+        ]);
       }
-    } catch (e) {
-      // 4. Если упала сеть
-      setMessages(prev => [...prev, { chat_role: 'assistant', text: 'Ошибка сети' }]);
+    } catch (e: any) {
+      setMessages((prev) => [...prev, { chat_role: 'assistant', text: `Ошибка: ${e.message}` }]);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Layout sidebar={
-      <Sidebar 
-        chats={chats} 
-        activeChatId={activeChat} 
-        onSelectChat={loadMessages} 
-        onCreateChat={createChat} 
-        onLogout={onLogout} 
-      />
-    }>
+    <Layout
+      sidebar={
+        <Sidebar
+          chats={chats}
+          activeChatId={activeChat}
+          onSelectChat={loadMessages}
+          onCreateChat={createChat}
+          onLogout={onLogout}
+          isAdmin={isAdmin}
+        />
+      }
+      header={<Header userName={userName} isAdmin={isAdmin} onLogout={onLogout} />}
+    >
       {activeChat ? (
         <ChatWindow messages={messages} onSendMessage={sendMessage} loading={loading} />
       ) : (
