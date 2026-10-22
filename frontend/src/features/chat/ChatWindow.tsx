@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Send } from 'lucide-react';
 import { Input } from '../../ui/Input';
 import { Button } from '../../ui/Button';
@@ -10,11 +11,23 @@ interface ChatWindowProps {
   loading: boolean;
 }
 
+function cleanMarkdown(text: string): string {
+  if (!text) return '';
+  
+  let cleaned = text;
+  
+  cleaned = cleaned.replace(/```(?:markdown|md)?\s*\n?/gi, '');
+  cleaned = cleaned.replace(/```/g, '');
+  
+  cleaned = cleaned.replace(/([^\n])\n(\|.*\|)/g, '$1\n\n$2');
+  
+  return cleaned.trim();
+}
+
 export function ChatWindow({ messages, onSendMessage, loading }: ChatWindowProps) {
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Автоскролл вниз при новом сообщении
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -28,20 +41,29 @@ export function ChatWindow({ messages, onSendMessage, loading }: ChatWindowProps
 
   return (
     <div className="flex flex-col h-full">
-      {/* Область сообщений */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {messages.map((msg, idx) => {
-          const isUser = msg.chat_role === 'user' || msg.role === 'user';
+          const isUser = msg.chat_role === 'user';
           return (
             <div key={idx} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[75%] p-4 rounded-2xl ${
+              <div className={`max-w-[85%] p-4 rounded-2xl ${
                 isUser 
                   ? 'bg-blue-600 text-white rounded-br-none' 
                   : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none shadow-sm'
               }`}>
-                <ReactMarkdown className="prose prose-sm max-w-none">
-                  {msg.text}
-                </ReactMarkdown>
+                {isUser ? (
+                  <div className="whitespace-pre-wrap">{msg.text}</div>
+                ) : (
+                  <div className="prose prose-sm max-w-none 
+                                  prose-table:border prose-table:border-gray-300 
+                                  prose-th:bg-gray-100 prose-th:px-3 prose-th:py-2 prose-th:text-left
+                                  prose-td:px-3 prose-td:py-2 prose-td:border-t prose-td:border-gray-200
+                                  prose-pre:bg-gray-800 prose-pre:text-gray-100">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {cleanMarkdown(msg.text)}
+                    </ReactMarkdown>
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -56,7 +78,6 @@ export function ChatWindow({ messages, onSendMessage, loading }: ChatWindowProps
         <div ref={bottomRef} />
       </div>
 
-      {/* Поле ввода */}
       <div className="p-4 bg-white border-t border-gray-200">
         <div className="flex gap-3 max-w-4xl mx-auto">
           <Input

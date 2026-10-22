@@ -1,9 +1,11 @@
 from pydantic import BaseModel
+from uuid import UUID
 
 
 class TextAdd(BaseModel):
     name: str
     text: str
+    upload_id: UUID | None = None
 
 
 class MessageIn(BaseModel):

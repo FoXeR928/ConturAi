@@ -10,34 +10,29 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.db.models import Document
+from app.services import llm_config_service
 
 _morph = MorphAnalyzer()
 
 
-# ---------- Чанкинг ----------
 def normalize_text(text: str) -> str:
     cleaned = re.sub(r"[^\w\s]", "", text.lower())
     return " ".join(_morph.normal_forms(w)[0] for w in cleaned.split())
 
 
-def split_text(text: str) -> list[str]:
+def split_text(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=settings.rag_chunk_size,
-        chunk_overlap=settings.rag_chunk_overlap,
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
         separators=["\n\n", "\n", "(?<=\\.)!", " "],
         length_function=len,
     )
     return splitter.split_text(text)
 
 
-# ---------- Эмбеддинги ----------
 @lru_cache(maxsize=1)
 def get_model() -> SentenceTransformer:
     return SentenceTransformer(settings.embedding_model_path)
-
-
-def get_embedding_dim() -> int:
-    return get_model().get_sentence_embedding_dimension()
 
 
 async def embed_texts(texts: list[str]) -> list[list[float]]:
@@ -55,28 +50,31 @@ async def embed_one(text: str) -> list[float]:
     return (await embed_texts([text]))[0]
 
 
-# ---------- Хранилище ----------
-async def add_document(session: AsyncSession, source: str, text: str) -> int:
-    chunks = split_text(text)
+async def add_document(
+    session: AsyncSession,
+    source: str,
+    text: str,
+    upload_id=None,
+) -> int:
+    cfg = await llm_config_service.get_rag(session)
+    chunks = split_text(text, cfg["chunk_size"], cfg["chunk_overlap"])
     if not chunks:
         return 0
 
     points: list[Document] = []
-    for i in range(0, len(chunks), settings.rag_batch_size):
-        batch = chunks[i : i + settings.rag_batch_size]
+    for i in range(0, len(chunks), cfg["batch_size"]):
+        batch = chunks[i : i + cfg["batch_size"]]
         vectors = await embed_texts(batch)
-        
         for j, (chunk, vector) in enumerate(zip(batch, vectors)):
-            chunk_norm = normalize_text(chunk)
-            
             points.append(
                 Document(
                     source=source,
                     text=chunk,
-                    text_norm=chunk_norm,
+                    text_norm=normalize_text(chunk),
                     page=i + j + 1,
                     language="ru",
                     embedding=vector,
+                    upload_id=upload_id,
                 )
             )
 
@@ -84,10 +82,16 @@ async def add_document(session: AsyncSession, source: str, text: str) -> int:
     await session.commit()
     return len(points)
 
+
 async def search_documents(
-    session: AsyncSession, query: str, limit: int | None = None
+    session: AsyncSession,
+    query: str,
+    limit: int | None = None,
 ) -> list[Document]:
-    limit = limit or settings.rag_search_limit
+    if limit is None:
+        cfg = await llm_config_service.get_rag(session)
+        limit = cfg["search_limit"]
+
     query_vector = await embed_one(query)
     stmt = (
         select(Document)
@@ -101,4 +105,5 @@ async def search_documents(
 def format_context(docs: list[Document]) -> str:
     if not docs:
         return ""
-    return "\n---\n".join(d.text[:500] for d in docs)
+    parts = [f"[{d.source}]\n{d.text}" for d in docs]
+    return "\n\n---\n\n".join(parts)

@@ -41,11 +41,16 @@ def _jwt_key() -> str:
 
 
 # ---------- Токены ----------
-def create_access_token(login: str, long_lived: bool = False) -> str:
+def create_access_token(
+    login: str,
+    long_lived: bool = False,
+    minutes: int = 30,
+    days: int = 7,
+) -> str:
     delta = (
-        timedelta(days=settings.token_expire_days)
+        timedelta(days=days)
         if long_lived
-        else timedelta(minutes=settings.token_expire_minutes)
+        else timedelta(minutes=minutes)
     )
     payload = {"sub": login, "exp": datetime.now(timezone.utc) + delta}
     return jwt.encode(payload, _jwt_key(), algorithm="HS256")

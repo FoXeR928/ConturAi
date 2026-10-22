@@ -4,8 +4,8 @@ import { Button } from '../../ui/Button';
 
 interface SidebarProps {
   chats: any[];
-  activeChatId: number | null;
-  onSelectChat: (id: number) => void;
+  activeChatId: string | null;
+  onSelectChat: (id: string) => void;
   onCreateChat: () => void;
   onLogout: () => void;
   isAdmin?: boolean;

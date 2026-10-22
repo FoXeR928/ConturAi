@@ -1,11 +1,5 @@
 FROM python:3.12-slim
 
-# --- ДОБАВЛЯЕМ АРГУМЕНТ ДЛЯ ВЫБОРА ВЕРСИИ TORCH ---
-# По умолчанию - CPU (легкий, ~200МБ). 
-# Для NVIDIA: https://download.pytorch.org/whl/cu121
-# Для AMD: https://download.pytorch.org/whl/rocm6.1
-ARG PYTORCH_INDEX=https://download.pytorch.org/whl/cpu
-
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     UV_COMPILE_BYTECODE=1 \
@@ -27,16 +21,8 @@ COPY --from=ghcr.io/astral-sh/uv:0.5.11 /uv /uvx /usr/local/bin/
 
 WORKDIR /app
 
-COPY backend/pyproject.toml backend/uv.lock* ./
-
-# --- ПОДМЕНЯЕМ URL В PYPROJECT.TOML НА ТОТ, ЧТО ПЕРЕДАЛИ В ARG ---
-RUN sed -i "s|https://download.pytorch.org/whl/cpu|${PYTORCH_INDEX}|g" pyproject.toml
-
-RUN rm -f uv.lock
-
-# Убираем --frozen, так как мы меняем pyproject.toml на лету
-RUN uv sync --no-install-project --no-dev \
-    --extra-index-url ${PYTORCH_INDEX}
+COPY backend/pyproject.toml backend/uv.lock ./
+RUN uv sync --locked --no-install-project --no-dev
 
 COPY backend/app ./app
 COPY backend/scripts ./scripts
@@ -47,5 +33,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH="/app"
 
 EXPOSE 8000
-
 CMD ["python", "-m", "app.main"]

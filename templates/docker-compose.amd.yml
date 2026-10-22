@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_USER: ${DB_USER:-conturai_user}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-conturai}
-      POSTGRES_DB: ${DB_NAME:-conturai}
+      POSTGRES_DB: ${DB_NAME:-conturai_db}
     ports:
       - "5432:5432"
     volumes:
@@ -18,18 +18,16 @@ services:
       timeout: 5s
       retries: 10
     restart: unless-stopped
-    mem_limit: ${PG_MEM_LIMIT:-1g}
 
   vllm:
-    image: ${VLLM_IMAGE:-rocm/vllm:latest}
+    image: rocm/vllm:latest
     container_name: conturai_vllm
     command: >
-      ${VLLM_MODEL_PATH:-/models/Qwen2.5-0.5B-Instruct}
+      ${VLLM_MODEL_PATH:-/models/Qwen2.5-1.5B-Instruct}
       --served-model-name ${VLLM_SERVED_NAME:-local-model}
       --host 0.0.0.0
       --port 8000
-      --max-model-len ${VLLM_MAX_MODEL_LEN:-4096}
-      --dtype ${VLLM_DTYPE:-auto}
+      --max-model-len 4096
     environment:
       HF_HUB_OFFLINE: "1"
       TRANSFORMERS_OFFLINE: "1"
@@ -44,6 +42,8 @@ services:
       - video
     security_opt:
       - seccomp:unconfined
+    cap_add:
+      - SYS_PTRACE
     ipc: host
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
@@ -52,14 +52,11 @@ services:
       retries: 60
       start_period: 300s
     restart: unless-stopped
-    mem_limit: ${VLLM_MEM_LIMIT:-12g}
 
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
-      args:
-        PYTORCH_INDEX: ${PYTORCH_INDEX:-https://download.pytorch.org/whl/rocm6.1}
     container_name: conturai_backend
     env_file: .env
     environment:
@@ -75,7 +72,6 @@ services:
       - app_data:/app/data
       - ./models:/models
     restart: unless-stopped
-    mem_limit: ${BACKEND_MEM_LIMIT:-2g}
 
   frontend:
     build:
@@ -87,7 +83,6 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
-    mem_limit: ${FRONTEND_MEM_LIMIT:-256m}
 
 volumes:
   pgdata:

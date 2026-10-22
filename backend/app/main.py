@@ -32,6 +32,17 @@ async def app_error_handler(_: Request, exc: AppError) -> JSONResponse:
         },
     )
 
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.exception(f"Необработанная ошибка на {request.url.path}: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "result": False,
+            "message": "Внутренняя ошибка сервера. Проверьте логи.",
+            "category": "error",
+        },
+    )
 
 app.include_router(api_router)
 

@@ -1,21 +1,33 @@
-.venv
-__pycache__
-*.pyc
+# Git и IDE
 .git
 .gitignore
-.env
 .idea
 .vscode
-logs
-node_modules
-dist
-.env
-.git
-.vscode
-.git
-.idea
-.vscode
+*.swp
+.DS_Store
+
+# Python cache / venv
 **/__pycache__
 **/*.pyc
+**/*.pyo
+.venv
+**/.venv
+
+# Frontend — backend его не использует
 frontend/node_modules
 frontend/dist
+frontend/.vite
+
+# Данные, логи, модели — монтируются через volumes, не копируются в образ
+models
+data
+logs
+
+# Секреты
+.env
+.env.*
+
+# Документация и служебные
+*.md
+docker-compose.yml
+templates

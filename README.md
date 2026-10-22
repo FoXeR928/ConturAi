@@ -1,452 +1,139 @@
 # ConturAI
 
-ConturAI — это локальный AI-ассистент с поддержкой RAG (Retrieval-Augmented Generation). Проект объединяет современный веб-интерфейс, высокопроизводительный инференс больших языковых моделей через vLLM и векторный поиск на базе PostgreSQL (pgvector).
+**ConturAI** — это полностью локальный AI-ассистент с поддержкой RAG (Retrieval-Augmented Generation). Проект объединяет современный веб-интерфейс, высокопроизводительный инференс больших языковых моделей через **vLLM** и векторный поиск на базе **PostgreSQL (pgvector)**.
 
-Система полностью автономна и может работать без доступа к интернету (offline).
+Система автономна, не требует доступа к интернету (после скачивания моделей) и поддерживает работу с таблицами, PDF, Word и Excel документами.
 
 ## Ключевые возможности
 
-- Полностью локальная работа без внешних API.
-- RAG на базе PostgreSQL + pgvector (HNSW индекс).
-- Асинхронный бэкенд (FastAPI + SQLAlchemy).
-- Инференс моделей через vLLM (OpenAI-совместимый API).
-- Современный фронтенд (React, TypeScript, Tailwind CSS).
-- Поддержка загрузки документов (PDF, DOCX, XLSX) и OCR.
-- Гибкая настройка через переменные окружения.
-- Полная контейнеризация (Docker Compose).
+- **Полностью локальная работа:** без внешних API.
+- **RAG на базе PostgreSQL + pgvector:** быстрый поиск по векторной базе (HNSW).
+- **vLLM для инференса:** OpenAI-совместимый API.
+- **Динамические настройки:** параметры генерации, RAG и промты хранятся в БД и меняются на лету без перезапуска.
+- **Умный парсинг документов:** извлечение текста и таблиц из PDF, DOCX, XLSX.
+- **Хранение оригиналов:** возможность скачать загруженный ранее документ.
+- **Современный фронтенд:** React, TypeScript, Vite, Tailwind CSS.
+- **Гибкая установка:** Docker Compose с поддержкой NVIDIA, AMD (ROCm) и CPU.
 
 ## Технологический стек
 
-- **Backend:** Python 3.11, FastAPI, SQLAlchemy (async), uv.
-- **Frontend:** React, TypeScript, Vite, Tailwind CSS, Nginx.
+- **Backend:** Python 3.12, FastAPI, SQLAlchemy (async), uv.
+- **Frontend:** React 18, TypeScript, Vite, Tailwind CSS.
 - **База данных:** PostgreSQL 16 + pgvector.
-- **AI / LLM:** vLLM, SentenceTransformers (multilingual-e5-large).
+- **AI / LLM:** vLLM, SentenceTransformers (`multilingual-e5-large`).
 - **Инфраструктура:** Docker, Docker Compose.
 
-## Структура проекта
+---
 
-```text
-conturai/
-├── backend/               # Исходный код бэкенда (FastAPI)
-│   ├── app/               # Основной код приложения
-│   ├── scripts/           # Скрипты управления (manage.py)
-│   ├── Dockerfile
-│   ├── pyproject.toml
-│   └── uv.lock
-├── frontend/              # Исходный код фронтенда (React + Vite)
-│   ├── src/
-│   ├── Dockerfile
-│   ├── nginx.conf
-│   └── package.json
-├── models/                # Локальные веса моделей (HuggingFace)
-├── scripts/               # Вспомогательные скрипты (генерация .env)
-├── docker-compose.yml     # Конфигурация Docker
-├── install.sh             # Скрипт установки для Linux/macOS
-├── install.bat            # Скрипт установки для Windows
-└── .env.example           # Шаблон переменных окружения
+## Быстрый старт (Docker)
+
+Для работы потребуется **Docker** и **Docker Compose**.
+
+### 1. Клонирование репозитория
+
+```bash
+git clone https://github.com/FoXeR928/ConturAi.git
+cd ConturAi
 ```
 
-## Требования
+### 2. Запуск установки
 
-- Docker и Docker Compose (версия 2.0+).
-- Python 3.11+ (только для генерации `.env` файла перед сборкой).
-- Оборудование: **NVIDIA GPU**, **AMD GPU (ROCm)** или **CPU** (см. раздел «Варианты запуска»).
+Проект включает интерактивный скрипт установки, который сам создаст конфиги, скачает модели, поднимет контейнеры и создаст администратора.
 
-## Варианты запуска `docker-compose`
-
-Выбор варианта зависит от вашего оборудования. Все три варианта отличаются только сервисом `vllm` (и его `deploy`-секцией). PostgreSQL, бэкенд и фронтенд работают одинаково везде.
-
-### Вариант 1. NVIDIA GPU (по умолчанию)
-
-Используется официальный образ `vllm/vllm-openai:latest` с пробросом GPU через `nvidia-container-toolkit`.
-
-```yaml
-name: conturai
-
-services:
-  postgres:
-    image: pgvector/pgvector:pg16
-    container_name: conturai_postgres
-    environment:
-      POSTGRES_USER: ${DB_USER:-conturai_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-conturai}
-      POSTGRES_DB: ${DB_NAME:-conturai}
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-conturai_user} -d ${DB_NAME:-conturai}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    restart: unless-stopped
-
-  # --- NVIDIA GPU ---
-  vllm:
-    image: vllm/vllm-openai:latest
-    container_name: conturai_vllm
-    command: >
-      --model /models/Qwen2.5-0.5B-Instruct
-      --served-model-name local-model
-      --host 0.0.0.0
-      --port 8000
-      --max-model-len 4096
-      --gpu-memory-utilization 0.85
-    environment:
-      HF_HUB_OFFLINE: "1"
-      TRANSFORMERS_OFFLINE: "1"
-    ports:
-      - "8080:8000"
-    volumes:
-      - ./models:/models:ro
-    ipc: host
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-      start_period: 120s
-    restart: unless-stopped
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-
-  backend:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-      args:
-        PYTORCH_INDEX: ${PYTORCH_INDEX:-https://download.pytorch.org/whl/cpu}
-    container_name: conturai_backend
-    env_file: .env
-    environment:
-      DB_HOST: postgres
-      VLLM_BASE_URL: http://vllm:8000/v1
-      DATA_DIR: /app/data
-    ports:
-      - "8000:8000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      vllm:
-        condition: service_started
-    volumes:
-      - app_data:/app/data
-      - ./models:/models:ro
-    restart: unless-stopped
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: conturai_frontend
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
-    restart: unless-stopped
-
-volumes:
-  pgdata:
-  app_data:
-```
-
-**Требования:** драйвер NVIDIA + установленный `nvidia-container-toolkit`.
-
-### Вариант 2. AMD GPU (ROCm)
-
-Используется образ `rocm/vllm:latest`, GPU пробрасывается через `/dev/kfd` и `/dev/dri`. Убедитесь, что у вас установлены драйверы ROCm и Docker настроен для работы с AMD GPU.
-
-```yaml
-name: conturai
-
-services:
-  postgres:
-    image: pgvector/pgvector:pg16
-    container_name: conturai_postgres
-    environment:
-      POSTGRES_USER: ${DB_USER:-conturai_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-conturai}
-      POSTGRES_DB: ${DB_NAME:-conturai}
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-conturai_user} -d ${DB_NAME:-conturai}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    restart: unless-stopped
-
-  # --- AMD GPU (ROCm) ---
-  vllm:
-    image: rocm/vllm:latest
-    container_name: conturai_vllm
-    command: >
-      --model /models/Qwen2.5-0.5B-Instruct
-      --served-model-name local-model
-      --host 0.0.0.0
-      --port 8000
-      --max-model-len 4096
-    environment:
-      HF_HUB_OFFLINE: "1"
-      TRANSFORMERS_OFFLINE: "1"
-    ports:
-      - "8080:8000"
-    volumes:
-      - ./models:/models:ro
-    devices:
-      - /dev/kfd
-      - /dev/dri
-    group_add:
-      - video
-    security_opt:
-      - seccomp:unconfined
-    ipc: host
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-      start_period: 300s
-    restart: unless-stopped
-
-  backend:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-      args:
-        PYTORCH_INDEX: ${PYTORCH_INDEX:-https://download.pytorch.org/whl/cpu}
-    container_name: conturai_backend
-    env_file: .env
-    environment:
-      DB_HOST: postgres
-      VLLM_BASE_URL: http://vllm:8000/v1
-      DATA_DIR: /app/data
-    ports:
-      - "8000:8000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      vllm:
-        condition: service_started
-    volumes:
-      - app_data:/app/data
-      - ./models:/models:ro
-    restart: unless-stopped
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: conturai_frontend
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
-    restart: unless-stopped
-
-volumes:
-  pgdata:
-  app_data:
-```
-
-**Требования:** ROCm-совместимая AMD GPU, ROCm-драйверы, Docker. Для тестовой сборки можно также указать `PYTORCH_INDEX=https://download.pytorch.org/whl/rocm6.1` в `.env`.
-
-> Примечание: официальный `rocm/vllm` содержит большие зависимости, скачивание может занять значительное время. Если на тестовой машине нет AMD GPU, используйте вариант 3 (CPU).
-
-### Вариант 3. CPU (без GPU, для тестов и разработки)
-
-Подходит для тестирования всей системы (API, фронтенд, RAG) без GPU. LLM-ответы будут медленными, поэтому этот вариант используется для проверки интеграции, а не для продакшна.
-
-```yaml
-name: conturai
-
-services:
-  postgres:
-    image: pgvector/pgvector:pg16
-    container_name: conturai_postgres
-    environment:
-      POSTGRES_USER: ${DB_USER:-conturai_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-conturai}
-      POSTGRES_DB: ${DB_NAME:-conturai}
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-conturai_user} -d ${DB_NAME:-conturai}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    restart: unless-stopped
-
-  # --- CPU (без GPU) ---
-  # vLLM на CPU работает медленно. Для тестов API без LLM можно
-  # полностью удалить сервис `vllm` и `depends_on.vllm` у backend.
-  vllm:
-    image: vllm/vllm-openai:latest
-    container_name: conturai_vllm
-    command: >
-      --model /models/Qwen2.5-0.5B-Instruct
-      --served-model-name local-model
-      --host 0.0.0.0
-      --port 8000
-      --max-model-len 2048
-      --dtype float32
-    environment:
-      HF_HUB_OFFLINE: "1"
-      TRANSFORMERS_OFFLINE: "1"
-    ports:
-      - "8080:8000"
-    volumes:
-      - ./models:/models:ro
-    ipc: host
-    restart: unless-stopped
-
-  backend:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-      args:
-        PYTORCH_INDEX: ${PYTORCH_INDEX:-https://download.pytorch.org/whl/cpu}
-    container_name: conturai_backend
-    env_file: .env
-    environment:
-      DB_HOST: postgres
-      VLLM_BASE_URL: http://vllm:8000/v1
-      DATA_DIR: /app/data
-    ports:
-      - "8000:8000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      # Если сервис vllm удален, закомментируйте эту зависимость:
-      # vllm:
-      #   condition: service_started
-    volumes:
-      - app_data:/app/data
-      - ./models:/models:ro
-    restart: unless-stopped
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: conturai_frontend
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
-    restart: unless-stopped
-
-volumes:
-  pgdata:
-  app_data:
-```
-## Запуск
-
-### Способ 1. Универсальный скрипт (рекомендуется)
-
-Скрипт сам спросит платформу, создаст `.env` со случайными паролями, скачает модели, инициализирует БД и создаст администратора.
-
-**Linux / macOS:**
+**Для Linux / macOS:**
 ```bash
 chmod +x install.sh
 ./install.sh
 ```
 
-**Windows:**
+**Для Windows:**
 ```cmd
 install.bat
 ```
 
-При запуске нужно выбрать режим:
+### 3. Выбор платформы
 
-```
-1) NVIDIA GPU (CUDA)          — полный стек
-2) AMD GPU (ROCm)             — полный стек
-3) CPU (8+ ГБ ОЗУ)            — полный стек
-4) Слабый ПК (4–8 ГБ ОЗУ)     — только легкие модели
-5) Только backend (без vLLM)  — API + БД для тестов
-6) Только frontend            — интерфейс
-```
+При запуске скрипт спросит, на каком оборудовании вы работаете:
+1. **NVIDIA (CUDA)** — для видеокарт NVIDIA (RTX, A100 и т.д.).
+2. **AMD (ROCm)** — для видеокарт AMD.
+3. **CPU** — для тестирования без GPU (медленно, но работает).
+4. **DEV (слабый ПК)** — для ПК с 4–8 ГБ ОЗУ.
 
-В конце скрипт выведет адреса и **пароль администратора** (см. вывод `reset-admin`).
+Скрипт автоматически пропишет нужные настройки в `.env`, скачает подходящую версию PyTorch и запустит контейнеры.
 
-### Способ 2. Ручной запуск через Docker Compose
+### 4. Данные для входа
 
-#### NVIDIA (по умолчанию)
+После завершения установки скрипт выведет в консоль логин и **сгенерированный пароль администратора**.
+- **Логин:** `admin`
+- **Пароль:** *(смотрите в логах `reset-admin` в самом конце установки)*
 
-```bash
-docker compose up -d --build
-```
+> Если вы забыли пароль, выполните:
+> `docker compose exec backend python scripts/manage.py reset-admin`
 
-#### AMD (ROCm)
+---
 
-```bash
-docker compose -f docker-compose.yml -f docker-compose.amd.yml up -d --build
-```
+## Доступ к сервисам
 
-#### CPU (8+ ГБ ОЗУ)
+- **Веб-интерфейс:** `http://localhost:3000`
+- **Swagger API:** `http://localhost:8000/docs`
+- **Статус сервера:** `http://localhost:8000/status`
+- **vLLM API:** `http://localhost:8080/v1`
 
-```bash
-docker compose -f docker-compose.yml -f docker-compose.cpu.yml up -d --build
-```
+---
 
-#### Слабый ПК (4–8 ГБ ОЗУ, легкие модели)
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
-```
-
-#### Только backend (без vLLM, для тестов API)
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.cpu.yml up -d --build postgres backend
-```
-
-#### Только frontend
-
-```bash
-docker compose up -d --build frontend
-```
-
-#### Первый запуск: инициализация
-
-После того как контейнеры поднялись, выполните:
-
-```bash
-# Создать таблицы, промты и параметры LLM
-docker compose exec backend python scripts/manage.py init-db
-
-# Создать администратора (пароль будет выведен в консоль)
-docker compose exec backend python scripts/manage.py reset-admin
-```
-
-Если вы использовали `install.sh` / `install.bat`, эти шаги уже выполнены.
-
-## Управление
+## Управление и обслуживание
 
 Все команды выполняются из корня проекта.
 
-```bash
-# Инициализация БД (первый запуск)
-docker compose exec backend python scripts/manage.py init-db
+### Команды `manage.py` (внутри контейнера)
 
-# Сброс пароля администратора (создаст, если удален)
+```bash
+# Сбросить пароль администратора
 docker compose exec backend python scripts/manage.py reset-admin
 
-# Скачать модели (по списку из .env)
+# Скачать модели (пропускает уже скачанные)
 docker compose exec backend python scripts/manage.py download-models
 
-# Скачать конкретные модели
-docker compose exec backend python scripts/manage.py download-models \
-  --only "Qwen/Qwen2.5-0.5B-Instruct:Qwen2.5-0.5B-Instruct"
+# Перекачать модели (если что-то сломалось)
+docker compose exec backend python scripts/manage.py download-models --force
+```
 
+### Полезные команды Docker
+
+```bash
+# Пересобрать бэкенд после правок кода
+docker compose up -d --build backend
+
+# Посмотреть логи
+docker compose logs -f backend vllm
+
+# Полностью остановить и удалить данные (сброс БД)
+docker compose down -v
+```
+
+---
+
+## Решение проблем
+
+### Ошибка `Read-only file system` при скачивании моделей
+В `docker-compose.yml` у сервиса `backend` том `./models` должен быть примонтирован **без** флага `:ro`. Флаг `:ro` оставляем только для сервиса `vllm`.
+
+### Ошибка `password authentication failed`
+Если вы удалили `.env` или пересоздали БД, пароли могли разойтись. Выполните полную переустановку:
+```bash
+docker compose down -v
+./install.sh
+```
+
+### Ошибка `Connection error` в чате
+vLLM не успел загрузить модель. Проверьте статус:
+```bash
+docker compose ps vllm
+docker compose logs --tail=50 vllm
+```
+Если модель загружается (на CPU это может занять несколько минут) — просто подождите.
+
+### Модель выводит таблицу в виде черного блока кода
+Модель обернула таблицу в ```markdown. Убедитесь, что на фронтенде установлен `remark-gfm` (файл `ChatWindow.tsx`), а в промтах добавлен запрет на использование тройных кавычек для таблиц.
+
+---

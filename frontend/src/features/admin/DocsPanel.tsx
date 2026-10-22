@@ -1,17 +1,42 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../../api/client';
 import { Button } from '../../ui/Button';
 import { Input } from '../../ui/Input';
-import { Upload, FileText } from 'lucide-react';
+import { Upload, FileText, Download, Trash2 } from 'lucide-react';
+
+interface UploadRow {
+  id: string;
+  original_name: string;
+  mime_type: string | null;
+  size: number;
+  chunks_count: number;
+  uploaded_by: string | null;
+  created_at: string;
+}
 
 export function DocsPanel() {
   const [name, setName] = useState('');
   const [text, setText] = useState('');
   const [fileText, setFileText] = useState('');
   const [file, setFile] = useState<string>('');
+  const [uploadId, setUploadId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [uploads, setUploads] = useState<UploadRow[]>([]);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  const loadList = async () => {
+    try {
+      const data = await api.listDocs();
+      if (data.result) setUploads(data.uploads || []);
+    } catch (e: any) {
+      setError(e.message);
+    }
+  };
+
+  useEffect(() => {
+    loadList();
+  }, []);
 
   const readFile = async (f: File) => {
     setError('');
@@ -20,6 +45,7 @@ export function DocsPanel() {
       const data = await api.readDoc(f);
       if (data.result) {
         setFileText(data.file_text);
+        setUploadId(data.upload_id);
         if (!name) setName(data.file_name);
       } else {
         setError(data.message);
@@ -33,12 +59,36 @@ export function DocsPanel() {
     setError('');
     setSuccess('');
     try {
-      const data = await api.addDoc(name || file, text || fileText);
+      const data = await api.addDoc(
+        name || file || 'document',
+        text || fileText,
+        uploadId ?? undefined
+      );
       setSuccess(data.message);
       setName('');
       setText('');
       setFileText('');
       setFile('');
+      setUploadId(null);
+      loadList();
+    } catch (e: any) {
+      setError(e.message);
+    }
+  };
+
+  const download = async (u: UploadRow) => {
+    try {
+      await api.downloadDoc(u.id, u.original_name);
+    } catch (e: any) {
+      setError(e.message);
+    }
+  };
+
+  const remove = async (u: UploadRow) => {
+    if (!confirm(`Удалить «${u.original_name}» и все его чанки?`)) return;
+    try {
+      await api.deleteDoc(u.id);
+      loadList();
     } catch (e: any) {
       setError(e.message);
     }
@@ -70,7 +120,7 @@ export function DocsPanel() {
 
         <div className="bg-white rounded-lg shadow p-4">
           <h3 className="font-semibold mb-3 flex items-center gap-2">
-            <Upload size={18} /> Файл
+            <Upload size={18} /> Файл (PDF/DOCX/XLSX)
           </h3>
           <input
             type="file"
@@ -99,6 +149,57 @@ export function DocsPanel() {
           >
             Загрузить в RAG
           </Button>
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <h3 className="text-xl font-bold mb-3">Уже загруженные</h3>
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-100 text-left">
+              <tr>
+                <th className="p-3">Имя</th>
+                <th className="p-3">Тип</th>
+                <th className="p-3">Размер</th>
+                <th className="p-3">Чанков</th>
+                <th className="p-3">Кто</th>
+                <th className="p-3">Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              {uploads.map((u) => (
+                <tr key={u.id} className="border-t">
+                  <td className="p-3">{u.original_name}</td>
+                  <td className="p-3 text-xs text-gray-500">{u.mime_type || '—'}</td>
+                  <td className="p-3">{u.size ? `${Math.round(u.size / 1024)} КБ` : '—'}</td>
+                  <td className="p-3">{u.chunks_count}</td>
+                  <td className="p-3">{u.uploaded_by || '—'}</td>
+                  <td className="p-3 space-x-2">
+                    <button
+                      onClick={() => download(u)}
+                      className="text-blue-600 hover:underline inline-flex items-center gap-1"
+                      disabled={!u.mime_type}
+                    >
+                      <Download size={14} /> Скачать
+                    </button>
+                    <button
+                      onClick={() => remove(u)}
+                      className="text-red-600 hover:underline inline-flex items-center gap-1"
+                    >
+                      <Trash2 size={14} /> Удалить
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {uploads.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="p-6 text-center text-gray-500">
+                    Нет загруженных документов
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

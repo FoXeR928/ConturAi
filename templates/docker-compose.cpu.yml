@@ -24,7 +24,7 @@ services:
     image: ${VLLM_IMAGE:-vllm/vllm-openai-cpu:latest}
     container_name: conturai_vllm
     command: >
-      ${VLLM_MODEL_PATH:-/models/Qwen2.5-0.5B-Instruct}
+      ${VLLM_MODEL_PATH:-/models/Qwen2.5-1.5B-Instruct}
       --served-model-name ${VLLM_SERVED_NAME:-local-model}
       --host 0.0.0.0
       --port 8000

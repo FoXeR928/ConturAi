@@ -13,7 +13,7 @@ export function ChatPage({
   onLogout: () => void;
 }) {
   const [chats, setChats] = useState<any[]>([]);
-  const [activeChat, setActiveChat] = useState<number | null>(null);
+  const [activeChat, setActiveChat] = useState<string | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const stored = localStorage.getItem('me');
@@ -28,7 +28,7 @@ export function ChatPage({
     loadChats();
   }, []);
 
-  const loadMessages = async (chatId: number) => {
+  const loadMessages = async (chatId: string) => {
     setActiveChat(chatId);
     const data = await api.getMessages(chatId);
     if (data.result) setMessages(data.messages_history);

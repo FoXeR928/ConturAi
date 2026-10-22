@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -40,7 +42,7 @@ async def get_chats(
 
 @router.get("/messages/get")
 async def get_messages(
-    chat_id: int,
+    chat_id: UUID,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
@@ -56,7 +58,7 @@ async def get_messages(
 
 @router.post("/messages/create")
 async def create_message(
-    chat_id: int,
+    chat_id: UUID,
     payload: MessageIn,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
@@ -71,8 +73,8 @@ async def create_message(
 
 @router.delete("/messages/delete")
 async def delete_message(
-    chat_id: int,
-    message_id: int,
+    chat_id: UUID,
+    message_id: UUID,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
@@ -86,7 +88,7 @@ async def delete_message(
 
 @router.patch("/delete")
 async def delete_chat(
-    chat_id: int,
+    chat_id: UUID,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
@@ -109,7 +111,7 @@ async def get_deleted(
 
 @router.delete("/delete/irrevocably/list")
 async def purge_deleted(
-    chats: list[int],
+    chats: list[UUID],
     _: User = Depends(get_admin_user),
     session: AsyncSession = Depends(get_session),
 ):
@@ -132,7 +134,7 @@ async def purge_all_deleted(
 
 @router.patch("/recovery/list")
 async def recovery_list(
-    chats: list[int],
+    chats: list[UUID],
     _: User = Depends(get_admin_user),
     session: AsyncSession = Depends(get_session),
 ):

@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 
 import bcrypt
@@ -23,7 +24,7 @@ class Base(DeclarativeBase):
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     login: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     password_hash: Mapped[str | None] = mapped_column(String(255))
     user_name: Mapped[str | None] = mapped_column(String(128))
@@ -53,7 +54,7 @@ class User(Base):
 class Chat(Base):
     __tablename__ = "chats"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     user_login: Mapped[str] = mapped_column(
         ForeignKey("users.login", ondelete="CASCADE", onupdate="CASCADE"), index=True
     )
@@ -70,11 +71,11 @@ class Chat(Base):
 class Message(Base):
     __tablename__ = "messages"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     user_login: Mapped[str] = mapped_column(
         ForeignKey("users.login", ondelete="CASCADE", onupdate="CASCADE"), index=True
     )
-    chat_id: Mapped[int] = mapped_column(
+    chat_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("chats.id", ondelete="CASCADE"), index=True
     )
     text: Mapped[str] = mapped_column(Text)
@@ -86,11 +87,14 @@ class Message(Base):
 class Document(Base):
     __tablename__ = "documents"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     source: Mapped[str] = mapped_column(String(255), index=True)
     text: Mapped[str] = mapped_column(Text)
     text_norm: Mapped[str | None] = mapped_column(Text)
     page: Mapped[int] = mapped_column(default=1)
+    upload_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("uploads.id", ondelete="CASCADE"), index=True, nullable=True
+    )
     language: Mapped[str] = mapped_column(String(8), default="ru")
     embedding: Mapped[list[float]] = mapped_column(Vector(settings.embedding_dim))
     created_at: Mapped[datetime] = mapped_column(
@@ -111,7 +115,7 @@ class Document(Base):
 class Prompt(Base):
     __tablename__ = "prompts"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     key: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     value: Mapped[str] = mapped_column(Text)
     description: Mapped[str | None] = mapped_column(String(255))
@@ -123,11 +127,30 @@ class Prompt(Base):
 class LlmConfig(Base):
     __tablename__ = "llm_configs"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     key: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     value: Mapped[str] = mapped_column(Text)
     description: Mapped[str | None] = mapped_column(String(255))
     input_type: Mapped[str] = mapped_column(String(32), default="text")
     updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), onupdate=func.now()
+    )
+
+class Upload(Base):
+    __tablename__ = "uploads"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    original_name: Mapped[str] = mapped_column(String(255), index=True)
+    stored_name: Mapped[str | None] = mapped_column(String(255))  # None если только текст
+    mime_type: Mapped[str | None] = mapped_column(String(128))
+    size: Mapped[int] = mapped_column(default=0)
+    text: Mapped[str] = mapped_column(Text)
+    uploaded_by: Mapped[str | None] = mapped_column(
+        ForeignKey("users.login", ondelete="SET NULL", onupdate="CASCADE"),
+        index=True,
+        nullable=True,
+    )
+    chunks_count: Mapped[int] = mapped_column(default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
     )

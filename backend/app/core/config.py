@@ -43,12 +43,9 @@ class Settings(BaseSettings):
     token_expire_minutes: int = 30
     token_expire_days: int = 7
 
-    # Пути
     data_dir: str = "./data"
     models_dir: str = "./models"
 
-    # Что качать в models/ (список через запятую)
-    # Формат: "repo_id:local_name,repo_id:local_name"
     models_to_download: str = (
         "intfloat/multilingual-e5-large:multilingual-e5-large,"
         "Qwen/Qwen2.5-0.5B-Instruct:Qwen2.5-0.5B-Instruct"
@@ -56,19 +53,6 @@ class Settings(BaseSettings):
 
     embedding_model_path: str = "./models/multilingual-e5-large"
     embedding_dim: int = 1024
-
-    rag_search_limit: int = 5
-    rag_batch_size: int = 64
-    rag_chunk_size: int = 500
-    rag_chunk_overlap: int = 100
-
-    ai_name: str = "Контур"
-    system_prompt: str = (
-        "Ты - {name}. Отвечай на вопросы, используя контекст из базы. "
-        "Если данных нет — отвечай самостоятельно и добавляй "
-        "'Ответ сгенерирован самостоятельно'"
-    )
-    user_prompt: str = "Контекст: {context}\nВопрос: {quest}"
 
     @property
     def db_url(self) -> str:
