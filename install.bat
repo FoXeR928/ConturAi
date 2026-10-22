@@ -182,6 +182,22 @@ timeout /t 10 /nobreak >nul
 echo [OK] Установка завершена.
 exit /b 0
 
+:full_install
+call :pick_platform
+if errorlevel 1 exit /b 1
+echo [INFO] Сборка backend...
+docker compose up -d --build
+echo [INFO] Ожидание...
+timeout /t 10 /nobreak >nul
+if errorlevel 1 ( pause & exit /b 1 )
+echo [INFO] Скачивание моделей...
+%MANAGE_RUN% download-models
+if errorlevel 1 ( pause & exit /b 1 )
+%MANAGE_DOCKER% init-db
+%MANAGE_DOCKER% reset-admin
+echo [OK] Установка завершена.
+exit /b 0
+
 REM ---------- containers ----------
 :containers_menu
 echo.

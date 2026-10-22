@@ -8,3 +8,4 @@ logs/
 models/
 .env
 docker-compose.yml
+uv.lock

@@ -224,16 +224,14 @@ full_install() {
     pick_platform || return 1
     docker_works || return 1
     log "Сборка backend..."
-    dc build backend
-    log "Скачивание моделей..."
-    run_no_deps download-models
-    log "Запуск контейнеров..."
     dc up -d --build
     log "Ожидание PostgreSQL..."
     for _ in $(seq 1 40); do
         dc exec -T postgres pg_isready -U "$(grep '^DB_USER=' .env | cut -d= -f2)" >/dev/null 2>&1 && break
         sleep 2
     done
+    log "Скачивание моделей..."
+    run_no_deps download-models
     log "Инициализация БД..."
     exec_backend init-db
     log "Создание администратора..."

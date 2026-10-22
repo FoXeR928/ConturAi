@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # --- ДОБАВЛЯЕМ АРГУМЕНТ ДЛЯ ВЫБОРА ВЕРСИИ TORCH ---
 # По умолчанию - CPU (легкий, ~200МБ). 
@@ -32,9 +32,11 @@ COPY backend/pyproject.toml backend/uv.lock* ./
 # --- ПОДМЕНЯЕМ URL В PYPROJECT.TOML НА ТОТ, ЧТО ПЕРЕДАЛИ В ARG ---
 RUN sed -i "s|https://download.pytorch.org/whl/cpu|${PYTORCH_INDEX}|g" pyproject.toml
 
+RUN rm -f uv.lock
+
 # Убираем --frozen, так как мы меняем pyproject.toml на лету
 RUN uv sync --no-install-project --no-dev \
-    --index-url ${PYTORCH_INDEX}
+    --extra-index-url ${PYTORCH_INDEX}
 
 COPY backend/app ./app
 COPY backend/scripts ./scripts

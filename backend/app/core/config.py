@@ -62,7 +62,7 @@ class Settings(BaseSettings):
     rag_chunk_size: int = 500
     rag_chunk_overlap: int = 100
 
-    ai_name: str = "Раги"
+    ai_name: str = "Контур"
     system_prompt: str = (
         "Ты - {name}. Отвечай на вопросы, используя контекст из базы. "
         "Если данных нет — отвечай самостоятельно и добавляй "
