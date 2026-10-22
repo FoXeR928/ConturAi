@@ -1,8 +1,9 @@
 import argparse
 import asyncio
 import secrets
-
+import shutil
 from pathlib import Path
+
 from loguru import logger
 from sqlalchemy import select, text
 
@@ -116,13 +117,7 @@ async def cmd_set_llm(args: argparse.Namespace) -> None:
 
 # ---------------- Models ----------------
 
-def cmd_download_models(args: argparse.Namespace) -> None:
-    from huggingface_hub import snapshot_download
-
-    models_dir = Path(settings.models_dir).resolve()
-    models_dir.mkdir(parents=True, exist_ok=True)
-
-    raw = args.only or settings.models_to_download
+def _parse_models(raw: str) -> list[tuple[str, str]]:
     entries: list[tuple[str, str]] = []
     for item in raw.split(","):
         item = item.strip()
@@ -133,29 +128,54 @@ def cmd_download_models(args: argparse.Namespace) -> None:
         else:
             repo, local = item, item.split("/")[-1]
         entries.append((repo.strip(), local.strip()))
+    return entries
+
+
+def cmd_download_models(args: argparse.Namespace) -> None:
+    from huggingface_hub import snapshot_download
+
+    models_dir = Path(settings.models_dir).resolve()
+    models_dir.mkdir(parents=True, exist_ok=True)
+
+    raw = args.only or settings.models_to_download
+    entries = _parse_models(raw)
+    if not entries:
+        logger.error("Список моделей пуст. Укажите MODELS_TO_DOWNLOAD или --only")
+        return
 
     logger.info(f"Целевая папка: {models_dir}")
     logger.info(f"К скачиванию: {len(entries)} моделей")
+    if args.force:
+        logger.warning("Режим --force: существующие папки будут перекачаны")
 
     for repo_id, local_name in entries:
         target = models_dir / local_name
-        if target.exists() and any(target.iterdir()):
-            logger.info(f"[skip] {local_name} уже скачана")
+        has_data = target.exists() and any(target.iterdir())
+
+        if has_data and not args.force:
+            logger.info(f"[skip] {local_name} уже скачана (--force для перекачки)")
             continue
+
+        if has_data and args.force:
+            logger.warning(f"[force] удаляю {target}")
+            shutil.rmtree(target, ignore_errors=True)
+
         logger.info(f"[download] {repo_id} → {target}")
-        snapshot_download(
-            repo_id=repo_id,
-            local_dir=str(target),
-            local_dir_symlinks=False,
-            ignore_patterns=["*.msgpack", "*.h5", "*.ot"],
-        )
-        logger.success(f"[ok] {local_name}")
+        try:
+            snapshot_download(
+                repo_id=repo_id,
+                local_dir=str(target),
+                ignore_patterns=["*.msgpack", "*.h5", "*.ot"],
+            )
+            logger.success(f"[ok] {local_name}")
+        except Exception as err:
+            logger.error(f"[fail] {local_name}: {err}")
 
 
 # ---------------- CLI ----------------
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="ConturAI management CLI (в контейнере)")
+    parser = argparse.ArgumentParser(description="ConturAI management CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     subparsers.add_parser("init-db", help="Создать таблицы, промты и llm_configs")
@@ -168,6 +188,11 @@ def main() -> None:
         "--only",
         default=None,
         help='Список: "repo:name,repo:name". По умолчанию — MODELS_TO_DOWNLOAD из .env',
+    )
+    p_download.add_argument(
+        "--force",
+        action="store_true",
+        help="Перекачать модели, даже если они уже есть",
     )
 
     p_llm = subparsers.add_parser("set-llm", help="Обновить параметры LLM в БД")

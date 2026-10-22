@@ -223,20 +223,30 @@ REM ---------- manage ----------
 :manage_menu
 echo.
 echo --- manage.py (в контейнере) ---
-echo   1^) init-db   2^) reset-admin   3^) download-models
-echo   4^) download-models --only   5^) set-llm
-echo   6^) use-platform nvidia  7^) amd  8^) cpu  9^) dev
+echo   1^) init-db
+echo   2^) reset-admin
+echo   3^) download-models (skip существующих)
+echo   4^) download-models --force (перекачать всё)
+echo   5^) download-models --only ...
+echo   6^) download-models --only ... --force
+echo   7^) set-llm
+echo   8^) use-platform nvidia  9^) amd  10^) cpu  11^) dev
 echo   0^) Назад
 set /p M=Номер: 
 if "%M%"=="0" exit /b 0
 if "%M%"=="1" %MANAGE_DOCKER% init-db
 if "%M%"=="2" %MANAGE_DOCKER% reset-admin
-if "%M%"=="3" %MANAGE_RUN% download-models
-if "%M%"=="4" (
-    set /p only=repo:name,repo:name: 
-    %MANAGE_RUN% download-models --only "!only!"
-)
+if "%M%"=="3" %MANAGE_DOCKER% download-models
+if "%M%"=="4" %MANAGE_DOCKER% download-models --force
 if "%M%"=="5" (
+    set /p only=repo:name,repo:name: 
+    %MANAGE_DOCKER% download-models --only "!only!"
+)
+if "%M%"=="6" (
+    set /p only=repo:name,repo:name: 
+    %MANAGE_DOCKER% download-models --only "!only!" --force
+)
+if "%M%"=="7" (
     set /p model=model: 
     set /p temp=temperature: 
     set /p mt=max-tokens: 
@@ -246,10 +256,10 @@ if "%M%"=="5" (
     if not "!mt!"==""    set "args=!args! --max-tokens !mt!"
     %MANAGE_DOCKER% set-llm !args!
 )
-if "%M%"=="6" ( call :setup_env & call :use_platform nvidia )
-if "%M%"=="7" ( call :setup_env & call :use_platform amd )
-if "%M%"=="8" ( call :setup_env & call :use_platform cpu )
-if "%M%"=="9" ( call :setup_env & call :use_platform dev )
+if "%M%"=="8" ( call :setup_env & call :use_platform nvidia )
+if "%M%"=="9" ( call :setup_env & call :use_platform amd )
+if "%M%"=="10" ( call :setup_env & call :use_platform cpu )
+if "%M%"=="11" ( call :setup_env & call :use_platform dev )
 goto manage_menu
 
 REM ---------- main menu ----------

@@ -266,18 +266,24 @@ manage_menu() {
     while true; do
         echo ""
         echo "--- manage.py (в контейнере) ---"
-        echo "  1) init-db        2) reset-admin"
-        echo "  3) download-models   4) download-models --only"
-        echo "  5) set-llm"
-        echo "  6) use-platform nvidia   7) amd   8) cpu   9) dev"
+        echo "  1) init-db"
+        echo "  2) reset-admin"
+        echo "  3) download-models (пропускает уже скачанные)"
+        echo "  4) download-models --force (перекачать всё)"
+        echo "  5) download-models --only ..."
+        echo "  6) download-models --only ... --force"
+        echo "  7) set-llm"
+        echo "  8) use-platform nvidia  9) amd  10) cpu  11) dev"
         echo "  0) Назад"
         read -r -p "Номер: " m
         case "$m" in
             1) exec_backend init-db;;
             2) exec_backend reset-admin;;
-            3) run_no_deps download-models;;
-            4) read -r -p "repo:name,repo:name: " only; run_no_deps download-models --only "$only";;
-            5)
+            3) exec_backend download-models;;
+            4) exec_backend download-models --force;;
+            5) read -r -p "repo:name,repo:name: " only; exec_backend download-models --only "$only";;
+            6) read -r -p "repo:name,repo:name: " only; exec_backend download-models --only "$only" --force;;
+            7)
                 read -r -p "model: " model
                 read -r -p "temperature: " temp
                 read -r -p "max-tokens: " mt
@@ -287,10 +293,10 @@ manage_menu() {
                 [ -n "$mt" ]    && args+=" --max-tokens $mt"
                 exec_backend set-llm $args
                 ;;
-            6) setup_env; use_platform nvidia;;
-            7) setup_env; use_platform amd;;
-            8) setup_env; use_platform cpu;;
-            9) setup_env; use_platform dev;;
+            8) setup_env; use_platform nvidia;;
+            9) setup_env; use_platform amd;;
+            10) setup_env; use_platform cpu;;
+            11) setup_env; use_platform dev;;
             0) return;;
         esac
     done
