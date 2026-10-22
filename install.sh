@@ -302,6 +302,49 @@ manage_menu() {
     done
 }
 
+update_menu() {
+    docker_works || return
+    while true; do
+        echo ""
+        echo "--- Обновление / переустановка ---"
+        echo "  1) Пересобрать backend (без кеша)"
+        echo "  2) Пересобрать frontend (без кеша)"
+        echo "  3) Пересобрать всё (без кеша)"
+        echo "  4) Обновить код (git pull) + пересобрать всё"
+        echo "  5) Полная переустановка: снести контейнеры/тома, скачать модели, поднять"
+        echo "  0) Назад"
+        read -r -p "Номер: " u
+        case "$u" in
+            1) dc build --no-cache backend && dc up -d backend;;
+            2) dc build --no-cache frontend && dc up -d frontend;;
+            3) dc build --no-cache && dc up -d;;
+            4)
+                has git || { err "git не установлен"; continue; }
+                git pull --ff-only
+                dc build --no-cache
+                dc up -d
+                ;;
+            5)
+                read -r -p "Удалить тома с БД и данными? (y/N): " ok
+                if [ "$ok" = "y" ]; then
+                    dc down -v
+                else
+                    dc down
+                fi
+                dc up -d --build
+                for _ in $(seq 1 40); do
+                    dc exec -T postgres pg_isready -U "$(grep '^DB_USER=' .env | cut -d= -f2)" >/dev/null 2>&1 && break
+                    sleep 2
+                done
+                exec_backend download-models --force
+                exec_backend init-db
+                exec_backend reset-admin
+                ;;
+            0) return;;
+        esac
+    done
+}
+
 while true; do
     echo ""
     echo "=================================================="
@@ -310,13 +353,15 @@ while true; do
     echo "  1) Полная установка"
     echo "  2) Управление контейнерами"
     echo "  3) Команды manage.py (в контейнере)"
-    echo "  4) Выход"
+    echo "  4) Обновление / переустановка"
+    echo "  5) Выход"
     read -r -p "Номер [1]: " choice
     case "${choice:-1}" in
         1) full_install;;
         2) prepare; containers_menu;;
         3) prepare; manage_menu;;
-        4) exit 0;;
+        4) prepare; update_menu;;
+        5) exit 0;;
         *) err "Неверный выбор";;
     esac
 done

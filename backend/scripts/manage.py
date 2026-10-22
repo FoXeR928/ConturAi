@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import os
 import secrets
 import shutil
 from pathlib import Path
@@ -61,11 +62,9 @@ async def cmd_reset_admin() -> None:
     setup_logging()
     async with async_session_factory() as session:
         password = secrets.token_urlsafe(16)
-
         admin = (
             await session.execute(select(User).where(User.login == ADMIN_LOGIN))
         ).scalar_one_or_none()
-
         if admin:
             admin.set_password(password)
             admin.is_admin = True
@@ -134,42 +133,58 @@ def _parse_models(raw: str) -> list[tuple[str, str]]:
 def cmd_download_models(args: argparse.Namespace) -> None:
     from huggingface_hub import snapshot_download
 
-    models_dir = Path(settings.models_dir).resolve()
-    models_dir.mkdir(parents=True, exist_ok=True)
+    # --- включаем интернет только на время скачивания ---
+    offline_keys = ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE", "HF_DATASETS_OFFLINE")
+    previous = {k: os.environ.get(k) for k in offline_keys}
+    for k in offline_keys:
+        os.environ[k] = "0"
+    logger.info("HF_HUB_OFFLINE=0, TRANSFORMERS_OFFLINE=0 (включён интернет)")
 
-    raw = args.only or settings.models_to_download
-    entries = _parse_models(raw)
-    if not entries:
-        logger.error("Список моделей пуст. Укажите MODELS_TO_DOWNLOAD или --only")
-        return
+    try:
+        models_dir = Path(settings.models_dir).resolve()
+        models_dir.mkdir(parents=True, exist_ok=True)
 
-    logger.info(f"Целевая папка: {models_dir}")
-    logger.info(f"К скачиванию: {len(entries)} моделей")
-    if args.force:
-        logger.warning("Режим --force: существующие папки будут перекачаны")
+        raw = args.only or settings.models_to_download
+        entries = _parse_models(raw)
+        if not entries:
+            logger.error("Список моделей пуст. Укажите MODELS_TO_DOWNLOAD или --only")
+            return
 
-    for repo_id, local_name in entries:
-        target = models_dir / local_name
-        has_data = target.exists() and any(target.iterdir())
+        logger.info(f"Целевая папка: {models_dir}")
+        logger.info(f"К скачиванию: {len(entries)} моделей")
+        if args.force:
+            logger.warning("Режим --force: существующие папки будут перекачаны")
 
-        if has_data and not args.force:
-            logger.info(f"[skip] {local_name} уже скачана (--force для перекачки)")
-            continue
+        for repo_id, local_name in entries:
+            target = models_dir / local_name
+            has_data = target.exists() and any(target.iterdir())
 
-        if has_data and args.force:
-            logger.warning(f"[force] удаляю {target}")
-            shutil.rmtree(target, ignore_errors=True)
+            if has_data and not args.force:
+                logger.info(f"[skip] {local_name} уже скачана (--force для перекачки)")
+                continue
 
-        logger.info(f"[download] {repo_id} → {target}")
-        try:
-            snapshot_download(
-                repo_id=repo_id,
-                local_dir=str(target),
-                ignore_patterns=["*.msgpack", "*.h5", "*.ot"],
-            )
-            logger.success(f"[ok] {local_name}")
-        except Exception as err:
-            logger.error(f"[fail] {local_name}: {err}")
+            if has_data and args.force:
+                logger.warning(f"[force] удаляю {target}")
+                shutil.rmtree(target, ignore_errors=True)
+
+            logger.info(f"[download] {repo_id} → {target}")
+            try:
+                snapshot_download(
+                    repo_id=repo_id,
+                    local_dir=str(target),
+                    ignore_patterns=["*.msgpack", "*.h5", "*.ot"],
+                )
+                logger.success(f"[ok] {local_name}")
+            except Exception as err:
+                logger.error(f"[fail] {local_name}: {err}")
+    finally:
+        # --- возвращаем offline ---
+        for k, v in previous.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+        logger.info("HF_HUB_OFFLINE=1, TRANSFORMERS_OFFLINE=1 (возврат в offline)")
 
 
 # ---------------- CLI ----------------
@@ -181,19 +196,11 @@ def main() -> None:
     subparsers.add_parser("init-db", help="Создать таблицы, промты и llm_configs")
     subparsers.add_parser("reset-admin", help="Сбросить пароль админа")
 
-    p_download = subparsers.add_parser(
-        "download-models", help="Скачать модели в папку models"
-    )
-    p_download.add_argument(
-        "--only",
-        default=None,
-        help='Список: "repo:name,repo:name". По умолчанию — MODELS_TO_DOWNLOAD из .env',
-    )
-    p_download.add_argument(
-        "--force",
-        action="store_true",
-        help="Перекачать модели, даже если они уже есть",
-    )
+    p_download = subparsers.add_parser("download-models", help="Скачать модели")
+    p_download.add_argument("--only", default=None,
+                            help='Список: "repo:name,repo:name"')
+    p_download.add_argument("--force", action="store_true",
+                            help="Перекачать даже если уже есть")
 
     p_llm = subparsers.add_parser("set-llm", help="Обновить параметры LLM в БД")
     p_llm.add_argument("--base-url", default=None)

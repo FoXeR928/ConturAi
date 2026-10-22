@@ -262,6 +262,41 @@ if "%M%"=="10" ( call :setup_env & call :use_platform cpu )
 if "%M%"=="11" ( call :setup_env & call :use_platform dev )
 goto manage_menu
 
+:update_menu
+echo.
+echo --- Обновление / переустановка ---
+echo   1^) Пересобрать backend (no-cache)
+echo   2^) Пересобрать frontend (no-cache)
+echo   3^) Пересобрать всё (no-cache)
+echo   4^) git pull + пересобрать всё
+echo   5^) Полная переустановка (down -v, download --force, init-db, reset-admin)
+echo   0^) Назад
+set /p U=Номер: 
+if "%U%"=="0" exit /b 0
+if "%U%"=="1" ( docker compose build --no-cache backend & docker compose up -d backend )
+if "%U%"=="2" ( docker compose build --no-cache frontend & docker compose up -d frontend )
+if "%U%"=="3" ( docker compose build --no-cache & docker compose up -d )
+if "%U%"=="4" (
+    where git >nul 2>&1
+    if errorlevel 1 (
+        echo [ERROR] git не установлен
+    ) else (
+        git pull --ff-only
+        docker compose build --no-cache
+        docker compose up -d
+    )
+)
+if "%U%"=="5" (
+    set /p ok=Удалить тома с БД? (y/N): 
+    if /i "!ok!"=="y" ( docker compose down -v ) else ( docker compose down )
+    docker compose up -d --build
+    timeout /t 10 /nobreak >nul
+    %MANAGE_DOCKER% download-models --force
+    %MANAGE_DOCKER% init-db
+    %MANAGE_DOCKER% reset-admin
+)
+goto update_menu
+
 REM ---------- main menu ----------
 :main_menu
 echo.
@@ -271,11 +306,13 @@ echo ==================================================
 echo   1^) Полная установка
 echo   2^) Управление контейнерами
 echo   3^) Команды manage.py (в контейнере)
-echo   4^) Выход
+echo   4^) Обновление / переустановка
+echo   5^) Выход
 set /p MAIN=[1]: 
 if "%MAIN%"=="" set MAIN=1
 if "%MAIN%"=="1" call :full_install & goto main_menu
 if "%MAIN%"=="2" call :containers_menu & goto main_menu
 if "%MAIN%"=="3" call :manage_menu & goto main_menu
-if "%MAIN%"=="4" exit /b 0
+if "%MAIN%"=="4" call :update_menu & goto main_menu
+if "%MAIN%"=="5" exit /b 0
 goto main_menu
