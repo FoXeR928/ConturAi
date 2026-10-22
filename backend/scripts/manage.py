@@ -83,7 +83,6 @@ async def cmd_reset_admin() -> None:
             session.add(
                 User(login=SYSTEM_LOGIN, is_system=True, chat_role=SYSTEM_CHAT_ROLE)
             )
-
         await session.commit()
 
         logger.warning("=" * 72)
@@ -130,17 +129,33 @@ def _parse_models(raw: str) -> list[tuple[str, str]]:
     return entries
 
 
-def cmd_download_models(args: argparse.Namespace) -> None:
-    from huggingface_hub import snapshot_download
-
-    # --- включаем интернет только на время скачивания ---
-    offline_keys = ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE", "HF_DATASETS_OFFLINE")
-    previous = {k: os.environ.get(k) for k in offline_keys}
-    for k in offline_keys:
+def _enable_online_mode() -> None:
+    """Временно включает online-режим для huggingface_hub."""
+    for k in ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE", "HF_DATASETS_OFFLINE"):
         os.environ[k] = "0"
-    logger.info("HF_HUB_OFFLINE=0, TRANSFORMERS_OFFLINE=0 (включён интернет)")
+
+    # Принудительно правим закешированные константы.
+    # Импорт здесь — намеренно поздний, чтобы не поймать старое значение.
+    try:
+        import huggingface_hub.constants as hf_const
+        hf_const.HF_HUB_OFFLINE = False
+    except Exception as err:
+        logger.debug(f"Не удалось сбросить HF_HUB_OFFLINE константу: {err}")
 
     try:
+        import transformers.utils.hub as tf_hub
+        tf_hub._is_offline_mode = False  # type: ignore[attr-defined]
+    except Exception:
+        pass
+
+    logger.info("HF_HUB_OFFLINE=0 (online-режим для скачивания)")
+
+
+def cmd_download_models(args: argparse.Namespace) -> None:
+    _enable_online_mode()
+    try:
+        from huggingface_hub import snapshot_download
+
         models_dir = Path(settings.models_dir).resolve()
         models_dir.mkdir(parents=True, exist_ok=True)
 
@@ -178,13 +193,15 @@ def cmd_download_models(args: argparse.Namespace) -> None:
             except Exception as err:
                 logger.error(f"[fail] {local_name}: {err}")
     finally:
-        # --- возвращаем offline ---
-        for k, v in previous.items():
-            if v is None:
-                os.environ.pop(k, None)
-            else:
-                os.environ[k] = v
-        logger.info("HF_HUB_OFFLINE=1, TRANSFORMERS_OFFLINE=1 (возврат в offline)")
+        # Возвращаем offline-режим
+        for k in ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE", "HF_DATASETS_OFFLINE"):
+            os.environ[k] = "1"
+        try:
+            import huggingface_hub.constants as hf_const
+            hf_const.HF_HUB_OFFLINE = True
+        except Exception:
+            pass
+        logger.info("HF_HUB_OFFLINE=1 (offline-режим восстановлен)")
 
 
 # ---------------- CLI ----------------
@@ -197,10 +214,8 @@ def main() -> None:
     subparsers.add_parser("reset-admin", help="Сбросить пароль админа")
 
     p_download = subparsers.add_parser("download-models", help="Скачать модели")
-    p_download.add_argument("--only", default=None,
-                            help='Список: "repo:name,repo:name"')
-    p_download.add_argument("--force", action="store_true",
-                            help="Перекачать даже если уже есть")
+    p_download.add_argument("--only", default=None)
+    p_download.add_argument("--force", action="store_true")
 
     p_llm = subparsers.add_parser("set-llm", help="Обновить параметры LLM в БД")
     p_llm.add_argument("--base-url", default=None)

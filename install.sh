@@ -97,8 +97,16 @@ docker_works() {
     ensure_docker_running
 }
 dc() { $DOCKER compose "$@"; }
-run_no_deps() { dc run --rm --no-deps backend python scripts/manage.py "$@"; }
 exec_backend() { dc exec -T backend python scripts/manage.py "$@"; }
+
+download_models() {
+    # скачивание в одноразовом контейнере с интернетом
+    dc run --rm --no-deps \
+        -e HF_HUB_OFFLINE=0 \
+        -e TRANSFORMERS_OFFLINE=0 \
+        -e HF_DATASETS_OFFLINE=0 \
+        backend python scripts/manage.py download-models "$@"
+}
 
 # ---------- .env + compose generation (без Python) ----------
 gen_password() {
@@ -231,7 +239,7 @@ full_install() {
         sleep 2
     done
     log "Скачивание моделей..."
-    run_no_deps download-models
+    download_models
     log "Инициализация БД..."
     exec_backend init-db
     log "Создание администратора..."
@@ -279,10 +287,10 @@ manage_menu() {
         case "$m" in
             1) exec_backend init-db;;
             2) exec_backend reset-admin;;
-            3) exec_backend download-models;;
-            4) exec_backend download-models --force;;
-            5) read -r -p "repo:name,repo:name: " only; exec_backend download-models --only "$only";;
-            6) read -r -p "repo:name,repo:name: " only; exec_backend download-models --only "$only" --force;;
+            3) download_models;;
+            4) download_models --force;;
+            5) read -r -p "repo:name,repo:name: " only; download_models --only "$only";;
+            6) read -r -p "repo:name,repo:name: " only; download_models --only "$only" --force;;
             7)
                 read -r -p "model: " model
                 read -r -p "temperature: " temp

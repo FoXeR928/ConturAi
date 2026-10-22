@@ -49,6 +49,7 @@ if errorlevel 1 (
 REM ============ .env и compose (без Python) ============
 set "MANAGE_DOCKER=docker compose exec -T backend python scripts/manage.py"
 set "MANAGE_RUN=docker compose run --rm --no-deps backend python scripts/manage.py"
+set "DOWNLOAD=docker compose run --rm --no-deps -e HF_HUB_OFFLINE=0 -e TRANSFORMERS_OFFLINE=0 -e HF_DATASETS_OFFLINE=0 backend python scripts/manage.py download-models"
 
 goto main_menu
 
@@ -171,7 +172,7 @@ echo [INFO] Сборка backend...
 docker compose build backend
 if errorlevel 1 ( pause & exit /b 1 )
 echo [INFO] Скачивание моделей...
-%MANAGE_RUN% download-models
+%DOWNLOAD%
 if errorlevel 1 ( pause & exit /b 1 )
 echo [INFO] Запуск контейнеров...
 docker compose up -d --build
@@ -236,15 +237,15 @@ set /p M=Номер:
 if "%M%"=="0" exit /b 0
 if "%M%"=="1" %MANAGE_DOCKER% init-db
 if "%M%"=="2" %MANAGE_DOCKER% reset-admin
-if "%M%"=="3" %MANAGE_DOCKER% download-models
-if "%M%"=="4" %MANAGE_DOCKER% download-models --force
+if "%M%"=="3" %DOWNLOAD%
+if "%M%"=="4" %DOWNLOAD% --force
 if "%M%"=="5" (
     set /p only=repo:name,repo:name: 
-    %MANAGE_DOCKER% download-models --only "!only!"
+    %DOWNLOAD% --only "!only!"
 )
 if "%M%"=="6" (
     set /p only=repo:name,repo:name: 
-    %MANAGE_DOCKER% download-models --only "!only!" --force
+    %DOWNLOAD% --only "!only!" --force
 )
 if "%M%"=="7" (
     set /p model=model: 
@@ -291,7 +292,7 @@ if "%U%"=="5" (
     if /i "!ok!"=="y" ( docker compose down -v ) else ( docker compose down )
     docker compose up -d --build
     timeout /t 10 /nobreak >nul
-    %MANAGE_DOCKER% download-models --force
+    %DOWNLOAD% --force
     %MANAGE_DOCKER% init-db
     %MANAGE_DOCKER% reset-admin
 )
