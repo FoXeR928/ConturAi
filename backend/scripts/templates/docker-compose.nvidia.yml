@@ -1,0 +1,95 @@
+name: conturai
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: conturai_postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-conturai_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-conturai}
+      POSTGRES_DB: ${DB_NAME:-conturai}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    mem_limit: ${PG_MEM_LIMIT:-1g}
+
+  vllm:
+    image: ${VLLM_IMAGE:-vllm/vllm-openai:latest}
+    container_name: conturai_vllm
+    command: >
+      ${VLLM_MODEL_PATH:-/models/Qwen2.5-0.5B-Instruct}
+      --served-model-name ${VLLM_SERVED_NAME:-local-model}
+      --host 0.0.0.0
+      --port 8000
+      --max-model-len ${VLLM_MAX_MODEL_LEN:-4096}
+      --dtype ${VLLM_DTYPE:-auto}
+      --gpu-memory-utilization 0.85
+    environment:
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+    ports:
+      - "8080:8000"
+    volumes:
+      - ./models:/models:ro
+    ipc: host
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 180s
+    restart: unless-stopped
+    mem_limit: ${VLLM_MEM_LIMIT:-12g}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        PYTORCH_INDEX: ${PYTORCH_INDEX:-https://download.pytorch.org/whl/cu121}
+    container_name: conturai_backend
+    env_file: .env
+    environment:
+      DB_HOST: postgres
+      VLLM_BASE_URL: http://vllm:8000/v1
+      DATA_DIR: /app/data
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - app_data:/app/data
+      - ./models:/models
+    restart: unless-stopped
+    mem_limit: ${BACKEND_MEM_LIMIT:-2g}
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: conturai_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    mem_limit: ${FRONTEND_MEM_LIMIT:-256m}
+
+volumes:
+  pgdata:
+  app_data:

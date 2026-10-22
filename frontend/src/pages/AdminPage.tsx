@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Layout } from '../components/Layout';
 import { Header } from '../components/Header';
-import { Sidebar } from '../features/chat/Sidebar';
 import { UsersPanel } from '../features/admin/UsersPanel';
 import { PromptsPanel } from '../features/admin/PromptsPanel';
 import { LlmConfigsPanel } from '../features/admin/LlmConfigsPanel';

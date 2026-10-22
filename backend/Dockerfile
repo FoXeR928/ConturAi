@@ -23,7 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr tesseract-ocr-rus poppler-utils curl \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install uv==0.5.11
+COPY --from=ghcr.io/astral-sh/uv:0.5.11 /uv /uvx /usr/local/bin/
 
 WORKDIR /app
 
@@ -33,7 +33,8 @@ COPY backend/pyproject.toml backend/uv.lock* ./
 RUN sed -i "s|https://download.pytorch.org/whl/cpu|${PYTORCH_INDEX}|g" pyproject.toml
 
 # Убираем --frozen, так как мы меняем pyproject.toml на лету
-RUN uv sync --no-install-project --no-dev
+RUN uv sync --no-install-project --no-dev \
+    --index-url ${PYTORCH_INDEX}
 
 COPY backend/app ./app
 COPY backend/scripts ./scripts
