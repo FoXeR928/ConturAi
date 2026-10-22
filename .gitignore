@@ -6,3 +6,5 @@ logs/
 .idea/
 .vscode/
 models/
+.env
+docker-compose.yml

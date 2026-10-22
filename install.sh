@@ -35,27 +35,9 @@ pkg_install() {
         rhel)    $SUDO dnf install -y $pkgs 2>/dev/null || $SUDO yum install -y $pkgs;;
         arch)    $SUDO pacman -Sy --noconfirm $pkgs;;
         suse)    $SUDO zypper -n install $pkgs;;
-        macos)   brew install $pkgs;;
+        macos)   has brew || { err "Нужен Homebrew: https://brew.sh"; exit 1; }; brew install $pkgs;;
         *) err "Не знаю как установить: $pkgs"; exit 1;;
     esac
-}
-
-ensure_python() {
-    if has python3 && python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3,8) else 1)' 2>/dev/null; then
-        PYTHON=python3
-        log "Python $(python3 -V 2>&1) найден"
-        return
-    fi
-    log "Устанавливаю Python 3..."
-    case "$OS" in
-        debian) pkg_install python3 python3-venv;;
-        rhel)   pkg_install python3;;
-        arch)   pkg_install python;;
-        suse)   pkg_install python3;;
-        macos)  has brew || { err "Нужен Homebrew: https://brew.sh"; exit 1; }; brew install python@3.12;;
-    esac
-    PYTHON=python3
-    python3 -V || { err "Python не установился."; exit 1; }
 }
 
 ensure_curl() { has curl || { log "Устанавливаю curl..."; pkg_install curl; }; }
@@ -65,7 +47,7 @@ ensure_docker_running() {
     if docker info >/dev/null 2>&1; then DOCKER="docker"; log "Docker запущен"; return; fi
     if [ -n "$SUDO" ] && $SUDO docker info >/dev/null 2>&1; then DOCKER="$SUDO docker"; log "Docker запущен (sudo)"; return; fi
 
-    log "Пытаюсь запустить Docker..."
+    log "Запускаю Docker..."
     case "$OS" in
         macos) open -a Docker 2>/dev/null || true;;
         *)
@@ -73,14 +55,12 @@ ensure_docker_running() {
             elif has service; then $SUDO service docker start 2>/dev/null || true
             fi;;
     esac
-
     for _ in $(seq 1 30); do
         if docker info >/dev/null 2>&1; then DOCKER="docker"; log "Docker готов"; return; fi
         if [ -n "$SUDO" ] && $SUDO docker info >/dev/null 2>&1; then DOCKER="$SUDO docker"; log "Docker готов (sudo)"; return; fi
         sleep 2
     done
     err "Docker не запустился за 60 сек."
-    case "$OS" in macos) err "Откройте Docker Desktop вручную.";; *) err "Проверьте: sudo systemctl status docker";; esac
     return 1
 }
 
@@ -93,7 +73,7 @@ ensure_docker() {
         esac
     fi
     if ! docker compose version >/dev/null 2>&1; then
-        warn "Нет docker compose — устанавливаю..."
+        warn "Нет docker compose — ставлю..."
         case "$OS" in
             debian|rhel) pkg_install docker-compose-plugin 2>/dev/null || pkg_install docker-compose;;
             arch|suse)   pkg_install docker-compose;;
@@ -104,17 +84,118 @@ ensure_docker() {
 }
 
 PREPARE_DONE=0
-prepare_env() {
+prepare() {
     [ "$PREPARE_DONE" -eq 1 ] && return
-    ensure_curl; ensure_python; ensure_git; ensure_docker
+    ensure_curl; ensure_git; ensure_docker
     PREPARE_DONE=1
 }
 
 DOCKER="docker"
+docker_works() {
+    if docker info >/dev/null 2>&1; then DOCKER="docker"; return 0; fi
+    if [ -n "$SUDO" ] && $SUDO docker info >/dev/null 2>&1; then DOCKER="$SUDO docker"; return 0; fi
+    ensure_docker_running
+}
 dc() { $DOCKER compose "$@"; }
 run_no_deps() { dc run --rm --no-deps backend python scripts/manage.py "$@"; }
 exec_backend() { dc exec -T backend python scripts/manage.py "$@"; }
-env_cmd() { $PYTHON scripts/env_tool.py "$@"; }
+
+# ---------- .env + compose generation (без Python) ----------
+gen_password() {
+    # 32 буквенно-цифровых символа через /dev/urandom
+    LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32
+}
+
+setup_env() {
+    if [ -f .env ]; then
+        log ".env уже существует — пропускаю"
+        return
+    fi
+    if [ ! -f .env.example ]; then
+        err "Не найден .env.example"
+        exit 1
+    fi
+    log "Создаю .env (пароль генерируется автоматически)"
+    local db_user="conturai_user"
+    local db_pass
+    db_pass=$(gen_password)
+    sed -e "s|^DB_USER=.*|DB_USER=${db_user}|" \
+        -e "s|^DB_PASSWORD=.*|DB_PASSWORD=${db_pass}|" \
+        .env.example > .env
+    log "Пользователь БД: $db_user"
+    log "Пароль БД:       $db_pass"
+}
+
+use_platform() {
+    local platform="$1"
+    local src="templates/docker-compose.${platform}.yml"
+    if [ ! -f "$src" ]; then
+        err "Не найден шаблон $src"
+        exit 1
+    fi
+    cp "$src" docker-compose.yml
+    log "docker-compose.yml перезаписан ($platform)"
+
+    # Платформенные параметры в .env
+    local idx dtype kvc max_len vllm_mem pg_mem be_mem fe_mem emb_path emb_dim models
+    case "$platform" in
+        nvidia)
+            idx="https://download.pytorch.org/whl/cu121"
+            dtype="auto"; kvc=""; max_len="4096"; vllm_mem="12g"
+            pg_mem="1g"; be_mem="2g"; fe_mem="256m"
+            emb_path="/models/multilingual-e5-large"; emb_dim="1024"
+            models="intfloat/multilingual-e5-large:multilingual-e5-large,Qwen/Qwen2.5-0.5B-Instruct:Qwen2.5-0.5B-Instruct"
+            ;;
+        amd)
+            idx="https://download.pytorch.org/whl/rocm6.1"
+            dtype="auto"; kvc=""; max_len="4096"; vllm_mem="12g"
+            pg_mem="1g"; be_mem="2g"; fe_mem="256m"
+            emb_path="/models/multilingual-e5-large"; emb_dim="1024"
+            models="intfloat/multilingual-e5-large:multilingual-e5-large,Qwen/Qwen2.5-0.5B-Instruct:Qwen2.5-0.5B-Instruct"
+            ;;
+        cpu)
+            idx="https://download.pytorch.org/whl/cpu"
+            dtype="float32"; kvc="4"; max_len="2048"; vllm_mem="8g"
+            pg_mem="1g"; be_mem="2g"; fe_mem="256m"
+            emb_path="/models/multilingual-e5-large"; emb_dim="1024"
+            models="intfloat/multilingual-e5-large:multilingual-e5-large,Qwen/Qwen2.5-0.5B-Instruct:Qwen2.5-0.5B-Instruct"
+            ;;
+        dev)
+            idx="https://download.pytorch.org/whl/cpu"
+            dtype="float32"; kvc="1"; max_len="1024"; vllm_mem="3g"
+            pg_mem="1g"; be_mem="1g"; fe_mem="256m"
+            emb_path="/models/granite-embedding-97m-multilingual-r2"; emb_dim="384"
+            models="ibm-granite/granite-embedding-97m-multilingual-r2:granite-embedding-97m-multilingual-r2,Qwen/Qwen2.5-0.5B-Instruct:Qwen2.5-0.5B-Instruct"
+            ;;
+        *) err "Неизвестная платформа: $platform"; exit 1;;
+    esac
+
+    update_env "PYTORCH_INDEX"          "$idx"
+    update_env "VLLM_DTYPE"             "$dtype"
+    update_env "VLLM_CPU_KVCACHE_SPACE" "$kvc"
+    update_env "VLLM_MAX_MODEL_LEN"     "$max_len"
+    update_env "VLLM_MEM_LIMIT"         "$vllm_mem"
+    update_env "PG_MEM_LIMIT"           "$pg_mem"
+    update_env "BACKEND_MEM_LIMIT"      "$be_mem"
+    update_env "FRONTEND_MEM_LIMIT"     "$fe_mem"
+    update_env "EMBEDDING_MODEL_PATH"   "$emb_path"
+    update_env "EMBEDDING_DIM"          "$emb_dim"
+    update_env "MODELS_TO_DOWNLOAD"     "$models"
+}
+
+update_env() {
+    local key="$1" value="$2"
+    if grep -q "^${key}=" .env 2>/dev/null; then
+        # macOS sed требует -i '', Linux -i
+        if sed --version >/dev/null 2>&1; then
+            sed -i "s|^${key}=.*|${key}=${value}|" .env
+        else
+            sed -i '' "s|^${key}=.*|${key}=${value}|" .env
+        fi
+    else
+        echo "${key}=${value}" >> .env
+    fi
+}
 
 pick_platform() {
     local auto="cpu"
@@ -123,8 +204,7 @@ pick_platform() {
     fi
 
     echo ""
-    echo "Обнаружено: $auto"
-    echo "Выберите платформу:"
+    echo "Обнаружено GPU: $auto"
     echo "  1) nvidia   2) amd   3) cpu   4) dev"
     read -r -p "Номер [$auto]: " p
     p="${p:-$auto}"
@@ -135,14 +215,14 @@ pick_platform() {
         dev|4)    MODE=dev;;
         *) err "Неверный выбор"; return 1;;
     esac
-    env_cmd setup-env
-    env_cmd use-platform "$MODE"
+    setup_env
+    use_platform "$MODE"
 }
 
 full_install() {
-    prepare_env
+    prepare
     pick_platform || return 1
-    docker_works() || return 1
+    docker_works || return 1
     log "Сборка backend..."
     dc build backend
     log "Скачивание моделей..."
@@ -158,13 +238,7 @@ full_install() {
     exec_backend init-db
     log "Создание администратора..."
     exec_backend reset-admin
-    log "Готово."
-}
-
-docker_works() {
-    if docker info >/dev/null 2>&1; then DOCKER="docker"; return 0; fi
-    if [ -n "$SUDO" ] && $SUDO docker info >/dev/null 2>&1; then DOCKER="$SUDO docker"; return 0; fi
-    ensure_docker_running
+    log "Установка завершена."
 }
 
 containers_menu() {
@@ -190,27 +264,22 @@ containers_menu() {
 }
 
 manage_menu() {
-    prepare_env
+    prepare
     while true; do
         echo ""
-        echo "--- manage.py ---"
-        echo "  1) setup-env       2) use-platform nvidia"
-        echo "  3) use-platform amd   4) use-platform cpu"
-        echo "  5) use-platform dev   6) download-models"
-        echo "  7) download-models --only   8) init-db"
-        echo "  9) reset-admin    10) set-llm   0) Назад"
+        echo "--- manage.py (в контейнере) ---"
+        echo "  1) init-db        2) reset-admin"
+        echo "  3) download-models   4) download-models --only"
+        echo "  5) set-llm"
+        echo "  6) use-platform nvidia   7) amd   8) cpu   9) dev"
+        echo "  0) Назад"
         read -r -p "Номер: " m
         case "$m" in
-            1) env_cmd setup-env;;
-            2) env_cmd use-platform nvidia;;
-            3) env_cmd use-platform amd;;
-            4) env_cmd use-platform cpu;;
-            5) env_cmd use-platform dev;;
-            6) run_no_deps download-models;;
-            7) read -r -p "repo:name,repo:name: " only; run_no_deps download-models --only "$only";;
-            8) exec_backend init-db;;
-            9) exec_backend reset-admin;;
-            10)
+            1) exec_backend init-db;;
+            2) exec_backend reset-admin;;
+            3) run_no_deps download-models;;
+            4) read -r -p "repo:name,repo:name: " only; run_no_deps download-models --only "$only";;
+            5)
                 read -r -p "model: " model
                 read -r -p "temperature: " temp
                 read -r -p "max-tokens: " mt
@@ -220,6 +289,10 @@ manage_menu() {
                 [ -n "$mt" ]    && args+=" --max-tokens $mt"
                 exec_backend set-llm $args
                 ;;
+            6) setup_env; use_platform nvidia;;
+            7) setup_env; use_platform amd;;
+            8) setup_env; use_platform cpu;;
+            9) setup_env; use_platform dev;;
             0) return;;
         esac
     done
@@ -232,13 +305,13 @@ while true; do
     echo "=================================================="
     echo "  1) Полная установка"
     echo "  2) Управление контейнерами"
-    echo "  3) Команды manage.py"
+    echo "  3) Команды manage.py (в контейнере)"
     echo "  4) Выход"
     read -r -p "Номер [1]: " choice
     case "${choice:-1}" in
         1) full_install;;
-        2) prepare_env; containers_menu;;
-        3) prepare_env; manage_menu;;
+        2) prepare; containers_menu;;
+        3) prepare; manage_menu;;
         4) exit 0;;
         *) err "Неверный выбор";;
     esac

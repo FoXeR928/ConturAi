@@ -3,53 +3,28 @@ chcp 65001 >nul
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
-set "PYTHON=python"
-set "ENV_CMD=python scripts\env_tool.py"
-set "MANAGE_DOCKER=docker compose exec -T backend python scripts/manage.py"
-set "MANAGE_RUN=docker compose run --rm --no-deps backend python scripts/manage.py"
-
-REM ============ Python ============
-python --version >nul 2>&1
-if not errorlevel 1 goto :python_ok
-echo [INFO] Python не найден — устанавливаю через winget...
-where winget >nul 2>&1
-if errorlevel 1 (
-    echo [ERROR] winget не найден. Установите Python вручную: https://www.python.org/downloads/
-    pause & exit /b 1
-)
-winget install --id Python.Python.3.12 --silent --accept-package-agreements --accept-source-agreements
-set "PATH=%PATH%;%LOCALAPPDATA%\Programs\Python\Python312;%LOCALAPPDATA%\Programs\Python\Python312\Scripts"
-where python >nul 2>&1
-if errorlevel 1 (
-    echo [WARN] Python установлен, но не в PATH. Перезапустите консоль.
-    pause & exit /b 1
-)
-:python_ok
-
 REM ============ Docker ============
 where docker >nul 2>&1
 if errorlevel 1 (
-    echo [INFO] Docker не найден — устанавливаю Docker Desktop...
-    where winget >nul 2>&1
-    if errorlevel 1 (
-        echo [ERROR] winget не найден. Установите Docker Desktop вручную.
-        pause & exit /b 1
-    )
-    winget install --id Docker.DockerDesktop --silent --accept-package-agreements --accept-source-agreements
-    echo.
-    echo [WARN] Docker Desktop установлен. Нужна перезагрузка Windows.
-    pause & exit /b 0
+    echo ============================================================
+    echo Docker не найден.
+    echo Установите Docker Desktop вручную:
+    echo   https://docs.docker.com/desktop/install/windows-install/
+    echo После установки и перезагрузки запустите этот файл снова.
+    echo ============================================================
+    pause
+    exit /b 1
 )
 
 docker info >nul 2>&1
 if not errorlevel 1 goto :docker_ok
-echo [INFO] Docker не запущен — запускаю Docker Desktop...
+echo [INFO] Docker не запущен — открываю Docker Desktop...
 if exist "%ProgramFiles%\Docker\Docker\Docker Desktop.exe" (
     start "" "%ProgramFiles%\Docker\Docker\Docker Desktop.exe"
 ) else if exist "%LOCALAPPDATA%\Docker\Docker Desktop.exe" (
     start "" "%LOCALAPPDATA%\Docker\Docker Desktop.exe"
 ) else (
-    echo [ERROR] Не нашёл Docker Desktop.exe.
+    echo [ERROR] Не нашёл Docker Desktop.exe. Запустите Docker Desktop вручную.
     pause & exit /b 1
 )
 set /a tries=0
@@ -58,7 +33,7 @@ docker info >nul 2>&1
 if not errorlevel 1 goto :docker_ok
 set /a tries+=1
 if %tries% GEQ 30 (
-    echo [ERROR] Docker не запустился за 60 сек.
+    echo [ERROR] Docker не запустился за 60 секунд.
     pause & exit /b 1
 )
 timeout /t 2 /nobreak >nul
@@ -71,31 +46,108 @@ if errorlevel 1 (
     pause & exit /b 1
 )
 
-REM ============ git (опционально) ============
-where git >nul 2>&1
-if errorlevel 1 (
-    where winget >nul 2>&1
-    if not errorlevel 1 winget install --id Git.Git --silent --accept-package-agreements --accept-source-agreements
-)
+REM ============ .env и compose (без Python) ============
+set "MANAGE_DOCKER=docker compose exec -T backend python scripts/manage.py"
+set "MANAGE_RUN=docker compose run --rm --no-deps backend python scripts/manage.py"
 
-REM ============ Меню ============
-:main_menu
-echo.
-echo ==================================================
-echo   ConturAI
-echo ==================================================
-echo   1^) Полная установка
-echo   2^) Управление контейнерами
-echo   3^) Команды manage.py
-echo   4^) Выход
-set /p MAIN=[1]: 
-if "%MAIN%"=="" set MAIN=1
-if "%MAIN%"=="1" call :full_install & goto main_menu
-if "%MAIN%"=="2" call :containers_menu & goto main_menu
-if "%MAIN%"=="3" call :manage_menu & goto main_menu
-if "%MAIN%"=="4" exit /b 0
 goto main_menu
 
+REM ---------- .env ----------
+:setup_env
+if exist .env (
+    echo [INFO] .env уже существует — пропускаю
+    exit /b 0
+)
+if not exist .env.example (
+    echo [ERROR] Не найден .env.example
+    exit /b 1
+)
+echo [INFO] Создаю .env...
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$ErrorActionPreference='Stop';" ^
+  "$pass = -join ((48..57)+(65..90)+(97..122) | Get-Random -Count 32 | ForEach-Object {[char]$_});" ^
+  "$c = Get-Content -Raw .env.example;" ^
+  "$c = $c -replace 'DB_USER=.*', 'DB_USER=conturai_user';" ^
+  "$c = $c -replace 'DB_PASSWORD=.*', ('DB_PASSWORD=' + $pass);" ^
+  "Set-Content -NoNewline -Encoding UTF8 .env $c;"
+if errorlevel 1 exit /b 1
+echo [OK] .env создан
+exit /b 0
+
+REM ---------- use-platform ----------
+:use_platform
+set "PLAT=%~1"
+set "SRC=templates\docker-compose.%PLAT%.yml"
+if not exist "%SRC%" (
+    echo [ERROR] Не найден шаблон %SRC%
+    exit /b 1
+)
+copy /Y "%SRC%" docker-compose.yml >nul
+echo [OK] docker-compose.yml перезаписан (%PLAT%)
+
+if "%PLAT%"=="nvidia" (
+    set "IDX=https://download.pytorch.org/whl/cu121"
+    set "DTYPE=auto"
+    set "KVC="
+    set "MAXLEN=4096"
+    set "VLLM_MEM=12g"
+    set "PG_MEM=1g"
+    set "BE_MEM=2g"
+    set "FE_MEM=256m"
+    set "EMB_PATH=/models/multilingual-e5-large"
+    set "EMB_DIM=1024"
+    set "MODELS=intfloat/multilingual-e5-large:multilingual-e5-large,Qwen/Qwen2.5-0.5B-Instruct:Qwen2.5-0.5B-Instruct"
+)
+if "%PLAT%"=="amd" (
+    set "IDX=https://download.pytorch.org/whl/rocm6.1"
+    set "DTYPE=auto"
+    set "KVC="
+    set "MAXLEN=4096"
+    set "VLLM_MEM=12g"
+    set "PG_MEM=1g"
+    set "BE_MEM=2g"
+    set "FE_MEM=256m"
+    set "EMB_PATH=/models/multilingual-e5-large"
+    set "EMB_DIM=1024"
+    set "MODELS=intfloat/multilingual-e5-large:multilingual-e5-large,Qwen/Qwen2.5-0.5B-Instruct:Qwen2.5-0.5B-Instruct"
+)
+if "%PLAT%"=="cpu" (
+    set "IDX=https://download.pytorch.org/whl/cpu"
+    set "DTYPE=float32"
+    set "KVC=4"
+    set "MAXLEN=2048"
+    set "VLLM_MEM=8g"
+    set "PG_MEM=1g"
+    set "BE_MEM=2g"
+    set "FE_MEM=256m"
+    set "EMB_PATH=/models/multilingual-e5-large"
+    set "EMB_DIM=1024"
+    set "MODELS=intfloat/multilingual-e5-large:multilingual-e5-large,Qwen/Qwen2.5-0.5B-Instruct:Qwen2.5-0.5B-Instruct"
+)
+if "%PLAT%"=="dev" (
+    set "IDX=https://download.pytorch.org/whl/cpu"
+    set "DTYPE=float32"
+    set "KVC=1"
+    set "MAXLEN=1024"
+    set "VLLM_MEM=3g"
+    set "PG_MEM=1g"
+    set "BE_MEM=1g"
+    set "FE_MEM=256m"
+    set "EMB_PATH=/models/granite-embedding-97m-multilingual-r2"
+    set "EMB_DIM=384"
+    set "MODELS=ibm-granite/granite-embedding-97m-multilingual-r2:granite-embedding-97m-multilingual-r2,Qwen/Qwen2.5-0.5B-Instruct:Qwen2.5-0.5B-Instruct"
+)
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$ErrorActionPreference='Stop';" ^
+  "$k=@{'PYTORCH_INDEX'='%IDX%';'VLLM_DTYPE'='%DTYPE%';'VLLM_CPU_KVCACHE_SPACE'='%KVC%';'VLLM_MAX_MODEL_LEN'='%MAXLEN%';'VLLM_MEM_LIMIT'='%VLLM_MEM%';'PG_MEM_LIMIT'='%PG_MEM%';'BACKEND_MEM_LIMIT'='%BE_MEM%';'FRONTEND_MEM_LIMIT'='%FE_MEM%';'EMBEDDING_MODEL_PATH'='%EMB_PATH%';'EMBEDDING_DIM'='%EMB_DIM%';'MODELS_TO_DOWNLOAD'='%MODELS%'};" ^
+  "$c=Get-Content -Raw .env;" ^
+  "foreach($key in $k.Keys){ if($c -match \"$key=\"){ $c = $c -replace \"$key=.*\", \"$key=$($k[$key])\" } else { if(-not $c.EndsWith(\"`n\")){$c += \"`n\"}; $c += \"$key=$($k[$key])\" } };" ^
+  "Set-Content -NoNewline -Encoding UTF8 .env $c;"
+if errorlevel 1 exit /b 1
+exit /b 0
+
+REM ---------- pick platform ----------
 :pick_platform
 echo.
 echo Выберите платформу:
@@ -106,11 +158,12 @@ if "%P%"=="1" set MODE=nvidia
 if "%P%"=="2" set MODE=amd
 if "%P%"=="3" set MODE=cpu
 if "%P%"=="4" set MODE=dev
-if not defined MODE ( echo [ERROR] Неверный выбор. & exit /b 1 )
-%ENV_CMD% setup-env
-%ENV_CMD% use-platform !MODE!
+if not defined MODE ( echo [ERROR] Неверный выбор & exit /b 1 )
+call :setup_env
+call :use_platform !MODE!
 exit /b 0
 
+REM ---------- full install ----------
 :full_install
 call :pick_platform
 if errorlevel 1 exit /b 1
@@ -129,6 +182,7 @@ timeout /t 10 /nobreak >nul
 echo [OK] Установка завершена.
 exit /b 0
 
+REM ---------- containers ----------
 :containers_menu
 echo.
 echo --- Контейнеры ---
@@ -149,29 +203,24 @@ if "%C%"=="7" docker compose logs -f
 if "%C%"=="8" docker compose ps
 goto containers_menu
 
+REM ---------- manage ----------
 :manage_menu
 echo.
-echo --- manage.py ---
-echo   1^) setup-env       2^) use-platform nvidia
-echo   3^) use-platform amd   4^) use-platform cpu
-echo   5^) use-platform dev   6^) download-models
-echo   7^) download-models --only   8^) init-db
-echo   9^) reset-admin    10^) set-llm   0^) Назад
+echo --- manage.py (в контейнере) ---
+echo   1^) init-db   2^) reset-admin   3^) download-models
+echo   4^) download-models --only   5^) set-llm
+echo   6^) use-platform nvidia  7^) amd  8^) cpu  9^) dev
+echo   0^) Назад
 set /p M=Номер: 
 if "%M%"=="0" exit /b 0
-if "%M%"=="1" %ENV_CMD% setup-env
-if "%M%"=="2" %ENV_CMD% use-platform nvidia
-if "%M%"=="3" %ENV_CMD% use-platform amd
-if "%M%"=="4" %ENV_CMD% use-platform cpu
-if "%M%"=="5" %ENV_CMD% use-platform dev
-if "%M%"=="6" %MANAGE_RUN% download-models
-if "%M%"=="7" (
+if "%M%"=="1" %MANAGE_DOCKER% init-db
+if "%M%"=="2" %MANAGE_DOCKER% reset-admin
+if "%M%"=="3" %MANAGE_RUN% download-models
+if "%M%"=="4" (
     set /p only=repo:name,repo:name: 
     %MANAGE_RUN% download-models --only "!only!"
 )
-if "%M%"=="8" %MANAGE_DOCKER% init-db
-if "%M%"=="9" %MANAGE_DOCKER% reset-admin
-if "%M%"=="10" (
+if "%M%"=="5" (
     set /p model=model: 
     set /p temp=temperature: 
     set /p mt=max-tokens: 
@@ -181,4 +230,26 @@ if "%M%"=="10" (
     if not "!mt!"==""    set "args=!args! --max-tokens !mt!"
     %MANAGE_DOCKER% set-llm !args!
 )
+if "%M%"=="6" ( call :setup_env & call :use_platform nvidia )
+if "%M%"=="7" ( call :setup_env & call :use_platform amd )
+if "%M%"=="8" ( call :setup_env & call :use_platform cpu )
+if "%M%"=="9" ( call :setup_env & call :use_platform dev )
 goto manage_menu
+
+REM ---------- main menu ----------
+:main_menu
+echo.
+echo ==================================================
+echo   ConturAI
+echo ==================================================
+echo   1^) Полная установка
+echo   2^) Управление контейнерами
+echo   3^) Команды manage.py (в контейнере)
+echo   4^) Выход
+set /p MAIN=[1]: 
+if "%MAIN%"=="" set MAIN=1
+if "%MAIN%"=="1" call :full_install & goto main_menu
+if "%MAIN%"=="2" call :containers_menu & goto main_menu
+if "%MAIN%"=="3" call :manage_menu & goto main_menu
+if "%MAIN%"=="4" exit /b 0
+goto main_menu
