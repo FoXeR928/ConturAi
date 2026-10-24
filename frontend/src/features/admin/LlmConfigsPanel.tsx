@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { api } from '../../api/client';
 import { Button } from '../../ui/Button';
 import { Input } from '../../ui/Input';
+import { llmConfigsApi } from '../../api/llmConfigs';
 
 interface LlmConfig {
   key: string;
@@ -10,8 +10,6 @@ interface LlmConfig {
   input_type: string;
 }
 
-// Порядок групп и ключей в них. Ключи, которых нет ни в одной группе,
-// попадут в блок «Другие настройки» — это защита на случай расширения.
 const GROUPS: { title: string; keys: string[] }[] = [
   {
     title: 'Подключение к vLLM',
@@ -52,7 +50,7 @@ export function LlmConfigsPanel() {
 
   const load = async () => {
     try {
-      const data = await api.getLlmConfigs();
+      const data = await llmConfigsApi.getLlmConfigs();
       setConfigs(data.configs || []);
       setEditing(
         Object.fromEntries((data.configs || []).map((c: LlmConfig) => [c.key, c.value]))
@@ -69,7 +67,7 @@ export function LlmConfigsPanel() {
   const save = async (key: string) => {
     setError('');
     try {
-      await api.updateLlmConfig(key, editing[key]);
+      await llmConfigsApi.updateLlmConfig(key, editing[key]);
       setSavedKey(key);
       setTimeout(() => setSavedKey(null), 2000);
       load();
@@ -78,7 +76,6 @@ export function LlmConfigsPanel() {
     }
   };
 
-  // Разбиваем configs по группам
   const grouped = GROUPS.map((g) => ({
     title: g.title,
     items: configs.filter((c) => g.keys.includes(c.key)),

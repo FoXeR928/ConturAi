@@ -1,38 +1,26 @@
 # Python
-.venv
-venv/
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.egg-info/
+*.py[cod]
+*.so
+.venv/
+venv/
 .pytest_cache/
 .ruff_cache/
-.mypy_cache/
-backend/.venv
-**/.venv
 
-# Env
+# Env & Data
 .env
-.env.*
-!.env.example
-
-# Runtime
-logs/
 data/
+logs/
+
+# Models
 models/
 
-# IDE
+# Node
+node_modules/
+dist/
+
+# OS / IDE
+.DS_Store
 .idea/
 .vscode/
 *.swp
-*.swo
-.DS_Store
-
-# Frontend
-frontend/node_modules/
-frontend/dist/
-frontend/.vite/
-
-# Docker
-docker-compose.yml

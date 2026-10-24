@@ -34,7 +34,9 @@ db_user() { grep '^DB_USER=' .env | cut -d= -f2; }
 db_name() { grep '^DB_NAME=' .env | cut -d= -f2; }
 
 download_models() {
+    # Важно: монтируем models без :ro, чтобы можно было скачивать
     dc run --rm --no-deps \
+        -v "$(pwd)/models:/models" \
         -e HF_HUB_OFFLINE=0 \
         -e TRANSFORMERS_OFFLINE=0 \
         -e HF_DATASETS_OFFLINE=0 \
@@ -42,15 +44,25 @@ download_models() {
 }
 
 regen_lock() {
+    if [ ! -f backend/pyproject.toml ]; then
+        err "Не найден backend/pyproject.toml — не могу пересобрать uv.lock"
+        exit 1
+    fi
+
     log "Пересборка uv.lock..."
+    set +e
     docker run --rm \
         -v "$(pwd)/backend:/app" \
         -w /app \
         -e UV_PROJECT_ENVIRONMENT=/tmp/uv-venv \
         python:3.12-slim \
         sh -c "pip install --quiet uv==0.5.11 && uv lock"
-    if [ $? -ne 0 ]; then
-        err "Не удалось пересобрать uv.lock"
+    local rc=$?
+    set -e
+
+    if [ "$rc" -ne 0 ]; then
+        err "Не удалось пересобрать uv.lock (код $rc)"
+        err "Проверьте: docker run python:3.12-slim и доступ к PyPI"
         exit 1
     fi
     log "uv.lock пересобран"
@@ -58,7 +70,6 @@ regen_lock() {
 
 gen_password() { LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32; }
 
-# --- .env: генерируем ТОЛЬКО если файла нет. Пароль не меняется при повторных запусках.
 setup_env() {
     if [ -f .env ]; then
         log ".env уже существует — пароль сохранён"
@@ -84,6 +95,35 @@ update_env() {
     fi
 }
 
+pick_model() {
+    echo ""
+    echo "Выберите модель ИИ (влияет на качество и потребление VRAM):"
+    echo "  1) Qwen2.5-0.5B-Instruct (CPU, слабый ПК)"
+    echo "  2) Qwen2.5-1.5B-Instruct (8-12 ГБ VRAM, RTX 2070)"
+    echo "  3) Qwen2.5-3B-Instruct   (16 ГБ VRAM, AMD 9070)"
+    echo "  4) Qwen2.5-7B-Instruct   (24+ ГБ VRAM, если хватит памяти)"
+    read -r -p "Номер [2]: " m
+    m="${m:-2}"
+
+    local model_name model_file max_len
+    case "$m" in
+        1) model_name="Qwen/Qwen2.5-0.5B-Instruct"; model_file="Qwen2.5-0.5B-Instruct"; max_len="2048";;
+        2) model_name="Qwen/Qwen2.5-1.5B-Instruct"; model_file="Qwen2.5-1.5B-Instruct"; max_len="2048";;
+        3) model_name="Qwen/Qwen2.5-3B-Instruct"; model_file="Qwen2.5-3B-Instruct"; max_len="4096";;
+        4) model_name="Qwen/Qwen2.5-7B-Instruct"; model_file="Qwen2.5-7B-Instruct"; max_len="8192";;
+        *) model_name="Qwen/Qwen2.5-1.5B-Instruct"; model_file="Qwen2.5-1.5B-Instruct"; max_len="2048";;
+    esac
+
+    update_env "VLLM_MODEL_PATH"   "/models/${model_file}"
+    update_env "VLLM_SERVED_NAME"  "local-model"
+    update_env "VLLM_MAX_MODEL_LEN" "${max_len}"
+    update_env "MODELS_TO_DOWNLOAD" "intfloat/multilingual-e5-large:multilingual-e5-large,${model_name}:${model_file}"
+    update_env "EMBEDDING_MODEL_PATH" "/models/multilingual-e5-large"
+    update_env "EMBEDDING_DIM" "1024"
+    
+    log "Выбрана модель: ${model_file} (макс. контекст: ${max_len} токенов)"
+}
+
 use_platform() {
     local platform="$1"
     local src="templates/docker-compose.${platform}.yml"
@@ -91,29 +131,20 @@ use_platform() {
     cp "$src" docker-compose.yml
     log "docker-compose.yml перезаписан ($platform)"
 
-    local model_name model_file
     case "$platform" in
         nvidia)
             update_env "PYTORCH_INDEX" "https://download.pytorch.org/whl/cu121"
-            model_name="Qwen/Qwen2.5-1.5B-Instruct"
-            model_file="Qwen2.5-1.5B-Instruct"
+            update_env "VLLM_IMAGE" "vllm/vllm-openai:latest"
             ;;
         amd)
             update_env "PYTORCH_INDEX" "https://download.pytorch.org/whl/rocm6.1"
-            model_name="Qwen/Qwen2.5-1.5B-Instruct"
-            model_file="Qwen2.5-1.5B-Instruct"
+            update_env "VLLM_IMAGE" "rocm/vllm:latest"
             ;;
         *)
             update_env "PYTORCH_INDEX" "https://download.pytorch.org/whl/cpu"
-            model_name="Qwen/Qwen2.5-0.5B-Instruct"
-            model_file="Qwen2.5-0.5B-Instruct"
+            update_env "VLLM_IMAGE" "vllm/vllm-openai-cpu:latest"
             ;;
     esac
-    update_env "VLLM_MODEL_PATH"   "/models/${model_file}"
-    update_env "VLLM_SERVED_NAME"  "local-model"
-    update_env "MODELS_TO_DOWNLOAD" "intfloat/multilingual-e5-large:multilingual-e5-large,${model_name}:${model_file}"
-    update_env "EMBEDDING_MODEL_PATH" "/models/multilingual-e5-large"
-    update_env "EMBEDDING_DIM" "1024"
 }
 
 pick_platform() {
@@ -132,6 +163,7 @@ pick_platform() {
     esac
     setup_env
     use_platform "$MODE"
+    pick_model
 }
 
 # --- Проверки после старта ---
@@ -158,7 +190,6 @@ admin_exists() {
 ensure_admin() {
     if admin_exists; then
         log "Администратор уже существует — пароль не меняю."
-        log "Если забыли: docker compose exec backend python scripts/manage.py reset-admin"
     else
         log "Создание администратора..."
         exec_backend reset-admin
@@ -188,31 +219,19 @@ full_install() {
 
     if ! check_db_password; then
         err "Пароль в .env не совпадает с паролем в pgdata."
-        echo ""
-        echo "Возможные причины:"
-        echo "  - .env пересоздали вручную, а том pgdata остался"
-        echo "  - выполняли 'docker compose down -v', но .env сохранили"
-        echo ""
-        echo "Что делать:"
-        echo "  1) Если данные не нужны — выберите 'Полная переустановка (сброс БД)'"
-        echo "  2) Если данные нужны — восстановите пароль в БД:"
-        echo "     docker compose exec postgres psql -U $(db_user) -d postgres \\"
-        echo "       -c \"ALTER USER $(db_user) WITH PASSWORD 'ПАРОЛЬ_ИЗ_ENV';\""
-        echo "     затем перезапустите: ./install.sh"
+        echo "Выберите пункт 2 (Полная переустановка), чтобы сбросить БД."
         return 1
     fi
-    log "Пароль БД в порядке"
 
     log "Скачивание моделей (пропускает уже скачанные)..."
     download_models
 
-    log "Инициализация схемы БД (idempotent)..."
+    log "Инициализация схемы БД..."
     exec_backend init-db
 
     ensure_admin
 
     log "Установка завершена."
-    echo ""
     echo "Frontend: http://localhost:3000"
     echo "API:      http://localhost:8000/docs"
 }
@@ -226,7 +245,6 @@ full_reinstall() {
     if containers_exist; then
         dc down -v --remove-orphans || true
     else
-        # На случай, если том остался от прошлой установки
         docker volume rm conturai_pgdata conturai_app_data 2>/dev/null || true
     fi
 
@@ -245,10 +263,6 @@ full_reinstall() {
     exec_backend reset-admin
 
     log "Полная переустановка завершена."
-    echo ""
-    echo "Frontend: http://localhost:3000"
-    echo "API:      http://localhost:8000/docs"
-    echo "Пароль администратора — см. вывод reset-admin выше."
 }
 
 containers_menu() {
@@ -306,8 +320,8 @@ while true; do
     echo "=================================================="
     echo "  ConturAI"
     echo "=================================================="
-    echo "  1) Установка / обновление (данные сохраняются)"
-    echo "  2) Полная переустановка (сброс БД, новый пароль)"
+    echo "  1) Установка / обновление"
+    echo "  2) Полная переустановка (сброс БД)"
     echo "  3) Управление контейнерами"
     echo "  4) Команды manage.py"
     echo "  5) Выход"

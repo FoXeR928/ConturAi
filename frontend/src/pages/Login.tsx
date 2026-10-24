@@ -26,8 +26,11 @@ export function Login({
         {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-6 text-sm">{error}</div>}
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Логин</label>
+            <label htmlFor="login" className="block text-sm font-medium text-gray-700 mb-1">
+              Логин
+            </label>
             <input
+              id="login"
               className="w-full border rounded-lg p-2"
               value={login}
               onChange={(e) => setLogin(e.target.value)}
@@ -35,8 +38,11 @@ export function Login({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Пароль</label>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              Пароль
+            </label>
             <input
+              id="password"
               type="password"
               className="w-full border rounded-lg p-2"
               value={password}

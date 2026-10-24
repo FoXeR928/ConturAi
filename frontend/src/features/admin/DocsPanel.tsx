@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { api } from '../../api/client';
 import { Button } from '../../ui/Button';
 import { Input } from '../../ui/Input';
 import { Upload, FileText, Download, Trash2 } from 'lucide-react';
+import { docsApi } from '../../api/docs';
 
 interface UploadRow {
   id: string;
@@ -27,7 +27,7 @@ export function DocsPanel() {
 
   const loadList = async () => {
     try {
-      const data = await api.listDocs();
+      const data = await docsApi.listDocs();
       if (data.result) setUploads(data.uploads || []);
     } catch (e: any) {
       setError(e.message);
@@ -42,7 +42,7 @@ export function DocsPanel() {
     setError('');
     setFile(f.name);
     try {
-      const data = await api.readDoc(f);
+      const data = await docsApi.readDoc(f);
       if (data.result) {
         setFileText(data.file_text);
         setUploadId(data.upload_id);
@@ -59,7 +59,7 @@ export function DocsPanel() {
     setError('');
     setSuccess('');
     try {
-      const data = await api.addDoc(
+      const data = await docsApi.addDoc(
         name || file || 'document',
         text || fileText,
         uploadId ?? undefined
@@ -77,8 +77,10 @@ export function DocsPanel() {
   };
 
   const download = async (u: UploadRow) => {
+    setError('');
+    setSuccess('');
     try {
-      await api.downloadDoc(u.id, u.original_name);
+      await docsApi.downloadDoc(u.id, u.original_name);
     } catch (e: any) {
       setError(e.message);
     }
@@ -87,7 +89,7 @@ export function DocsPanel() {
   const remove = async (u: UploadRow) => {
     if (!confirm(`Удалить «${u.original_name}» и все его чанки?`)) return;
     try {
-      await api.deleteDoc(u.id);
+      await docsApi.deleteDoc(u.id);
       loadList();
     } catch (e: any) {
       setError(e.message);

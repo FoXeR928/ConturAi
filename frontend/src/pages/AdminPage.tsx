@@ -5,23 +5,19 @@ import { UsersPanel } from '../features/admin/UsersPanel';
 import { PromptsPanel } from '../features/admin/PromptsPanel';
 import { LlmConfigsPanel } from '../features/admin/LlmConfigsPanel';
 import { DocsPanel } from '../features/admin/DocsPanel';
+import { DeletedChatsPanel } from '../features/admin/DeletedChatsPanel'; // <-- Импорт
 
-type Tab = 'users' | 'prompts' | 'llm' | 'docs';
+type Tab = 'users' | 'prompts' | 'llm' | 'docs' | 'chats';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'users', label: 'Пользователи' },
   { id: 'prompts', label: 'Промты' },
   { id: 'llm', label: 'Параметры LLM' },
   { id: 'docs', label: 'Документы' },
+  { id: 'chats', label: 'Корзина чатов' }, // <-- Новая вкладка
 ];
 
-export function AdminPage({
-  userName,
-  onLogout,
-}: {
-  userName?: string;
-  onLogout: () => void;
-}) {
+export function AdminPage({ userName, onLogout }: { userName?: string; onLogout: () => void; }) {
   const [tab, setTab] = useState<Tab>('users');
 
   return (
@@ -35,9 +31,7 @@ export function AdminPage({
                 key={t.id}
                 onClick={() => setTab(t.id)}
                 className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                  tab === t.id
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-800'
+                  tab === t.id ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-800'
                 }`}
               >
                 {t.label}
@@ -53,6 +47,7 @@ export function AdminPage({
         {tab === 'prompts' && <PromptsPanel />}
         {tab === 'llm' && <LlmConfigsPanel />}
         {tab === 'docs' && <DocsPanel />}
+        {tab === 'chats' && <DeletedChatsPanel />} {/* <-- Рендер */}
       </div>
     </Layout>
   );

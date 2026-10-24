@@ -44,9 +44,21 @@ async def read_doc(
         raise AppError("Файл слишком большой (максимум 20 МБ)", "warning", 413)
 
     data = await doc.read()
-    text = parser.parse_file(doc.content_type or "", data)
+    if not data:
+        raise AppError("Файл пустой", "warning", 400)
+
+    # Передаём filename, чтобы парсер мог определить тип по расширению
+    text = parser.parse_file(
+        doc.content_type or "",
+        data,
+        filename=doc.filename or "",
+    )
     if text is None:
-        raise AppError("Формат не поддерживается", "warning", 415)
+        raise AppError(
+            f"Формат не поддерживается. Поддерживаются: PDF, DOCX, XLSX, TXT, MD",
+            "warning",
+            415,
+        )
 
     upload = await upload_service.create_upload(
         session=session,

@@ -4,6 +4,7 @@ from loguru import logger
 from openai import AsyncOpenAI
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime, timezone, timedelta
 
 from app.core.config import SYSTEM_LOGIN
 from app.core.exceptions import AppError
@@ -126,8 +127,21 @@ async def ask(
         raise AppError("Нейросеть временно недоступна", "error", 503)
 
     # 5. Сохранить в БД
-    session.add(Message(user_login=user.login, chat_id=chat_id, text=question))
-    session.add(Message(user_login=SYSTEM_LOGIN, chat_id=chat_id, text=answer))
+    time_question = datetime.now(timezone.utc)
+    time_answer = time_question + timedelta(milliseconds=10)
+    
+    session.add(Message(
+        user_login=user.login, 
+        chat_id=chat_id, 
+        text=question, 
+        created_at=time_question
+    ))
+    session.add(Message(
+        user_login=SYSTEM_LOGIN, 
+        chat_id=chat_id, 
+        text=answer, 
+        created_at=time_answer
+    ))
     await session.commit()
 
     return answer

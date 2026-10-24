@@ -1,6 +1,7 @@
-import { LogOut, Plus, Shield } from 'lucide-react';
+import { LogOut, Plus, Shield, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../../ui/Button';
+import { chatsApi } from '../../api/chats';
 
 interface SidebarProps {
   chats: any[];
@@ -9,6 +10,7 @@ interface SidebarProps {
   onCreateChat: () => void;
   onLogout: () => void;
   isAdmin?: boolean;
+  onChatDeleted: () => void;
 }
 
 export function Sidebar({
@@ -18,7 +20,20 @@ export function Sidebar({
   onCreateChat,
   onLogout,
   isAdmin,
+  onChatDeleted,
 }: SidebarProps) {
+  const handleDelete = async (e: React.MouseEvent, chatId: string) => {
+    e.stopPropagation();
+    if (!confirm('Переместить чат в корзину?')) return;
+
+    try {
+      await chatsApi.softDeleteChat(chatId);
+      onChatDeleted();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
   return (
     <>
       <div className="p-4 border-b border-gray-800 flex justify-between items-center">
@@ -45,13 +60,20 @@ export function Sidebar({
           <div
             key={chat.id}
             onClick={() => onSelectChat(chat.id)}
-            className={`p-3 cursor-pointer transition-colors ${
+            className={`group flex items-center justify-between p-3 cursor-pointer transition-colors ${
               activeChatId === chat.id
                 ? 'bg-gray-800 border-l-4 border-blue-500'
                 : 'hover:bg-gray-800 border-l-4 border-transparent'
             }`}
           >
-            {chat.name}
+            <span className="truncate pr-2">{chat.name}</span>
+            <button
+              onClick={(e) => handleDelete(e, chat.id)}
+              className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-500 transition-opacity"
+              title="Удалить в корзину"
+            >
+              <Trash2 size={16} />
+            </button>
           </div>
         ))}
       </div>

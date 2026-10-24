@@ -14,10 +14,11 @@ router = APIRouter()
 async def get_users(
     _: User = Depends(get_admin_user),
     session: AsyncSession = Depends(get_session),
+    include_deleted: bool = False,
 ):
     return {
         "result": True,
-        "users": await user_service.list_users(session),
+        "users": await user_service.list_users(session, include_deleted=include_deleted),
         "message": "Пользователи получены",
         "category": "success",
     }
@@ -74,3 +75,13 @@ async def delete_user(
 ):
     await user_service.delete_user(session, actor, login)
     return {"result": True, "message": "Пользователь удален", "category": "success"}
+
+@router.delete("/purge")
+async def purge_user(
+    login: str,
+    actor: User = Depends(get_admin_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """Полное удаление пользователя из БД"""
+    await user_service.purge_user(session, actor, login)
+    return {"result": True, "message": "Пользователь удален навсегда", "category": "success"}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { api } from '../../api/client';
 import { Button } from '../../ui/Button';
+import { promptsApi } from '../../api/prompts';
 
 interface Prompt {
   key: string;
@@ -27,7 +27,7 @@ export function PromptsPanel() {
 
   const load = async () => {
     try {
-      const data = await api.getPrompts();
+      const data = await promptsApi.getPrompts();
       setPrompts(data.prompts || []);
       setEditing(
         Object.fromEntries((data.prompts || []).map((p: Prompt) => [p.key, p.value]))
@@ -43,7 +43,7 @@ export function PromptsPanel() {
 
   const save = async (key: string) => {
     try {
-      await api.updatePrompt(key, editing[key]);
+      await promptsApi.updatePrompt(key, editing[key]);
       load();
     } catch (e: any) {
       setError(e.message);

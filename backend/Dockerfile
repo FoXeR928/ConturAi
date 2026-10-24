@@ -22,8 +22,11 @@ COPY --from=ghcr.io/astral-sh/uv:0.5.11 /uv /uvx /usr/local/bin/
 WORKDIR /app
 
 COPY backend/pyproject.toml backend/uv.lock ./
+
+# Устанавливаем строго по lock. Никаких тестов и лишних пакетов.
 RUN uv sync --locked --no-install-project --no-dev
 
+# Копируем ТОЛЬКО рабочий код
 COPY backend/app ./app
 COPY backend/scripts ./scripts
 

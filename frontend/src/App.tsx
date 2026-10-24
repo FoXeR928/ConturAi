@@ -4,7 +4,8 @@ import { Login } from './pages/Login';
 import { ChatPage } from './pages/ChatPage';
 import { AdminPage } from './pages/AdminPage';
 import { NotFound } from './pages/NotFound';
-import { api } from './api/client';
+import { login as authLogin, logout as authLogout } from './api/auth';
+import { usersApi } from './api/users';
 
 interface Me {
   login: string;
@@ -23,35 +24,30 @@ function App() {
   }, [token]);
 
   const onLogin = async (login: string, password: string) => {
-    // 1. Получаем токен (если бэкенд упал, здесь вылетит понятная ошибка)
-    const data = await api.login(login, password);
+    // 1. Получаем токен
+    const data = await authLogin(login, password);
     setToken(data.access_token);
 
-    // 2. Определяем, админ ли пользователь. 
-    // Если getUsers вернет 403 (не админ) или 500 (ошибка БД) — мы просто
-    // считаем его обычным пользователем и пускаем в чат.
+    // 2. Определяем, админ ли пользователь
     let me: Me = { login, isAdmin: false };
     try {
-      const usersData = await api.getUsers();
+      const usersData = await usersApi.getUsers();
       me = { login, isAdmin: true };
-      
-      // Пытаемся вытащить user_name для красоты
+
       const myRecord = usersData.users?.find((u: any) => u.login === login);
       if (myRecord && myRecord.user_name) {
         me.user_name = myRecord.user_name;
       }
     } catch {
-      // Если 403 или другая ошибка — просто пускаем как обычного юзера
       me = { login, isAdmin: false };
     }
-    
+
     localStorage.setItem('me', JSON.stringify(me));
     setUser(me);
   };
 
   const onLogout = () => {
-    api.logout();
-    localStorage.removeItem('me');
+    authLogout();
     setToken(null);
     setUser(null);
   };

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { api } from '../api/client';
 import { Layout } from '../components/Layout';
 import { Header } from '../components/Header';
 import { Sidebar } from '../features/chat/Sidebar';
 import { ChatWindow } from '../features/chat/ChatWindow';
+import { chatsApi, aiApi } from '../api/chats';
 
 export function ChatPage({
   userName,
@@ -20,7 +20,7 @@ export function ChatPage({
   const isAdmin = stored ? JSON.parse(stored).isAdmin : false;
 
   const loadChats = async () => {
-    const data = await api.getChats();
+    const data = await chatsApi.getChats();
     if (data.result) setChats(data.chats);
   };
 
@@ -30,14 +30,14 @@ export function ChatPage({
 
   const loadMessages = async (chatId: string) => {
     setActiveChat(chatId);
-    const data = await api.getMessages(chatId);
+    const data = await chatsApi.getMessages(chatId);
     if (data.result) setMessages(data.messages_history);
   };
 
   const createChat = async () => {
     const name = prompt('Название чата:');
     if (!name) return;
-    const data = await api.createChat(name);
+    const data = await chatsApi.createChat(name);
     if (data.result) {
       await loadChats();
       loadMessages(data.chat_id);
@@ -49,7 +49,7 @@ export function ChatPage({
     setMessages((prev) => [...prev, { chat_role: 'user', text }]);
     setLoading(true);
     try {
-      const res = await api.askAi(activeChat, text);
+      const res = await aiApi.askAi(activeChat, text);
       if (res.result) {
         setMessages((prev) => [...prev, { chat_role: 'assistant', text: res.answer }]);
       } else {
@@ -65,6 +65,26 @@ export function ChatPage({
     }
   };
 
+  const handleChatDeleted = async () => {
+    if (activeChat) {
+      const data = await chatsApi.getChats();
+      if (data.result) {
+        const stillExists = data.chats.some((c: any) => c.id === activeChat);
+        if (!stillExists) {
+          setActiveChat(null);
+          setMessages([]);
+        }
+        setChats(data.chats);
+      }
+    } else {
+      loadChats();
+    }
+  };
+
+  const handleRefreshMessages = () => {
+    if (activeChat) loadMessages(activeChat);
+  };
+
   return (
     <Layout
       sidebar={
@@ -75,12 +95,19 @@ export function ChatPage({
           onCreateChat={createChat}
           onLogout={onLogout}
           isAdmin={isAdmin}
+          onChatDeleted={handleChatDeleted}
         />
       }
       header={<Header userName={userName} isAdmin={isAdmin} onLogout={onLogout} />}
     >
       {activeChat ? (
-        <ChatWindow messages={messages} onSendMessage={sendMessage} loading={loading} />
+        <ChatWindow
+          messages={messages}
+          onSendMessage={sendMessage}
+          loading={loading}
+          chatId={activeChat}
+          onRefresh={handleRefreshMessages}
+        />
       ) : (
         <div className="flex-1 flex items-center justify-center text-gray-400">
           Выберите чат или создайте новый

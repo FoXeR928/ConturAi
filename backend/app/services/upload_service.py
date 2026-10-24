@@ -65,6 +65,9 @@ async def get_upload(session: AsyncSession, upload_id: UUID) -> Upload:
 async def delete_upload(session: AsyncSession, upload_id: UUID) -> None:
     upload = await get_upload(session, upload_id)
     file_storage.delete_file(upload.stored_name)
+    await session.execute(
+        delete(Document).where(Document.upload_id == upload_id)
+    )
     await session.execute(delete(Upload).where(Upload.id == upload_id))
     await session.commit()
 

@@ -9,22 +9,33 @@ from loguru import logger
 from openpyxl import load_workbook
 from pdf2image import convert_from_bytes
 
-PDF_MIME = "application/pdf"
-WORD_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-EXCEL_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+# --- Поддерживаемые MIME-типы (с альтернативами) ---
+PDF_MIMES = {"application/pdf", "application/x-pdf"}
+WORD_MIMES = {
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/msword",
+    "application/octet-stream",  # некоторые браузеры шлют это для .docx
+}
+EXCEL_MIMES = {
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-excel",
+}
+TEXT_MIMES = {
+    "text/plain",
+    "text/markdown",
+    "text/x-markdown",
+    "application/octet-stream",  # fallback для .md
+}
 
 
 # ---------- helpers ----------
 
 def _table_to_markdown(rows: list[list[str | None]]) -> str:
-    """Преобразует 2D-список в markdown-таблицу."""
     if not rows:
         return ""
-    # убираем полностью пустые строки
     rows = [r for r in rows if any(c and str(c).strip() for c in r)]
     if not rows:
         return ""
-    # нормализуем ширину
     width = max(len(r) for r in rows)
     norm = []
     for r in rows:
@@ -38,7 +49,6 @@ def _table_to_markdown(rows: list[list[str | None]]) -> str:
 
 
 def _iter_block_items(doc):
-    """Итерирует параграфы и таблицы Word в исходном порядке."""
     from docx.oxml.text.paragraph import CT_P
     from docx.oxml.table import CT_Tbl
 
@@ -53,17 +63,13 @@ def _iter_block_items(doc):
 # ---------- PDF ----------
 
 def _pdf_text_pdfplumber(data: bytes) -> str:
-    """Извлекает текст и таблицы через pdfplumber."""
     parts: list[str] = []
     with pdfplumber.open(BytesIO(data)) as pdf:
         for page_num, page in enumerate(pdf.pages, 1):
-            # сначала текст
             text = page.extract_text() or ""
             if text.strip():
                 parts.append(f"--- Страница {page_num} ---\n{text.strip()}")
-            # потом таблицы
-            tables = page.extract_tables()
-            for t_idx, table in enumerate(tables, 1):
+            for t_idx, table in enumerate(page.extract_tables(), 1):
                 if not table:
                     continue
                 md = _table_to_markdown(table)
@@ -73,7 +79,6 @@ def _pdf_text_pdfplumber(data: bytes) -> str:
 
 
 def _pdf_ocr(data: bytes) -> str:
-    """OCR-фолбэк для сканированных PDF."""
     pages = convert_from_bytes(data, 300)
     parts = []
     for i, page in enumerate(pages, 1):
@@ -87,9 +92,9 @@ def read_pdf(data: bytes) -> str:
     try:
         text = _pdf_text_pdfplumber(data)
         if text.strip() and len(text.strip()) > 50:
-            logger.debug("PDF прочитан через pdfplumber (текст+таблицы)")
+            logger.debug("PDF прочитан через pdfplumber")
             return text
-        logger.info("PDF без текстового слоя — переключаюсь на OCR")
+        logger.info("PDF без текста — OCR")
         return _pdf_ocr(data)
     except Exception as err:
         logger.error(f"PDF: pdfplumber упал ({err}), пробую OCR")
@@ -115,18 +120,16 @@ def read_word(data: bytes) -> str:
                     parts.append(t)
             elif isinstance(block, Table):
                 table_counter += 1
-                rows: list[list[str]] = []
-                for row in block.rows:
-                    rows.append([cell.text.strip() for cell in row.cells])
+                rows = [[cell.text.strip() for cell in row.cells] for row in block.rows]
                 md = _table_to_markdown(rows)
                 if md:
                     parts.append(f"--- Таблица {table_counter} ---\n{md}")
 
         result = "\n\n".join(parts)
-        logger.debug(f"Word прочитан: параграфы + {table_counter} таблиц")
+        logger.debug(f"Word прочитан: {table_counter} таблиц")
         return result or "Документ не содержит текста"
     except Exception as err:
-        logger.error(f"Word: ошибка чтения: {err}")
+        logger.error(f"Word: {err}")
         return "Ошибка чтения файла"
 
 
@@ -150,20 +153,60 @@ def read_excel(data: bytes) -> str:
         logger.debug(f"Excel прочитан: {len(wb.worksheets)} листов")
         return result or "Документ не содержит данных"
     except Exception as err:
-        logger.error(f"Excel: ошибка чтения: {err}")
+        logger.error(f"Excel: {err}")
         return "Ошибка чтения файла"
+
+
+# ---------- Plain text ----------
+
+def read_text(data: bytes) -> str:
+    """Простое чтение .txt / .md (UTF-8, fallback cp1251)."""
+    for encoding in ("utf-8", "utf-8-sig", "cp1251"):
+        try:
+            return data.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+    logger.error("Не удалось декодировать текстовый файл")
+    return "Ошибка чтения файла"
 
 
 # ---------- dispatcher ----------
 
-def parse_file(content_type: str, data: bytes) -> str | None:
+def parse_file(content_type: str, data: bytes, filename: str = "") -> str | None:
+    """
+    Определяет тип файла по MIME, а если он не распознан — по расширению.
+    Возвращает текст или None, если формат не поддерживается.
+    """
+    logger.debug(
+        f"parse_file: content_type={content_type!r}, filename={filename!r}, "
+        f"size={len(data)}"
+    )
+
+    ct = (content_type or "").lower().split(";")[0].strip()
+    name = (filename or "").lower()
+
     try:
-        if content_type == PDF_MIME:
+        # По MIME
+        if ct in PDF_MIMES:
             return read_pdf(data)
-        if content_type == WORD_MIME:
+        if ct in WORD_MIMES:
             return read_word(data)
-        if content_type == EXCEL_MIME:
+        if ct in EXCEL_MIMES:
             return read_excel(data)
+        if ct in TEXT_MIMES:
+            return read_text(data)
+
+        # По расширению (если MIME не сработал)
+        if name.endswith(".pdf"):
+            return read_pdf(data)
+        if name.endswith((".docx", ".doc")):
+            return read_word(data)
+        if name.endswith((".xlsx", ".xls")):
+            return read_excel(data)
+        if name.endswith((".txt", ".md", ".markdown", ".csv")):
+            return read_text(data)
+
+        logger.warning(f"Формат не поддерживается: {ct} / {name}")
         return None
     except Exception as err:
         logger.error(f"Не удалось прочитать документ: {err}")

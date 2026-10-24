@@ -8,13 +8,19 @@ from app.core.config import settings
 UPLOADS_DIR = Path(settings.data_dir).resolve() / "uploads"
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
+logger.debug(f"UPLOADS_DIR = {UPLOADS_DIR}")
+logger.debug(f"Writable: {__import__('os').access(UPLOADS_DIR, __import__('os').W_OK)}")
+
 
 def save_original(data: bytes, original_name: str) -> str:
-    """Сохраняет оригинал на диск, возвращает stored_name для БД."""
     ext = Path(original_name).suffix.lower() or ".bin"
     stored = f"{uuid.uuid4().hex}{ext}"
     path = UPLOADS_DIR / stored
-    path.write_bytes(data)
+    try:
+        path.write_bytes(data)
+    except Exception as err:
+        logger.error(f"Не удалось сохранить файл {path}: {err}")
+        raise
     logger.info(f"Оригинал сохранён: {path} ({len(data)} байт)")
     return stored
 
