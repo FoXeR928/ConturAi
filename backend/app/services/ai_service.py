@@ -2,13 +2,13 @@ from uuid import UUID
 
 from loguru import logger
 from openai import AsyncOpenAI
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timezone, timedelta
 
 from app.core.config import SYSTEM_LOGIN
 from app.core.exceptions import AppError
-from app.db.models import Chat, Message, User
+from app.db.models import Chat, Message, User, FewShot
 from app.rag import format_context, search_documents
 from app.services import llm_config_service, prompt_service
 
@@ -71,21 +71,40 @@ async def _build_history(
     prompts = await prompt_service.get_all_prompts(session)
     ai_name = prompts.get("ai_name", "AI")
     system_prompt = prompts.get("system_prompt", "")
-
-    # Передаём и name, и context — лишние kwargs игнорируются
     system_content = _safe_format(system_prompt, name=ai_name, context=context)
+
+    examples = (await session.execute(
+        select(FewShot).order_by(func.random()).limit(3)
+    )).scalars().all()
+    
+    if examples:
+        examples_text = "\n\nПРИМЕРЫ ИДЕАЛЬНЫХ ОТВЕТОВ (отвечай в таком же стиле):\n"
+        for ex in examples:
+            examples_text += f"Вопрос: {ex.question}\nОтвет: {ex.answer}\n\n"
+        system_content += examples_text
 
     history: list[dict[str, str]] = [
         {"role": "system", "content": system_content}
     ]
+    
+    cfg = await llm_config_service.get_rag(session)
+    limit = cfg.get("history_limit", 20)
+
+    subq = (
+        select(User.chat_role, Message.text, Message.created_at)
+        .join(User, User.login == Message.user_login)
+        .where(Message.chat_id == chat_id)
+        .order_by(Message.created_at.desc())
+        .limit(limit)
+        .subquery()
+    )
+    
     rows = (
         await session.execute(
-            select(User.chat_role, Message.text)
-            .join(User, User.login == Message.user_login)
-            .where(Message.chat_id == chat_id)
-            .order_by(Message.created_at)
+            select(subq.c.chat_role, subq.c.text).order_by(subq.c.created_at)
         )
     ).all()
+    
     for role, text in rows:
         history.append({"role": role, "content": text})
     return history

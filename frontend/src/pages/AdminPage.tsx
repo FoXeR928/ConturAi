@@ -5,16 +5,20 @@ import { UsersPanel } from '../features/admin/UsersPanel';
 import { PromptsPanel } from '../features/admin/PromptsPanel';
 import { LlmConfigsPanel } from '../features/admin/LlmConfigsPanel';
 import { DocsPanel } from '../features/admin/DocsPanel';
-import { DeletedChatsPanel } from '../features/admin/DeletedChatsPanel'; // <-- Импорт
+import { DeletedChatsPanel } from '../features/admin/DeletedChatsPanel';
+import { DatabasePanel } from '../features/admin/DatabasePanel';
+import { FewShotsPanel } from '../features/admin/FewShotsPanel';
 
-type Tab = 'users' | 'prompts' | 'llm' | 'docs' | 'chats';
+type Tab = 'users' | 'prompts' | 'llm' | 'docs' | 'chats' | 'system' | 'downloads' | 'audit' | 'few-shots' | 'database';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'users', label: 'Пользователи' },
   { id: 'prompts', label: 'Промты' },
   { id: 'llm', label: 'Параметры LLM' },
   { id: 'docs', label: 'Документы' },
-  { id: 'chats', label: 'Корзина чатов' }, // <-- Новая вкладка
+  { id: 'chats', label: 'Корзина чатов' },
+  { id: 'database', label: 'Базы данных' },
+  { id: 'few-shots', label: 'База знаний' },
 ];
 
 export function AdminPage({ userName, onLogout }: { userName?: string; onLogout: () => void; }) {
@@ -47,7 +51,9 @@ export function AdminPage({ userName, onLogout }: { userName?: string; onLogout:
         {tab === 'prompts' && <PromptsPanel />}
         {tab === 'llm' && <LlmConfigsPanel />}
         {tab === 'docs' && <DocsPanel />}
-        {tab === 'chats' && <DeletedChatsPanel />} {/* <-- Рендер */}
+        {tab === 'chats' && <DeletedChatsPanel />}
+        {tab === 'database' && <DatabasePanel />}
+        {tab === 'few-shots' && <FewShotsPanel />}
       </div>
     </Layout>
   );

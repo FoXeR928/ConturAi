@@ -45,3 +45,7 @@ class PromptUpdate(BaseModel):
 class LlmConfigUpdate(BaseModel):
     key: str
     value: str
+
+class FewShotCreate(BaseModel):
+    question: str
+    answer: str

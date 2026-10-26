@@ -1,6 +1,6 @@
 [project]
 name = "ConturAi"
-version = "2.0.0"
+version = "2.1.1"
 description = "AI assistant: vLLM + PostgreSQL pgvector"
 requires-python = ">=3.12,<=3.14"
 dependencies = [
@@ -25,6 +25,7 @@ dependencies = [
     "pytesseract>=0.3.13",
     "pdf2image>=1.17.0",
     "pdfplumber>=0.11.10",
+    "cryptography>=50.0.2",
 ]
 
 [dependency-groups]

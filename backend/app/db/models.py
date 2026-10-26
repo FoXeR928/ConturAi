@@ -11,8 +11,10 @@ from sqlalchemy import (
     String,
     Text,
     func,
+    Computed
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.dialects.postgresql import TSVECTOR
 
 from app.core.config import settings
 
@@ -97,6 +99,12 @@ class Document(Base):
     )
     language: Mapped[str] = mapped_column(String(8), default="ru")
     embedding: Mapped[list[float]] = mapped_column(Vector(settings.embedding_dim))
+    tsv: Mapped[str | None] = mapped_column(
+        TSVECTOR, 
+        Computed("to_tsvector('russian', text)", persisted=True),
+        nullable=True
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -108,6 +116,11 @@ class Document(Base):
             postgresql_using="hnsw",
             postgresql_with={"m": 16, "ef_construction": 64},
             postgresql_ops={"embedding": "vector_cosine_ops"},
+        ),
+        Index(
+            "documents_tsv_gin",
+            "tsv",
+            postgresql_using="gin",
         ),
     )
 
@@ -132,6 +145,7 @@ class LlmConfig(Base):
     value: Mapped[str] = mapped_column(Text)
     description: Mapped[str | None] = mapped_column(String(255))
     input_type: Mapped[str] = mapped_column(String(32), default="text")
+    is_secret: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), onupdate=func.now()
     )
@@ -151,6 +165,16 @@ class Upload(Base):
         nullable=True,
     )
     chunks_count: Mapped[int] = mapped_column(default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+class FewShot(Base):
+    __tablename__ = "few_shots"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    question: Mapped[str] = mapped_column(Text)
+    answer: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

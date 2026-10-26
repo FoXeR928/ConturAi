@@ -5,7 +5,7 @@ from functools import lru_cache
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pymorphy3 import MorphAnalyzer
 from sentence_transformers import SentenceTransformer
-from sqlalchemy import select
+from sqlalchemy import select, func, text as sql_text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -87,19 +87,66 @@ async def search_documents(
     session: AsyncSession,
     query: str,
     limit: int | None = None,
+    tags: list[str] | None = None,
 ) -> list[Document]:
     if limit is None:
         cfg = await llm_config_service.get_rag(session)
         limit = cfg["search_limit"]
 
     query_vector = await embed_one(query)
-    stmt = (
+    
+    # 1. ВЕКТОРНЫЙ ПОИСК (Топ-10)
+    vector_stmt = (
         select(Document)
-        .order_by(Document.embedding.cosine_distance(query_vector))
-        .limit(limit)
+        .where(Document.embedding.cosine_distance(query_vector) < 0.5)
     )
-    result = await session.execute(stmt)
-    return list(result.scalars().all())
+    if tags:
+        from app.db.models import Upload
+        vector_stmt = vector_stmt.join(Upload, Document.upload_id == Upload.id).where(Upload.tags.overlap(tags))
+    
+    vector_stmt = vector_stmt.order_by(Document.embedding.cosine_distance(query_vector)).limit(10)
+    vector_docs = list((await session.execute(vector_stmt)).scalars().all())
+
+    # 2. ТЕКСТОВЫЙ ПОИСК (BM25, Топ-10)
+    # Используем plainto_tsquery для безопасного поиска
+    text_stmt = (
+        select(Document)
+        .where(Document.tsv.op('@@')(func.plainto_tsquery('russian', query)))
+    )
+    if tags:
+        from app.db.models import Upload
+        text_stmt = text_stmt.join(Upload, Document.upload_id == Upload.id).where(Upload.tags.overlap(tags))
+        
+    text_stmt = text_stmt.order_by(
+        func.ts_rank_cd(Document.tsv, func.plainto_tsquery('russian', query)).desc()
+    ).limit(10)
+    text_docs = list((await session.execute(text_stmt)).scalars().all())
+
+    # 3. RECIPROCAL RANK FUSION (RRF)
+    # Объединяем результаты. Формула: Score = 1 / (60 + rank)
+    # 60 — стандартная константа, чтобы нижние ранги не сильно влияли.
+    rrf_scores = {}
+    doc_map = {}
+
+    for rank, doc in enumerate(vector_docs):
+        doc_map[doc.id] = doc
+        rrf_scores[doc.id] = rrf_scores.get(doc.id, 0) + 1.0 / (60 + rank + 1)
+
+    for rank, doc in enumerate(text_docs):
+        doc_map[doc.id] = doc
+        rrf_scores[doc.id] = rrf_scores.get(doc.id, 0) + 1.0 / (60 + rank + 1)
+
+    # Сортируем по объединенному скору
+    sorted_ids = sorted(rrf_scores.keys(), key=lambda x: rrf_scores[x], reverse=True)
+    
+    # Берем топ-кандидатов для реранкера (например, 10 штук)
+    top_candidates = [doc_map[doc_id] for doc_id in sorted_ids[:10]]
+
+    if not top_candidates:
+        return []
+
+    # 4. РЕРАНКИНГ (Cross-Encoder)
+    return await rerank_documents(query, top_candidates, top_n=limit)
 
 
 def format_context(docs: list[Document]) -> str:

@@ -55,6 +55,48 @@ async def cmd_init_db() -> None:
         await llm_config_service.seed_defaults(session)
     logger.success("Инициализация БД завершена")
 
+async def cmd_migrate() -> None:
+    setup_logging()
+    logger.info("Применение миграций...")
+    async with engine.begin() as conn:
+        try:
+            await conn.execute(text("ALTER TABLE llm_configs ADD COLUMN is_secret BOOLEAN DEFAULT FALSE NOT NULL;"))
+            logger.info("Колонка 'is_secret' добавлена в llm_configs.")
+        except Exception as e:
+            logger.warning(f"Колонка 'is_secret' уже существует: {e}")
+            
+    # Находим vllm_api_key и шифруем, если он не зашифрован
+    from app.core.security import encrypt_secret
+    async with async_session_factory() as session:
+        await session.execute(text("UPDATE llm_configs SET is_secret = TRUE WHERE key = 'vllm_api_key';"))
+        await session.commit()
+        
+        # Опционально: перешифровать существующий ключ, если он текстовый
+        cfg = (await session.execute(select(LlmConfig).where(LlmConfig.key == 'vllm_api_key'))).scalar_one_or_none()
+        if cfg and cfg.value and not cfg.value.startswith("gAAAA"): # Признак Fernet
+            cfg.value = encrypt_secret(cfg.value)
+            await session.commit()
+            logger.info("Существующий API-ключ зашифрован.")
+
+        try:
+            await conn.execute(text(
+                "ALTER TABLE documents ADD COLUMN tsv tsvector GENERATED ALWAYS AS (to_tsvector('russian', text)) STORED;"
+            ))
+            logger.info("Колонка 'tsv' добавлена в documents.")
+        except Exception as e:
+            logger.warning(f"Колонка 'tsv' уже существует: {e}")
+
+        try:
+            await conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS documents_tsv_gin ON documents USING GIN (tsv);"
+            ))
+            logger.info("GIN-индекс для 'tsv' создан.")
+        except Exception as e:
+            logger.error(f"Ошибка создания индекса: {e}")
+
+    logger.success("Миграция завершена.")
+
+
 
 # ---------------- Admin ----------------
 
@@ -212,6 +254,7 @@ def main() -> None:
 
     subparsers.add_parser("init-db", help="Создать таблицы, промты и llm_configs")
     subparsers.add_parser("reset-admin", help="Сбросить пароль админа")
+    subparsers.add_parser("migrate", help="Применить новые колонки в БД")
 
     p_download = subparsers.add_parser("download-models", help="Скачать модели")
     p_download.add_argument("--only", default=None)
@@ -234,6 +277,8 @@ def main() -> None:
         cmd_download_models(args)
     elif args.command == "set-llm":
         asyncio.run(cmd_set_llm(args))
+    elif args.command == "migrate":
+        asyncio.run(cmd_migrate())
 
 
 if __name__ == "__main__":
