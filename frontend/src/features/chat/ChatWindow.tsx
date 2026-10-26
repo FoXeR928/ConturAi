@@ -71,10 +71,6 @@ export function ChatWindow({ messages, onSendMessage, loading, chatId, onRefresh
     }
   };
 
-  const handleExport = () => {
-    window.open(`/api/chats/export/${chatId}?token=${localStorage.getItem('token')}`, '_blank');
-  };
-
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 border-b bg-white flex justify-between items-center">

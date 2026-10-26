@@ -111,6 +111,46 @@ def get_amd_gpus() -> list[dict]:
             
     return gpus
 
+def get_intel_gpus() -> list[dict]:
+    gpus = []
+    cards = glob.glob('/sys/class/drm/card[0-9]*/device/vendor')
+    for card_path in cards:
+        try:
+            with open(card_path, 'r') as f:
+                vendor_id = f.read().strip()
+            
+            # 0x8086 — идентификатор Intel
+            if vendor_id == '0x8086':
+                base_dir = os.path.dirname(card_path)
+                
+                # Загрузка ядер (приблизительно по частоте)
+                util = 0
+                try:
+                    # Частота текущая и максимальная
+                    with open(f'{base_dir}/gt_cur_freq_mhz', 'r') as f:
+                        cur_freq = int(f.read().strip())
+                    with open(f'{base_dir}/gt_max_freq_mhz', 'r') as f:
+                        max_freq = int(f.read().strip())
+                    if max_freq > 0:
+                        util = int((cur_freq / max_freq) * 100)
+                except FileNotFoundError:
+                    pass # Некоторые старые iGPU не имеют этих файлов
+
+                # У Intel нет выделенной VRAM (она делит системную RAM)
+                gpus.append({
+                    "vendor": "INTEL",
+                    "name": "Intel Graphics",
+                    "mem_total": 0, # Показываем, что VRAM выделенной нет
+                    "mem_used": 0,
+                    "mem_percent": 0,
+                    "utilization": min(util, 100),
+                    "temperature": 0 # Датчиков температуры обычно нет в sysfs для iGPU
+                })
+        except Exception as e:
+            logger.error(f"Error reading Intel sysfs at {card_path}: {e}")
+            
+    return gpus
+
 # --- Сбор всех данных ---
 def get_system_stats() -> dict:
     cpu_percent = psutil.cpu_percent(interval=None)
@@ -126,7 +166,7 @@ def get_system_stats() -> dict:
     disk_models = shutil.disk_usage(models_path)
 
     # Собираем все видеокарты в один список
-    all_gpus = get_nvidia_gpus() + get_amd_gpus()
+    all_gpus = get_nvidia_gpus() + get_amd_gpus() + get_intel_gpus()
 
     return {
         "cpu": {"percent": cpu_percent, "cores": psutil.cpu_count()},

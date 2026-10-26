@@ -15,8 +15,9 @@ export function Header({ userName, isAdmin, onLogout }: HeaderProps) {
   useEffect(() => {
     const checkHealth = async () => {
       try {
-        const res = await fetch('http://localhost:8080/health', { method: 'GET' });
-        setLlmOnline(res.ok);
+        const res = await fetch('/api/system/vllm-status');
+        const data = await res.json();
+        setLlmOnline(data.status === 'ok');
       } catch {
         setLlmOnline(false);
       }

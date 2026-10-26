@@ -11,11 +11,10 @@ from sqlalchemy import (
     String,
     Text,
     func,
-    Computed
+    Computed,
 )
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy.dialects.postgresql import TSVECTOR
 
 from app.core.config import settings
 
@@ -108,6 +107,8 @@ class Document(Base):
     )
     language: Mapped[str] = mapped_column(String(8), default="ru")
     embedding: Mapped[list[float]] = mapped_column(Vector(settings.embedding_dim))
+    
+    # --- Гибридный поиск ---
     tsv: Mapped[str | None] = mapped_column(
         TSVECTOR, 
         Computed("to_tsvector('russian', text)", persisted=True),
@@ -154,7 +155,7 @@ class LlmConfig(Base):
     value: Mapped[str] = mapped_column(Text)
     description: Mapped[str | None] = mapped_column(String(255))
     input_type: Mapped[str] = mapped_column(String(32), default="text")
-    is_secret: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_secret: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False) # <-- Шифрование
     updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), onupdate=func.now()
     )
@@ -175,12 +176,33 @@ class Upload(Base):
         nullable=True,
     )
     chunks_count: Mapped[int] = mapped_column(default=0)
-    # --- НОВОЕ ---
     tags: Mapped[list[str] | None] = mapped_column(JSONB, default=list, nullable=True)
-    # ------------
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+
+
+class DownloadRequest(Base):
+    __tablename__ = "download_requests"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_login: Mapped[str] = mapped_column(ForeignKey("users.login", ondelete="CASCADE"), index=True)
+    upload_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("uploads.id", ondelete="CASCADE"), index=True)
+    status: Mapped[str] = mapped_column(String(32), default="pending") # pending, approved, rejected
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_login: Mapped[str] = mapped_column(String(64), index=True)
+    action: Mapped[str] = mapped_column(String(128), index=True)
+    details: Mapped[str | None] = mapped_column(Text)
+    ip_address: Mapped[str | None] = mapped_column(String(45))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
 
 class FewShot(Base):
     __tablename__ = "few_shots"

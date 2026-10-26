@@ -20,23 +20,23 @@ interface UploadRow {
 export function DocsPanel() {
   const [name, setName] = useState('');
   const [text, setText] = useState('');
-  const [tags, setTags] = useState(''); // <-- Стейт для тегов
   const [fileText, setFileText] = useState('');
   const [file, setFile] = useState<string>('');
   const [uploadId, setUploadId] = useState<string | null>(null);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [uploads, setUploads] = useState<UploadRow[]>([]);
   const fileInput = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  
+  // Исправлено: только один стейт для тегов (массив)
   const [tags, setTags] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false); // Добавили спиннер
 
   const loadList = async () => {
     try {
       const data = await docsApi.listDocs();
       if (data.result) setUploads(data.uploads || []);
     } catch (e: any) {
-      setError(e.message);
+      toast(e.message, 'error');
     }
   };
 
@@ -45,8 +45,12 @@ export function DocsPanel() {
   }, []);
 
   const readFile = async (f: File) => {
-    setError('');
+    if (f.size > 20 * 1024 * 1024) {
+      toast('Файл слишком большой (макс 20 МБ)', 'error');
+      return;
+    }
     setFile(f.name);
+    setLoading(true);
     try {
       const data = await docsApi.readDoc(f);
       if (data.result) {
@@ -54,31 +58,27 @@ export function DocsPanel() {
         setUploadId(data.upload_id);
         if (!name) setName(data.file_name);
       } else {
-        setError(data.message);
+        toast(data.message, 'error');
       }
     } catch (e: any) {
-      setError(e.message);
+      toast(e.message, 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
   const add = async () => {
-    setError('');
-    setSuccess('');
     try {
-      // Разбиваем строку тегов по запятой и убираем пустые
-      const tagsArray = tags.split(',').map(t => t.trim()).filter(Boolean);
-      
       const data = await docsApi.addDoc(
         name || file || 'document',
         text || fileText,
         uploadId ?? undefined,
-        tagsArray
+        tags // Передаем массив
       );
       toast(data.message, 'success');
       setTags([]); 
       setName('');
       setText('');
-      setTags('');
       setFileText('');
       setFile('');
       setUploadId(null);
@@ -89,12 +89,10 @@ export function DocsPanel() {
   };
 
   const download = async (u: UploadRow) => {
-    setError('');
-    setSuccess('');
     try {
       await docsApi.downloadDoc(u.id, u.original_name);
     } catch (e: any) {
-      setError(e.message);
+      toast(e.message, 'error');
     }
   };
 
@@ -104,15 +102,13 @@ export function DocsPanel() {
       await docsApi.deleteDoc(u.id);
       loadList();
     } catch (e: any) {
-      setError(e.message);
+      toast(e.message, 'error');
     }
   };
 
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">Документы</h2>
-      {error && <div className="bg-red-50 text-red-600 p-3 rounded mb-4">{error}</div>}
-      {success && <div className="bg-green-50 text-green-700 p-3 rounded mb-4">{success}</div>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-white rounded-lg shadow p-4">
@@ -120,7 +116,9 @@ export function DocsPanel() {
             <FileText size={18} /> Текст вручную
           </h3>
           <Input placeholder="Имя документа" value={name} onChange={(e) => setName(e.target.value)} />
-          <Input placeholder="Теги (через запятую)" value={tags} onChange={(e) => setTags(e.target.value)} className="mt-2" /> {/* <-- Поле тегов */}
+          <div className="mt-2">
+            <TagInput tags={tags} onChange={setTags} placeholder="Теги (Enter для добавления)" />
+          </div>
           <textarea
             className="w-full border rounded p-2 mt-3 font-mono text-sm"
             rows={6}
@@ -144,11 +142,13 @@ export function DocsPanel() {
             accept=".pdf,.docx,.xlsx"
             onChange={(e) => e.target.files?.[0] && readFile(e.target.files[0])}
           />
-          <Button onClick={() => fileInput.current?.click()} className="w-full">
-            Выбрать файл
+          <Button onClick={() => fileInput.current?.click()} className="w-full" disabled={loading}>
+            {loading ? 'Обработка файла...' : 'Выбрать файл'}
           </Button>
           {file && <div className="text-sm text-gray-600 mt-2">Файл: {file}</div>}
-          <Input placeholder="Теги (через запятую)" value={tags} onChange={(e) => setTags(e.target.value)} className="mt-2" /> {/* <-- Поле тегов */}
+          <div className="mt-2">
+            <TagInput tags={tags} onChange={setTags} placeholder="Теги для этого файла" />
+          </div>
           {fileText && (
             <textarea
               className="w-full border rounded p-2 mt-3 font-mono text-sm"
@@ -159,7 +159,7 @@ export function DocsPanel() {
           )}
           <Button
             onClick={add}
-            disabled={!fileText}
+            disabled={!fileText || loading}
             className="w-full mt-3"
             variant="secondary"
           >
@@ -196,17 +196,9 @@ export function DocsPanel() {
                       </div>
                     ) : '—'}
                   </td>
+                  <td className="p-3 text-xs text-gray-500">{u.mime_type || '—'}</td> {/* Восстановлен столбец Тип */}
                   <td className="p-3">{u.size ? `${Math.round(u.size / 1024)} КБ` : '—'}</td>
                   <td className="p-3">{u.chunks_count}</td>
-                  <td className="p-3">
-                    {u.tags && u.tags.length > 0 ? (
-                      <div className="flex gap-1 flex-wrap">
-                        {u.tags.map((t, i) => (
-                          <span key={i} className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">{t}</span>
-                        ))}
-                      </div>
-                    ) : '—'}
-                  </td>
                   <td className="p-3">{u.uploaded_by || '—'}</td>
                   <td className="p-3 space-x-2">
                     <button
@@ -227,7 +219,7 @@ export function DocsPanel() {
               ))}
               {uploads.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-gray-500">
+                  <td colSpan={7} className="p-6 text-center text-gray-500">
                     Нет загруженных документов
                   </td>
                 </tr>

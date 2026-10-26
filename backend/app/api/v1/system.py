@@ -17,6 +17,19 @@ BACKUP_DIR = Path("/app/data/backups")
 async def get_stats(_: User = Depends(get_admin_user)):
     return {"result": True, "stats": system_service.get_system_stats()}
 
+@router.get("/vllm-status")
+async def get_vllm_status(session: AsyncSession = Depends(get_session)):
+    try:
+        llm = await llm_config_service.get_typed(session)
+        base_url = llm['base_url'].rsplit('/v1', 1)[0]
+        async with httpx.AsyncClient(timeout=2.0) as client:
+            resp = await client.get(f"{base_url}/health")
+            if resp.status_code == 200:
+                return {"status": "ok"}
+    except Exception:
+        pass
+    return {"status": "offline"}
+
 @router.get("/db/backups")
 async def list_backups(_: User = Depends(get_admin_user)):
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)

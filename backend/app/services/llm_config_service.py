@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AppError
 from app.db.models import LlmConfig
+from app.core.security import encrypt_secret, decrypt_secret
 
 
 DEFAULT_LLM_CONFIGS: dict[str, dict[str, str]] = {
