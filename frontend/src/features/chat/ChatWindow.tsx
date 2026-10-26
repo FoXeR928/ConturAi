@@ -40,6 +40,10 @@ export function ChatWindow({ messages, onSendMessage, loading, chatId, onRefresh
     }
   };
 
+  const handleExport = () => {
+    window.open(`/api/chats/export/${chatId}?token=${localStorage.getItem('token')}`, '_blank');
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto p-6 space-y-6">

@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_admin_user, get_current_user
@@ -30,6 +30,14 @@ async def create_ai_message(
         "category": "success",
     }
 
+@router.post("/messages/stream")
+async def create_ai_message_stream(
+    chat_id: UUID,
+    payload: MessageIn,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    return await ai_service.ask_stream(session, user, chat_id, payload.text)
 
 # ---------- Документы ----------
 
@@ -124,10 +132,12 @@ async def create_doc(
 async def list_docs(
     _: User = Depends(get_admin_user),
     session: AsyncSession = Depends(get_session),
+    limit: int = 50,
+    offset: int = 0,
 ):
     return {
         "result": True,
-        "uploads": await upload_service.list_uploads(session),
+        "uploads": await upload_service.list_uploads(session, limit, offset),
         "message": "Документы получены",
         "category": "success",
     }

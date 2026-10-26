@@ -35,6 +35,7 @@ export const chatsApi = {
       method: 'PATCH',
       body: JSON.stringify(chatIds),
     }),
+  
 };
 
 export const aiApi = {
@@ -43,4 +44,53 @@ export const aiApi = {
       method: 'POST',
       body: JSON.stringify({ text }),
     }),
+};
+
+export const streamAiMessage = async (
+  chatId: string,
+  text: string,
+  onChunk: (chunk: string) => void,
+  onDone: () => void
+) => {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`/ai/messages/stream?chat_id=${chatId}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ text }),
+  });
+
+  if (!res.ok || !res.body) throw new Error('Ошибка стриминга');
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n\n');
+    buffer = lines.pop() || ''; // Оставляем недописанную часть
+
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const dataStr = line.replace('data: ', '');
+        if (dataStr === '[DONE]') {
+          onDone();
+          return;
+        }
+        try {
+          const data = JSON.parse(dataStr);
+          if (data.text) onChunk(data.text);
+          if (data.error) throw new Error(data.error);
+        } catch (e) {
+          console.error('SSE Parse error', e);
+        }
+      }
+    }
+  }
 };

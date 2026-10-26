@@ -19,9 +19,14 @@ async def create_upload(
     stored_name = None
     size = 0
     if data is not None:
+        data_dir = Path(settings.data_dir)
+        if data_dir.exists():
+            free_space = shutil.disk_usage(data_dir).free
+            if free_space < (len(data) + 500 * 1024 * 1024):
+                raise AppError("Недостаточно места на диске для сохранения файла", "error", 507)
+
         stored_name = file_storage.save_original(data, original_name)
         size = len(data)
-
     upload = Upload(
         original_name=original_name,
         stored_name=stored_name,

@@ -3,7 +3,7 @@ import { Layout } from '../components/Layout';
 import { Header } from '../components/Header';
 import { Sidebar } from '../features/chat/Sidebar';
 import { ChatWindow } from '../features/chat/ChatWindow';
-import { chatsApi, aiApi } from '../api/chats';
+import { chatsApi, aiApi, streamAiMessage } from '../api/chats';
 
 export function ChatPage({
   userName,
@@ -45,22 +45,51 @@ export function ChatPage({
   };
 
   const sendMessage = async (text: string) => {
-    if (!activeChat) return;
-    setMessages((prev) => [...prev, { chat_role: 'user', text }]);
+  if (!activeChat) return;
+  
+  // Добавляем сообщение пользователя
+  setMessages((prev) => [...prev, { chat_role: 'user', text }]);
+  setLoading(true);
+
+  // Добавляем пузырь ассистента, который будем наполнять
+  const sendMessage = async (text: string) => {
+    if (!activeChat || loading) return;
+    
+    // Добавляем сообщение пользователя и пузырь ассистента
+    setMessages((prev) => [
+      ...prev, 
+      { chat_role: 'user', text },
+      { chat_role: 'assistant', text: '' } // Пустой пузырь для стрима
+    ]);
     setLoading(true);
+
     try {
-      const res = await aiApi.askAi(activeChat, text);
-      if (res.result) {
-        setMessages((prev) => [...prev, { chat_role: 'assistant', text: res.answer }]);
-      } else {
-        setMessages((prev) => [
-          ...prev,
-          { chat_role: 'assistant', text: res.message || 'Ошибка' },
-        ]);
-      }
+      await streamAiMessage(
+        activeChat,
+        text,
+        (chunk) => {
+          setMessages((prev) => {
+            const newArr = [...prev];
+            // Дописываем текст в последний пузырь
+            newArr[newArr.length - 1] = {
+              ...newArr[newArr.length - 1],
+              text: newArr[newArr.length - 1].text + chunk,
+            };
+            return newArr;
+          });
+        },
+        () => setLoading(false)
+      );
     } catch (e: any) {
-      setMessages((prev) => [...prev, { chat_role: 'assistant', text: `Ошибка: ${e.message}` }]);
-    } finally {
+      // Если ошибка — пишем её прямо в пузырь ассистента
+      setMessages((prev) => {
+        const newArr = [...prev];
+        newArr[newArr.length - 1] = {
+          ...newArr[newArr.length - 1],
+          text: `Ошибка: ${e.message}`,
+        };
+        return newArr;
+      });
       setLoading(false);
     }
   };

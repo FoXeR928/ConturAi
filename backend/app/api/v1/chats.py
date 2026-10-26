@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_admin_user, get_current_user
 from app.db.models import User
 from app.db.session import get_session
-from app.schemas import ChatCreate, MessageIn
+from app.schemas import ChatCreate, MessageIn, ChatRename
 from app.services import chat_service
 
 router = APIRouter()
@@ -26,6 +26,15 @@ async def create_chat(
         "category": "success",
     }
 
+@router.patch("/rename")
+async def rename_chat(
+    chat_id: UUID,
+    payload: ChatRename,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    await chat_service.rename_chat(session, user, chat_id, payload.name)
+    return {"result": True, "message": "Чат переименован"}
 
 @router.get("/get")
 async def get_chats(
@@ -140,3 +149,22 @@ async def recovery_list(
 ):
     await chat_service.restore_chats(session, chats)
     return {"result": True, "message": "Чаты восстановлены", "category": "success"}
+
+@router.get("/export/{chat_id}")
+async def export_chat(
+    chat_id: UUID,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    name, messages = await chat_service.get_messages(session, user, chat_id)
+    lines = [f"# {name}\n"]
+    for msg in messages:
+        role = "Пользователь" if msg["chat_role"] == "user" else "Ассистент"
+        lines.append(f"**{role}:**\n{msg['text']}\n")
+    
+    md_content = "\n".join(lines)
+    return StreamingResponse(
+        iter([md_content]),
+        media_type="text/markdown",
+        headers={"Content-Disposition": f"attachment; filename=chat_{chat_id}.md"}
+    )
