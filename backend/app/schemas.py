@@ -43,6 +43,9 @@ class LlmConfigUpdate(BaseModel):
     key: str
     value: str
 
+class FewShotCreate(BaseModel):
+    question: str
+    answer: str
 class DownloadRequestCreate(BaseModel):
     upload_id: UUID
 

@@ -18,6 +18,7 @@ DEFAULT_LLM_CONFIGS: dict[str, dict[str, str]] = {
         "value": "EMPTY",
         "description": "API-ключ vLLM (обычно EMPTY)",
         "input_type": "text",
+        "is_secret": True,
     },
     "vllm_model_name": {
         "value": "local-model",
@@ -104,22 +105,30 @@ DEFAULT_LLM_CONFIGS: dict[str, dict[str, str]] = {
 
 
 async def list_configs(session: AsyncSession) -> list[dict]:
-    result = await session.execute(
-        select(
-            LlmConfig.key,
-            LlmConfig.value,
-            LlmConfig.description,
-            LlmConfig.input_type,
-            LlmConfig.updated_at,
-        )
-    )
-    return [dict(r._mapping) for r in result.all()]
-
+    result = await session.execute(select(LlmConfig))
+    configs = []
+    for c in result.scalars().all():
+        val = c.value
+        if c.is_secret and val:
+            val = "********"
+        configs.append({
+            "key": c.key,
+            "value": val,
+            "description": c.description,
+            "input_type": c.input_type,
+            "is_secret": c.is_secret
+        })
+    return configs
 
 async def get_all(session: AsyncSession) -> dict[str, str]:
-    result = await session.execute(select(LlmConfig.key, LlmConfig.value))
-    return {k: v for k, v in result.all()}
-
+    result = await session.execute(select(LlmConfig.key, LlmConfig.value, LlmConfig.is_secret))
+    out = {}
+    for k, v, is_secret in result.all():
+        if is_secret:
+            out[k] = decrypt_secret(v)
+        else:
+            out[k] = v
+    return out
 
 async def get_typed(session: AsyncSession) -> dict[str, Any]:
     raw = await get_all(session)
@@ -160,22 +169,23 @@ async def get_jwt(session: AsyncSession) -> dict[str, int]:
 
 
 async def update_config(session: AsyncSession, key: str, value: str) -> None:
-    exists = (
-        await session.execute(select(LlmConfig.id).where(LlmConfig.key == key))
-    ).scalar_one_or_none()
-    if not exists:
+    config = (await session.execute(select(LlmConfig).where(LlmConfig.key == key))).scalar_one_or_none()
+    if not config:
         raise AppError(f"Параметр '{key}' не найден", "warning", 404)
+
+    final_value = str(value)
+    if config.is_secret and final_value != "********":
+        final_value = encrypt_secret(final_value)
+
     await session.execute(
-        update(LlmConfig).where(LlmConfig.key == key).values(value=str(value))
+        update(LlmConfig).where(LlmConfig.key == key).values(value=final_value)
     )
     await session.commit()
 
 
 async def seed_defaults(session: AsyncSession) -> None:
     for key, meta in DEFAULT_LLM_CONFIGS.items():
-        exists = (
-            await session.execute(select(LlmConfig.id).where(LlmConfig.key == key))
-        ).scalar_one_or_none()
+        exists = (await session.execute(select(LlmConfig.id).where(LlmConfig.key == key))).scalar_one_or_none()
         if exists is None:
             session.add(
                 LlmConfig(
@@ -183,6 +193,7 @@ async def seed_defaults(session: AsyncSession) -> None:
                     value=meta["value"],
                     description=meta["description"],
                     input_type=meta["input_type"],
+                    is_secret=meta.get("is_secret", False),
                 )
             )
     await session.commit()

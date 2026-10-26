@@ -3,6 +3,8 @@ import { Button } from '../../ui/Button';
 import { Input } from '../../ui/Input';
 import { Upload, FileText, Download, Trash2 } from 'lucide-react';
 import { docsApi } from '../../api/docs';
+import { TagInput } from '../../ui/TagInput';
+import { useToast } from '../../components/ToastContext';
 
 interface UploadRow {
   id: string;
@@ -12,7 +14,7 @@ interface UploadRow {
   chunks_count: number;
   uploaded_by: string | null;
   created_at: string;
-  tags?: string[]; // <-- Добавили
+  tags?: string[];
 }
 
 export function DocsPanel() {
@@ -26,6 +28,8 @@ export function DocsPanel() {
   const [success, setSuccess] = useState('');
   const [uploads, setUploads] = useState<UploadRow[]>([]);
   const fileInput = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+  const [tags, setTags] = useState<string[]>([]);
 
   const loadList = async () => {
     try {
@@ -70,7 +74,8 @@ export function DocsPanel() {
         uploadId ?? undefined,
         tagsArray
       );
-      setSuccess(data.message);
+      toast(data.message, 'success');
+      setTags([]); 
       setName('');
       setText('');
       setTags('');
@@ -79,7 +84,7 @@ export function DocsPanel() {
       setUploadId(null);
       loadList();
     } catch (e: any) {
-      setError(e.message);
+      toast(e.message, 'error');
     }
   };
 
@@ -170,7 +175,8 @@ export function DocsPanel() {
             <thead className="bg-gray-100 text-left">
               <tr>
                 <th className="p-3">Имя</th>
-                <th className="p-3">Теги</th> {/* <-- Новая колонка */}
+                <th className="p-3">Теги</th>
+                <th className="p-3">Тип</th>
                 <th className="p-3">Размер</th>
                 <th className="p-3">Чанков</th>
                 <th className="p-3">Кто</th>
@@ -192,6 +198,15 @@ export function DocsPanel() {
                   </td>
                   <td className="p-3">{u.size ? `${Math.round(u.size / 1024)} КБ` : '—'}</td>
                   <td className="p-3">{u.chunks_count}</td>
+                  <td className="p-3">
+                    {u.tags && u.tags.length > 0 ? (
+                      <div className="flex gap-1 flex-wrap">
+                        {u.tags.map((t, i) => (
+                          <span key={i} className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">{t}</span>
+                        ))}
+                      </div>
+                    ) : '—'}
+                  </td>
                   <td className="p-3">{u.uploaded_by || '—'}</td>
                   <td className="p-3 space-x-2">
                     <button

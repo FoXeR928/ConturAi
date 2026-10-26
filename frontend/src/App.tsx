@@ -6,6 +6,7 @@ import { AdminPage } from './pages/AdminPage';
 import { NotFound } from './pages/NotFound';
 import { login as authLogin, logout as authLogout } from './api/auth';
 import { usersApi } from './api/users';
+import { ToastProvider } from './components/ToastContext';
 
 interface Me {
   login: string;
@@ -57,20 +58,22 @@ function App() {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<Navigate to="/chat" replace />} />
-      <Route
-        path="/chat"
-        element={<ChatPage userName={user.user_name || user.login} onLogout={onLogout} />}
-      />
-      {user.isAdmin && (
+    <ToastProvider>
+      <Routes>
+        <Route path="/" element={<Navigate to="/chat" replace />} />
         <Route
-          path="/admin"
-          element={<AdminPage userName={user.user_name || user.login} onLogout={onLogout} />}
+          path="/chat"
+          element={<ChatPage userName={user.user_name || user.login} onLogout={onLogout} />}
         />
-      )}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+        {user.isAdmin && (
+          <Route
+            path="/admin"
+            element={<AdminPage userName={user.user_name || user.login} onLogout={onLogout} />}
+          />
+        )}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </ToastProvider>
   );
 }
 

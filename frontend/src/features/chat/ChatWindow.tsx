@@ -6,6 +6,8 @@ import { Input } from '../../ui/Input';
 import { Button } from '../../ui/Button';
 import { chatsApi } from '../../api/chats';
 import { cleanMarkdown } from '../../utils/markdown';
+import { getToken, API_BASE } from '../../api/http';
+import { useToast } from '../../components/ToastContext';
 
 interface ChatWindowProps {
   messages: any[];
@@ -18,8 +20,9 @@ interface ChatWindowProps {
 
 export function ChatWindow({ messages, onSendMessage, loading, chatId, onRefresh }: ChatWindowProps) {
   const [input, setInput] = useState('');
-  const [tagInput, setTagInput] = useState(''); // Стейт для строки ввода тегов
+  const [tagInput, setTagInput] = useState(''); // Стейт для тегов
   const bottomRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -28,8 +31,7 @@ export function ChatWindow({ messages, onSendMessage, loading, chatId, onRefresh
   const handleSend = async () => {
     if (!input.trim() || loading) return;
     const text = input;
-    // Парсим теги прямо перед отправкой
-    const tags = tagInput.split(',').map(t => t.trim()).filter(Boolean);
+    const tags = tagInput.split(',').map(t => t.trim()).filter(Boolean); // Парсим теги
     
     setInput('');
     await onSendMessage(text, tags);
@@ -41,7 +43,31 @@ export function ChatWindow({ messages, onSendMessage, loading, chatId, onRefresh
       await chatsApi.deleteMessage(chatId, msgId);
       onRefresh();
     } catch (err: any) {
-      alert(err.message);
+      toast(err.message, 'error');
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      const token = getToken();
+      const res = await fetch(`${API_BASE}/chats/export/${chatId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      if (!res.ok) throw new Error('Ошибка экспорта');
+      
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `chat_${chatId}.md`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast('Чат успешно экспортирован', 'success');
+    } catch (e: any) {
+      toast(e.message, 'error');
     }
   };
 
@@ -101,7 +127,7 @@ export function ChatWindow({ messages, onSendMessage, loading, chatId, onRefresh
       </div>
 
       <div className="p-4 bg-white border-t border-gray-200">
-        {/* Поле для тегов */}
+        {/* Поле ввода тегов */}
         <div className="flex gap-2 max-w-4xl mx-auto mb-2">
           <input 
             placeholder="Фильтр по тегам (через запятую)" 

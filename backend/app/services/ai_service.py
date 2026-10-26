@@ -3,14 +3,14 @@ import httpx
 from uuid import UUID
 from loguru import logger
 from openai import AsyncOpenAI
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timezone, timedelta
 from fastapi.responses import StreamingResponse
 
 from app.core.config import SYSTEM_LOGIN
 from app.core.exceptions import AppError
-from app.db.models import Chat, Message, User
+from app.db.models import Chat, Message, User, FewShot
 from app.rag import format_context, search_documents
 from app.services import llm_config_service, prompt_service
 
@@ -69,6 +69,16 @@ async def _build_history(
     ai_name = prompts.get("ai_name", "AI")
     system_prompt = prompts.get("system_prompt", "")
     system_content = _safe_format(system_prompt, name=ai_name, context=context)
+
+    examples = (await session.execute(
+        select(FewShot).order_by(func.random()).limit(3)
+    )).scalars().all()
+    
+    if examples:
+        examples_text = "\n\nПРИМЕРЫ ИДЕАЛЬНЫХ ОТВЕТОВ (отвечай в таком же стиле):\n"
+        for ex in examples:
+            examples_text += f"Вопрос: {ex.question}\nОтвет: {ex.answer}\n\n"
+        system_content += examples_text
 
     history: list[dict[str, str]] = [
         {"role": "system", "content": system_content}
