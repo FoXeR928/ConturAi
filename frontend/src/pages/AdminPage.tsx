@@ -5,9 +5,12 @@ import { UsersPanel } from '../features/admin/UsersPanel';
 import { PromptsPanel } from '../features/admin/PromptsPanel';
 import { LlmConfigsPanel } from '../features/admin/LlmConfigsPanel';
 import { DocsPanel } from '../features/admin/DocsPanel';
-import { DeletedChatsPanel } from '../features/admin/DeletedChatsPanel'; // <-- Импорт
+import { DeletedChatsPanel } from '../features/admin/DeletedChatsPanel';
+import { SystemStatsPanel } from '../features/admin/SystemStatsPanel';
+import { DownloadRequestsPanel } from '../features/admin/DownloadRequestsPanel';
+import { AuditPanel } from '../features/admin/AuditPanel';
 
-type Tab = 'users' | 'prompts' | 'llm' | 'docs' | 'chats' | 'system';
+type Tab = 'users' | 'prompts' | 'llm' | 'docs' | 'chats' | 'system' | 'downloads' | 'audit';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'users', label: 'Пользователи' },
@@ -15,6 +18,8 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'llm', label: 'Параметры LLM' },
   { id: 'docs', label: 'Документы' },
   { id: 'chats', label: 'Корзина чатов' },
+  { id: 'downloads', label: 'Запросы на скачивание' },
+  { id: 'audit', label: 'Журнал событий' },
   { id: 'system', label: 'Мониторинг' },
 ];
 
@@ -49,6 +54,8 @@ export function AdminPage({ userName, onLogout }: { userName?: string; onLogout:
         {tab === 'llm' && <LlmConfigsPanel />}
         {tab === 'docs' && <DocsPanel />}
         {tab === 'chats' && <DeletedChatsPanel />}
+        {tab === 'downloads' && <DownloadRequestsPanel />}
+        {tab === 'audit' && <AuditPanel />}
         {tab === 'system' && <SystemStatsPanel />}
       </div>
     </Layout>

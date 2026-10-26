@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_admin_user, get_current_user
@@ -10,7 +11,6 @@ from app.schemas import ChatCreate, MessageIn, ChatRename
 from app.services import chat_service
 
 router = APIRouter()
-
 
 @router.post("/create")
 async def create_chat(
@@ -48,7 +48,6 @@ async def get_chats(
         "category": "success",
     }
 
-
 @router.get("/messages/get")
 async def get_messages(
     chat_id: UUID,
@@ -64,7 +63,6 @@ async def get_messages(
         "category": "success",
     }
 
-
 @router.post("/messages/create")
 async def create_message(
     chat_id: UUID,
@@ -78,7 +76,6 @@ async def create_message(
         "message": "Сообщение создано",
         "category": "success",
     }
-
 
 @router.delete("/messages/delete")
 async def delete_message(
@@ -94,7 +91,6 @@ async def delete_message(
         "category": "success",
     }
 
-
 @router.patch("/delete")
 async def delete_chat(
     chat_id: UUID,
@@ -103,7 +99,6 @@ async def delete_chat(
 ):
     await chat_service.soft_delete_chat(session, user, chat_id)
     return {"result": True, "message": "Чат удален", "category": "success"}
-
 
 @router.get("/delete/irrevocably/get")
 async def get_deleted(
@@ -116,7 +111,6 @@ async def get_deleted(
         "message": "Чаты на удаление получены",
         "category": "success",
     }
-
 
 @router.delete("/delete/irrevocably/list")
 async def purge_deleted(
@@ -131,7 +125,6 @@ async def purge_deleted(
         "category": "success",
     }
 
-
 @router.delete("/delete/irrevocably/all")
 async def purge_all_deleted(
     _: User = Depends(get_admin_user),
@@ -139,7 +132,6 @@ async def purge_all_deleted(
 ):
     await chat_service.purge_deleted(session, None)
     return {"result": True, "message": "Чаты удалены", "category": "success"}
-
 
 @router.patch("/recovery/list")
 async def recovery_list(

@@ -4,9 +4,11 @@ import os
 import secrets
 import shutil
 from pathlib import Path
+import subprocess
+from datetime import datetime
 
 from loguru import logger
-from sqlalchemy import select, text
+from sqlalchemy import select, text, update, func
 
 from app.core.config import (
     ADMIN_LOGIN,
@@ -17,13 +19,12 @@ from app.core.config import (
 )
 from app.core.logging import setup_logging
 from app.core.secrets import load_or_create_jwt_key
-from app.db.models import Base, Prompt, User
+from app.db.models import Base, Prompt, User, Document
 from app.db.session import async_session_factory, engine
 from app.services import llm_config_service
 from app.services.prompt_service import DEFAULT_PROMPTS
+from app.rag import embed_texts
 
-
-# ---------------- DB ----------------
 
 async def _create_schema() -> None:
     async with engine.begin() as conn:
@@ -34,13 +35,9 @@ async def _create_schema() -> None:
 
 async def _seed_prompts(session) -> None:
     for key, meta in DEFAULT_PROMPTS.items():
-        exists = (
-            await session.execute(select(Prompt).where(Prompt.key == key))
-        ).scalar_one_or_none()
+        exists = (await session.execute(select(Prompt).where(Prompt.key == key))).scalar_one_or_none()
         if exists is None:
-            session.add(
-                Prompt(key=key, value=meta["value"], description=meta["description"])
-            )
+            session.add(Prompt(key=key, value=meta["value"], description=meta["description"]))
     await session.commit()
     logger.info("Промты по умолчанию добавлены")
 
@@ -55,45 +52,65 @@ async def cmd_init_db() -> None:
         await llm_config_service.seed_defaults(session)
     logger.success("Инициализация БД завершена")
 
+async def cmd_backup() -> None:
+    setup_logging()
+    backup_dir = Path("./data/backups")
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # Дамп БД (используем pg_dump с хоста, а не docker exec)
+    db_file = backup_dir / f"db_{timestamp}.sql"
+    logger.info(f"Создание дампа БД: {db_file}")
+    
+    env = os.environ.copy()
+    env["PGPASSWORD"] = settings.db_password
+    
+    try:
+        subprocess.run(
+            ["pg_dump", "-h", settings.db_host, "-U", settings.db_user, "-d", settings.db_name, "-f", str(db_file)],
+            env=env, check=True, capture_output=True
+        )
+        logger.info("Дамп БД успешно создан.")
+    except FileNotFoundError:
+        logger.error("pg_dump не найден. Установите postgresql-client в контейнер.")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Ошибка pg_dump: {e.stderr.decode()}")
+    
+    # Архив загрузок
+    zip_file = backup_dir / f"uploads_{timestamp}"
+    logger.info(f"Архивация загрузок: {zip_file}.zip")
+    shutil.make_archive(str(zip_file), 'zip', "./data/uploads")
+    logger.success("Бэкап завершен!")
 
-# ---------------- Admin ----------------
 
 async def cmd_reset_admin() -> None:
     setup_logging()
     async with async_session_factory() as session:
         password = secrets.token_urlsafe(16)
-        admin = (
-            await session.execute(select(User).where(User.login == ADMIN_LOGIN))
-        ).scalar_one_or_none()
+        admin = (await session.execute(select(User).where(User.login == ADMIN_LOGIN))).scalar_one_or_none()
         if admin:
             admin.set_password(password)
             admin.is_admin = True
+            admin.role = "admin" # <-- Обновляем роль
             admin.disabled = False
             logger.warning(f"Пароль администратора '{ADMIN_LOGIN}' сброшен.")
         else:
-            admin = User(login=ADMIN_LOGIN, user_name=ADMIN_NAME, is_admin=True)
+            admin = User(login=ADMIN_LOGIN, user_name=ADMIN_NAME, is_admin=True, role="admin")
             admin.set_password(password)
             session.add(admin)
             logger.warning(f"Администратор '{ADMIN_LOGIN}' создан.")
 
-        system = (
-            await session.execute(select(User).where(User.login == SYSTEM_LOGIN))
-        ).scalar_one_or_none()
+        system = (await session.execute(select(User).where(User.login == SYSTEM_LOGIN))).scalar_one_or_none()
         if system is None:
-            session.add(
-                User(login=SYSTEM_LOGIN, is_system=True, chat_role=SYSTEM_CHAT_ROLE)
-            )
+            session.add(User(login=SYSTEM_LOGIN, is_system=True, chat_role=SYSTEM_CHAT_ROLE))
         await session.commit()
 
         logger.warning("=" * 72)
         logger.warning("  ДАННЫЕ ДЛЯ ВХОДА")
         logger.warning(f"  Логин:  {ADMIN_LOGIN}")
         logger.warning(f"  Пароль: {password}")
-        logger.warning("  Пароль показывается один раз — сохраните его!")
         logger.warning("=" * 72)
 
-
-# ---------------- LLM ----------------
 
 async def cmd_set_llm(args: argparse.Namespace) -> None:
     setup_logging()
@@ -113,8 +130,6 @@ async def cmd_set_llm(args: argparse.Namespace) -> None:
         logger.success("Параметры LLM обновлены")
 
 
-# ---------------- Models ----------------
-
 def _parse_models(raw: str) -> list[tuple[str, str]]:
     entries: list[tuple[str, str]] = []
     for item in raw.split(","):
@@ -130,25 +145,19 @@ def _parse_models(raw: str) -> list[tuple[str, str]]:
 
 
 def _enable_online_mode() -> None:
-    """Временно включает online-режим для huggingface_hub."""
     for k in ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE", "HF_DATASETS_OFFLINE"):
         os.environ[k] = "0"
-
-    # Принудительно правим закешированные константы.
-    # Импорт здесь — намеренно поздний, чтобы не поймать старое значение.
     try:
         import huggingface_hub.constants as hf_const
         hf_const.HF_HUB_OFFLINE = False
-    except Exception as err:
-        logger.debug(f"Не удалось сбросить HF_HUB_OFFLINE константу: {err}")
-
-    try:
-        import transformers.utils.hub as tf_hub
-        tf_hub._is_offline_mode = False  # type: ignore[attr-defined]
     except Exception:
         pass
-
-    logger.info("HF_HUB_OFFLINE=0 (online-режим для скачивания)")
+    try:
+        import transformers.utils.hub as tf_hub
+        tf_hub._is_offline_mode = False
+    except Exception:
+        pass
+    logger.info("HF_HUB_OFFLINE=0 (online-режим)")
 
 
 def cmd_download_models(args: argparse.Namespace) -> None:
@@ -162,11 +171,10 @@ def cmd_download_models(args: argparse.Namespace) -> None:
         raw = args.only or settings.models_to_download
         entries = _parse_models(raw)
         if not entries:
-            logger.error("Список моделей пуст. Укажите MODELS_TO_DOWNLOAD или --only")
+            logger.error("Список моделей пуст.")
             return
 
         logger.info(f"Целевая папка: {models_dir}")
-        logger.info(f"К скачиванию: {len(entries)} моделей")
         if args.force:
             logger.warning("Режим --force: существующие папки будут перекачаны")
 
@@ -175,7 +183,7 @@ def cmd_download_models(args: argparse.Namespace) -> None:
             has_data = target.exists() and any(target.iterdir())
 
             if has_data and not args.force:
-                logger.info(f"[skip] {local_name} уже скачана (--force для перекачки)")
+                logger.info(f"[skip] {local_name} уже скачана")
                 continue
 
             if has_data and args.force:
@@ -184,16 +192,11 @@ def cmd_download_models(args: argparse.Namespace) -> None:
 
             logger.info(f"[download] {repo_id} → {target}")
             try:
-                snapshot_download(
-                    repo_id=repo_id,
-                    local_dir=str(target),
-                    ignore_patterns=["*.msgpack", "*.h5", "*.ot"],
-                )
+                snapshot_download(repo_id=repo_id, local_dir=str(target), ignore_patterns=["*.msgpack", "*.h5", "*.ot"])
                 logger.success(f"[ok] {local_name}")
             except Exception as err:
                 logger.error(f"[fail] {local_name}: {err}")
     finally:
-        # Возвращаем offline-режим
         for k in ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE", "HF_DATASETS_OFFLINE"):
             os.environ[k] = "1"
         try:
@@ -201,10 +204,41 @@ def cmd_download_models(args: argparse.Namespace) -> None:
             hf_const.HF_HUB_OFFLINE = True
         except Exception:
             pass
-        logger.info("HF_HUB_OFFLINE=1 (offline-режим восстановлен)")
+        logger.info("HF_HUB_OFFLINE=1 (offline-режим)")
 
 
-# ---------------- CLI ----------------
+async def cmd_reembed() -> None:
+    setup_logging()
+    logger.info("Запуск переиндексации документов...")
+    async with async_session_factory() as session:
+        total = (await session.execute(select(func.count(Document.id)))).scalar_one()
+        if total == 0:
+            logger.info("База документов пуста.")
+            return
+
+        logger.info(f"Найдено {total} чанков. Начинаем пересчет...")
+        BATCH_SIZE = 64
+        processed = 0
+        
+        result = await session.execute(select(Document.id, Document.text).order_by(Document.created_at))
+        rows = result.all()
+        
+        for i in range(0, len(rows), BATCH_SIZE):
+            batch = rows[i:i + BATCH_SIZE]
+            texts = [row.text for row in batch]
+            vectors = await embed_texts(texts)
+            
+            for row, vector in zip(batch, vectors):
+                await session.execute(
+                    update(Document).where(Document.id == row.id).values(embedding=vector)
+                )
+            
+            await session.commit()
+            processed += len(batch)
+            logger.info(f"Обработано {processed}/{total} чанков...")
+
+    logger.success("Переиндексация успешно завершена!")
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="ConturAI management CLI")
@@ -212,6 +246,8 @@ def main() -> None:
 
     subparsers.add_parser("init-db", help="Создать таблицы, промты и llm_configs")
     subparsers.add_parser("reset-admin", help="Сбросить пароль админа")
+    subparsers.add_parser("reembed", help="Переиндексировать все документы")
+    subparsers.add_parser("backup", help="Резервное копирование")
 
     p_download = subparsers.add_parser("download-models", help="Скачать модели")
     p_download.add_argument("--only", default=None)
@@ -234,6 +270,10 @@ def main() -> None:
         cmd_download_models(args)
     elif args.command == "set-llm":
         asyncio.run(cmd_set_llm(args))
+    elif args.command == "reembed":
+        asyncio.run(cmd_reembed())
+    elif args.command == "backup":
+        asyncio.run(cmd_backup())
 
 
 if __name__ == "__main__":

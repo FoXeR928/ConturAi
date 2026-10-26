@@ -1,4 +1,4 @@
-import { LogOut, Plus, Shield, Trash2, Edit2 } from 'lucide-react'; 
+import { LogOut, Plus, Shield, Trash2, Edit2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../../ui/Button';
 import { chatsApi } from '../../api/chats';
@@ -26,8 +26,12 @@ export function Sidebar({
     e.stopPropagation();
     const newName = prompt('Новое название:', currentName);
     if (newName && newName !== currentName) {
-      await chatApi.renameChat(id, newName);
-      onChatDeleted();
+      try {
+        await chatsApi.renameChat(id, newName);
+        onChatDeleted(); // Обновляем список
+      } catch (err: any) {
+        alert(err.message);
+      }
     }
   };
 
@@ -75,8 +79,8 @@ export function Sidebar({
                 : 'hover:bg-gray-800 border-l-4 border-transparent'
             }`}
           >
-            <span className="truncate pr-2">{chat.name}</span>
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <span className="truncate pr-2 flex-1">{chat.name}</span>
+            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 onClick={(e) => handleRename(e, chat.id, chat.name)}
                 className="text-gray-500 hover:text-blue-500"

@@ -1,16 +1,16 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, UploadFile
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi import APIRouter, Depends, UploadFile, Request
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_admin_user, get_current_user
+from app.api.deps import get_admin_user, get_current_user, get_editor_user
 from app.core.exceptions import AppError
 from app.db.models import User
 from app.db.session import get_session
 from app.rag import add_document
 from app.schemas import TextAdd, MessageIn
-from app.services import ai_service, file_storage, parser, upload_service
+from app.services import ai_service, file_storage, parser, upload_service, download_service, audit_service
 
 router = APIRouter()
 
@@ -37,14 +37,15 @@ async def create_ai_message_stream(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    return await ai_service.ask_stream(session, user, chat_id, payload.text)
+    return await ai_service.ask_stream(session, user, chat_id, payload.text, tags=payload.tags)
 
 # ---------- Документы ----------
 
 @router.post("/docs/read")
 async def read_doc(
+    request: Request,
     doc: UploadFile,
-    user: User = Depends(get_admin_user),
+    user: User = Depends(get_editor_user),
     session: AsyncSession = Depends(get_session),
 ):
     MAX_SIZE = 20 * 1024 * 1024
@@ -54,8 +55,12 @@ async def read_doc(
     data = await doc.read()
     if not data:
         raise AppError("Файл пустой", "warning", 400)
-
-    # Передаём filename, чтобы парсер мог определить тип по расширению
+        
+    await audit_service.log_action(
+        session, user.login, "upload_doc", 
+        details=f"Загружен файл: {doc.filename}", ip_address=request.client.host
+    )
+    
     text = parser.parse_file(
         doc.content_type or "",
         data,
@@ -90,7 +95,7 @@ async def read_doc(
 @router.post("/docs/create")
 async def create_doc(
     payload: TextAdd,
-    user: User = Depends(get_admin_user),
+    user: User = Depends(get_editor_user),
     session: AsyncSession = Depends(get_session),
 ):
     upload_id = payload.upload_id
@@ -98,8 +103,10 @@ async def create_doc(
         upload = await upload_service.get_upload(session, upload_id)
         text_for_chunks = payload.text or upload.text
         source_name = payload.name or upload.original_name
+        if payload.tags:
+            upload.tags = payload.tags
+            await session.commit()
     else:
-        # текст без файла
         upload = await upload_service.create_upload(
             session=session,
             user=user,
@@ -107,6 +114,7 @@ async def create_doc(
             mime_type=None,
             data=None,
             parsed_text=payload.text,
+            tags=payload.tags,
         )
         upload_id = upload.id
         text_for_chunks = payload.text
@@ -146,12 +154,17 @@ async def list_docs(
 @router.get("/docs/{upload_id}/download")
 async def download_doc(
     upload_id: UUID,
-    _: User = Depends(get_admin_user),
+    user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
     upload = await upload_service.get_upload(session, upload_id)
     if not upload.stored_name:
         raise AppError("У этого документа нет оригинала", "warning", 404)
+    
+    has_access = await download_service.check_access(session, user, upload_id)
+    if not has_access:
+        raise AppError("Скачивание запрещено. Запросите доступ у администратора.", "warning", 403)
+
     path = file_storage.path_of(upload.stored_name)
     if not path.exists():
         raise AppError("Файл не найден на диске", "error", 500)
@@ -165,10 +178,11 @@ async def download_doc(
 @router.delete("/docs/{upload_id}")
 async def delete_doc(
     upload_id: UUID,
-    _: User = Depends(get_admin_user),
+    user: User = Depends(get_editor_user),
     session: AsyncSession = Depends(get_session),
 ):
     await upload_service.delete_upload(session, upload_id)
+    await audit_service.log_action(session, user.login, "delete_doc", details=f"Удален ID: {upload_id}")
     return {
         "result": True,
         "message": "Документ удалён",

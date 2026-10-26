@@ -31,3 +31,8 @@ async def get_admin_user(user: User = Depends(get_current_user)) -> User:
     if not user.is_admin:
         raise AppError("Доступно только администратору", "warning", 403)
     return user
+
+async def get_editor_user(user: User = Depends(get_current_user)) -> User:
+    if not user.is_editor: # Проверяет role in ("admin", "editor")
+        raise AppError("Требуется роль editor или admin", "warning", 403)
+    return user

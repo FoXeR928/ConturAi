@@ -3,15 +3,9 @@ import { Layout } from '../components/Layout';
 import { Header } from '../components/Header';
 import { Sidebar } from '../features/chat/Sidebar';
 import { ChatWindow } from '../features/chat/ChatWindow';
-import { chatsApi, aiApi, streamAiMessage } from '../api/chats';
+import { chatsApi, streamAiMessage } from '../api/chats';
 
-export function ChatPage({
-  userName,
-  onLogout,
-}: {
-  userName: string;
-  onLogout: () => void;
-}) {
+export function ChatPage({ userName, onLogout }: { userName: string; onLogout: () => void; }) {
   const [chats, setChats] = useState<any[]>([]);
   const [activeChat, setActiveChat] = useState<string | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
@@ -24,9 +18,7 @@ export function ChatPage({
     if (data.result) setChats(data.chats);
   };
 
-  useEffect(() => {
-    loadChats();
-  }, []);
+  useEffect(() => { loadChats(); }, []);
 
   const loadMessages = async (chatId: string) => {
     setActiveChat(chatId);
@@ -44,33 +36,26 @@ export function ChatPage({
     }
   };
 
-  const sendMessage = async (text: string) => {
-  if (!activeChat) return;
-  
-  // Добавляем сообщение пользователя
-  setMessages((prev) => [...prev, { chat_role: 'user', text }]);
-  setLoading(true);
-
-  // Добавляем пузырь ассистента, который будем наполнять
-  const sendMessage = async (text: string) => {
+  // ОБНОВЛЕНО: принимаем теги
+  const sendMessage = async (text: string, tags: string[] = []) => {
     if (!activeChat || loading) return;
     
-    // Добавляем сообщение пользователя и пузырь ассистента
     setMessages((prev) => [
       ...prev, 
       { chat_role: 'user', text },
-      { chat_role: 'assistant', text: '' } // Пустой пузырь для стрима
+      { chat_role: 'assistant', text: '' } 
     ]);
     setLoading(true);
 
     try {
+      // ОБНОВЛЕНО: передаем теги в стриминг
       await streamAiMessage(
         activeChat,
         text,
+        tags,
         (chunk) => {
           setMessages((prev) => {
             const newArr = [...prev];
-            // Дописываем текст в последний пузырь
             newArr[newArr.length - 1] = {
               ...newArr[newArr.length - 1],
               text: newArr[newArr.length - 1].text + chunk,
@@ -81,7 +66,6 @@ export function ChatPage({
         () => setLoading(false)
       );
     } catch (e: any) {
-      // Если ошибка — пишем её прямо в пузырь ассистента
       setMessages((prev) => {
         const newArr = [...prev];
         newArr[newArr.length - 1] = {
@@ -132,7 +116,7 @@ export function ChatPage({
       {activeChat ? (
         <ChatWindow
           messages={messages}
-          onSendMessage={sendMessage}
+          onSendMessage={sendMessage} // Передаем обновленную функцию
           loading={loading}
           chatId={activeChat}
           onRefresh={handleRefreshMessages}

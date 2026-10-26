@@ -12,10 +12,9 @@ interface HeaderProps {
 export function Header({ userName, isAdmin, onLogout }: HeaderProps) {
   const [llmOnline, setLlmOnline] = useState<boolean | null>(null);
 
-   useEffect(() => {
+  useEffect(() => {
     const checkHealth = async () => {
       try {
-        // Пингуем сам vLLM (он проксируется или доступен по порту 8080)
         const res = await fetch('http://localhost:8080/health', { method: 'GET' });
         setLlmOnline(res.ok);
       } catch {
@@ -23,11 +22,12 @@ export function Header({ userName, isAdmin, onLogout }: HeaderProps) {
       }
     };
     checkHealth();
-    const interval = setInterval(checkHealth, 10000); // 10 секунд
+    const interval = setInterval(checkHealth, 10000);
     return () => clearInterval(interval);
   }, []);
 
   const { pathname } = useLocation();
+  
   const tab = (to: string, label: string, Icon: any) => (
     <Link
       to={to}
@@ -49,7 +49,6 @@ export function Header({ userName, isAdmin, onLogout }: HeaderProps) {
         {isAdmin && tab('/admin', 'Администрирование', Shield)}
       </div>
       <div className="flex items-center gap-4">
-        {/* Индикатор статуса */}
         <div className="flex items-center gap-2 text-sm text-gray-500" title="Статус нейросети">
           <div className={`w-3 h-3 rounded-full ${llmOnline === null ? 'bg-gray-300 animate-pulse' : llmOnline ? 'bg-green-500' : 'bg-red-500'}`} />
           {llmOnline === false && <span className="text-red-500">Оффлайн</span>}

@@ -12,6 +12,7 @@ from sqlalchemy import (
     Text,
     func,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from app.core.config import settings
@@ -28,7 +29,11 @@ class User(Base):
     login: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     password_hash: Mapped[str | None] = mapped_column(String(255))
     user_name: Mapped[str | None] = mapped_column(String(128))
+    
+    # --- RBAC ---
+    role: Mapped[str] = mapped_column(String(32), default="user", nullable=False)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    
     is_system: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     chat_role: Mapped[str] = mapped_column(String(32), default="user", nullable=False)
     disabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -38,6 +43,10 @@ class User(Base):
     updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), onupdate=func.now()
     )
+
+    @property
+    def is_editor(self) -> bool:
+        return self.role in ("admin", "editor")
 
     def set_password(self, password: str) -> None:
         self.password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
@@ -136,12 +145,13 @@ class LlmConfig(Base):
         DateTime(timezone=True), onupdate=func.now()
     )
 
+
 class Upload(Base):
     __tablename__ = "uploads"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     original_name: Mapped[str] = mapped_column(String(255), index=True)
-    stored_name: Mapped[str | None] = mapped_column(String(255))  # None если только текст
+    stored_name: Mapped[str | None] = mapped_column(String(255))
     mime_type: Mapped[str | None] = mapped_column(String(128))
     size: Mapped[int] = mapped_column(default=0)
     text: Mapped[str] = mapped_column(Text)
@@ -151,6 +161,31 @@ class Upload(Base):
         nullable=True,
     )
     chunks_count: Mapped[int] = mapped_column(default=0)
+    # --- НОВОЕ ---
+    tags: Mapped[list[str] | None] = mapped_column(JSONB, default=list, nullable=True)
+    # ------------
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+
+
+class DownloadRequest(Base):
+    __tablename__ = "download_requests"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_login: Mapped[str] = mapped_column(ForeignKey("users.login", ondelete="CASCADE"), index=True)
+    upload_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("uploads.id", ondelete="CASCADE"), index=True)
+    status: Mapped[str] = mapped_column(String(32), default="pending") # pending, approved, rejected
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_login: Mapped[str] = mapped_column(String(64), index=True)
+    action: Mapped[str] = mapped_column(String(128), index=True)
+    details: Mapped[str | None] = mapped_column(Text)
+    ip_address: Mapped[str | None] = mapped_column(String(45))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
