@@ -115,3 +115,12 @@ async def delete_message(
         delete(Message).where(Message.id == message_id, Message.chat_id == chat_id)
     )
     await session.commit()
+
+async def rename_chat(session: AsyncSession, user: User, chat_id: UUID, name: str) -> None:
+    chat = await _get_chat(session, chat_id, include_deleted=False)
+    
+    if chat.user_login != user.login and not user.is_admin:
+        raise AppError("Нет доступа", "warning", 403)
+        
+    chat.name = name
+    await session.commit()

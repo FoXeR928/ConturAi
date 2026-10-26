@@ -28,11 +28,12 @@ async def authenticate(
         days=jwt_cfg["days"],
     )
 
+
 async def list_users(session: AsyncSession, include_deleted: bool = False) -> list[dict]:
     stmt = select(
         User.login,
         User.user_name,
-        User.is_admin,
+        User.role,
         User.disabled,
         User.created_at,
         User.updated_at,
@@ -45,15 +46,15 @@ async def list_users(session: AsyncSession, include_deleted: bool = False) -> li
     return [dict(row._mapping) for row in result.all()]
 
 
-
 async def create_user(
-    session: AsyncSession, login: str, user_name: str, password: str
+    session: AsyncSession, login: str, user_name: str, password: str, role: str = "user"
 ) -> None:
     exists = (
         await session.execute(select(User).where(User.login == login))
     ).scalar_one_or_none()
     if exists:
         raise AppError("Пользователь уже создан", "warning", 409)
+        
     user = User(login=login, user_name=user_name, role=role)
     user.set_password(password)
     session.add(user)
@@ -77,7 +78,7 @@ async def update_password(
 async def _admins_count(session: AsyncSession) -> int:
     return (
         await session.execute(
-            select(func.count(User.login)).where(User.role == "admin")
+            select(func.count(User.login)).where(User.role == "admin") # <-- Используем role
         )
     ).scalar_one()
 
@@ -130,21 +131,18 @@ async def delete_user(session: AsyncSession, actor: User, login: str) -> None:
     if not user:
         raise AppError("Не найден пользователь", "warning", 404)
         
-    # Защита от повторного удаления
     if "_deleted_" in user.login:
         raise AppError("Пользователь уже удален", "warning", 400)
 
     if user.is_admin and await _admins_count(session) <= 1:
         raise AppError("Нельзя удалить последнего администратора", "warning", 403)
 
-    # Мягкое удаление: блокируем и меняем логин
     user.disabled = True
     user.login = f"{login}_deleted_{int(time.time())}" 
-    
     await session.commit()
 
+
 async def purge_user(session: AsyncSession, actor: User, login: str) -> None:
-    """Безвозвратное удаление пользователя из БД"""
     user = (
         await session.execute(select(User).where(User.login == login))
     ).scalar_one_or_none()

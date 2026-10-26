@@ -1,13 +1,18 @@
 import os
 import subprocess
 import shutil
+import httpx
 from pathlib import Path
 from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.deps import get_admin_user
 from app.db.models import User
-from app.services import system_service
+from app.db.session import get_session
+from app.services import system_service, llm_config_service
 from app.core.config import settings
 
 router = APIRouter()
@@ -73,7 +78,6 @@ async def create_backup(_: User = Depends(get_admin_user)):
 
 @router.get("/db/backups/{filename}")
 async def download_backup(filename: str, _: User = Depends(get_admin_user)):
-    # Защита от Path Traversal
     if ".." in filename or "/" in filename:
         raise HTTPException(400, "Invalid filename")
     path = BACKUP_DIR / filename

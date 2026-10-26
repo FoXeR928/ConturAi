@@ -1,6 +1,7 @@
 import { request } from './http';
 
 export const usersApi = {
+  getMe: () => request('/users/me'),
   getUsers: (includeDeleted = false) =>
     request(`/users/get?include_deleted=${includeDeleted}`),
 

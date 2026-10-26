@@ -33,12 +33,11 @@ def split_text(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
 
 @lru_cache(maxsize=1)
 def get_model() -> SentenceTransformer:
-    return SentenceTransformer(settings.embedding_model_path)
+    return SentenceTransformer(settings.embedding_model_path, device="cpu")
 
 @lru_cache(maxsize=1)
 def get_reranker() -> CrossEncoder:
-    # Модель для пересортировки
-    return CrossEncoder(settings.reranker_model_path)
+    return CrossEncoder(settings.reranker_model_path, device="cpu")
 
 
 async def embed_texts(texts: list[str]) -> list[list[float]]:

@@ -1,4 +1,4 @@
-import { LogOut, Plus, Shield, Trash2, Edit2 } from 'lucide-react';
+import { Plus, Shield, Trash2, Edit2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../../ui/Button';
 import { chatsApi } from '../../api/chats';
@@ -18,7 +18,6 @@ export function Sidebar({
   activeChatId,
   onSelectChat,
   onCreateChat,
-  onLogout,
   isAdmin,
   onChatDeleted,
 }: SidebarProps) {
@@ -51,9 +50,6 @@ export function Sidebar({
     <>
       <div className="p-4 border-b border-gray-800 flex justify-between items-center">
         <h1 className="font-bold text-lg">ConturAI</h1>
-        <button onClick={onLogout} className="text-gray-400 hover:text-white">
-          <LogOut size={20} />
-        </button>
       </div>
       <div className="p-4 space-y-2">
         <Button onClick={onCreateChat} className="w-full flex justify-center gap-2">

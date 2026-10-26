@@ -9,6 +9,14 @@ from app.services import user_service
 
 router = APIRouter()
 
+@router.get("/me")
+async def get_me(user: User = Depends(get_current_user)):
+    return {
+        "result": True,
+        "login": user.login,
+        "user_name": user.user_name,
+        "role": user.role
+    }
 
 @router.get("/get")
 async def get_users(
