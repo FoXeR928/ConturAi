@@ -7,14 +7,15 @@ import { LlmConfigsPanel } from '../features/admin/LlmConfigsPanel';
 import { DocsPanel } from '../features/admin/DocsPanel';
 import { DeletedChatsPanel } from '../features/admin/DeletedChatsPanel'; // <-- Импорт
 
-type Tab = 'users' | 'prompts' | 'llm' | 'docs' | 'chats';
+type Tab = 'users' | 'prompts' | 'llm' | 'docs' | 'chats' | 'system';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'users', label: 'Пользователи' },
   { id: 'prompts', label: 'Промты' },
   { id: 'llm', label: 'Параметры LLM' },
   { id: 'docs', label: 'Документы' },
-  { id: 'chats', label: 'Корзина чатов' }, // <-- Новая вкладка
+  { id: 'chats', label: 'Корзина чатов' },
+  { id: 'system', label: 'Мониторинг' },
 ];
 
 export function AdminPage({ userName, onLogout }: { userName?: string; onLogout: () => void; }) {
@@ -47,7 +48,8 @@ export function AdminPage({ userName, onLogout }: { userName?: string; onLogout:
         {tab === 'prompts' && <PromptsPanel />}
         {tab === 'llm' && <LlmConfigsPanel />}
         {tab === 'docs' && <DocsPanel />}
-        {tab === 'chats' && <DeletedChatsPanel />} {/* <-- Рендер */}
+        {tab === 'chats' && <DeletedChatsPanel />}
+        {tab === 'system' && <SystemStatsPanel />}
       </div>
     </Layout>
   );

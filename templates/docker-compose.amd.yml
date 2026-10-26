@@ -79,6 +79,13 @@ services:
     volumes:
       - app_data:/app/data
       - ./models:/models
+    devices:
+      - /dev/kfd
+      - /dev/dri
+    group_add:
+      - video
+    security_opt:
+      - seccomp:unconfined
     restart: unless-stopped
 
   frontend:

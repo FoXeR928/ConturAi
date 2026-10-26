@@ -62,6 +62,15 @@ services:
       DB_HOST: postgres
       VLLM_BASE_URL: http://vllm:8000/v1
       DATA_DIR: /app/data
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     ports:
       - "8000:8000"
     depends_on:
