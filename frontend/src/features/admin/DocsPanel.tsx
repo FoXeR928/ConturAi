@@ -20,6 +20,7 @@ interface UploadRow {
 export function DocsPanel() {
   const [name, setName] = useState('');
   const [text, setText] = useState('');
+  const [tags, setTags] = useState(''); // <-- Стейт для тегов
   const [fileText, setFileText] = useState('');
   const [file, setFile] = useState<string>('');
   const [uploadId, setUploadId] = useState<string | null>(null);
@@ -64,16 +65,20 @@ export function DocsPanel() {
     setError('');
     setSuccess('');
     try {
+      // Разбиваем строку тегов по запятой и убираем пустые
+      const tagsArray = tags.split(',').map(t => t.trim()).filter(Boolean);
+      
       const data = await docsApi.addDoc(
         name || file || 'document',
         text || fileText,
         uploadId ?? undefined,
-        tags,
+        tagsArray
       );
       toast(data.message, 'success');
       setTags([]); 
       setName('');
       setText('');
+      setTags('');
       setFileText('');
       setFile('');
       setUploadId(null);
@@ -115,9 +120,10 @@ export function DocsPanel() {
             <FileText size={18} /> Текст вручную
           </h3>
           <Input placeholder="Имя документа" value={name} onChange={(e) => setName(e.target.value)} />
+          <Input placeholder="Теги (через запятую)" value={tags} onChange={(e) => setTags(e.target.value)} className="mt-2" /> {/* <-- Поле тегов */}
           <textarea
             className="w-full border rounded p-2 mt-3 font-mono text-sm"
-            rows={8}
+            rows={6}
             placeholder="Вставьте текст..."
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -142,10 +148,11 @@ export function DocsPanel() {
             Выбрать файл
           </Button>
           {file && <div className="text-sm text-gray-600 mt-2">Файл: {file}</div>}
+          <Input placeholder="Теги (через запятую)" value={tags} onChange={(e) => setTags(e.target.value)} className="mt-2" /> {/* <-- Поле тегов */}
           {fileText && (
             <textarea
               className="w-full border rounded p-2 mt-3 font-mono text-sm"
-              rows={8}
+              rows={5}
               value={fileText}
               onChange={(e) => setFileText(e.target.value)}
             />
@@ -180,7 +187,15 @@ export function DocsPanel() {
               {uploads.map((u) => (
                 <tr key={u.id} className="border-t">
                   <td className="p-3">{u.original_name}</td>
-                  <td className="p-3 text-xs text-gray-500">{u.mime_type || '—'}</td>
+                  <td className="p-3">
+                    {u.tags && u.tags.length > 0 ? (
+                      <div className="flex gap-1 flex-wrap">
+                        {u.tags.map((t, i) => (
+                          <span key={i} className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">{t}</span>
+                        ))}
+                      </div>
+                    ) : '—'}
+                  </td>
                   <td className="p-3">{u.size ? `${Math.round(u.size / 1024)} КБ` : '—'}</td>
                   <td className="p-3">{u.chunks_count}</td>
                   <td className="p-3">

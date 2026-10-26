@@ -11,6 +11,7 @@ import { useToast } from '../../components/ToastContext';
 
 interface ChatWindowProps {
   messages: any[];
+  // ОБНОВЛЕНО: добавляем tags в тип функции
   onSendMessage: (text: string, tags: string[]) => Promise<void>;
   loading: boolean;
   chatId: string;
@@ -70,13 +71,16 @@ export function ChatWindow({ messages, onSendMessage, loading, chatId, onRefresh
     }
   };
 
+  const handleExport = () => {
+    window.open(`/api/chats/export/${chatId}?token=${localStorage.getItem('token')}`, '_blank');
+  };
+
   return (
     <div className="flex flex-col h-full">
-      {/* Шапка с кнопкой экспорта */}
       <div className="p-4 border-b bg-white flex justify-between items-center">
-        <h2 className="font-bold text-lg text-gray-800">Диалог</h2>
+        <h2 className="font-bold text-lg text-gray-800">История диалога</h2>
         <Button variant="secondary" onClick={handleExport} className="flex items-center gap-2 text-sm px-3 py-1.5 h-auto">
-          <Download size={16} /> Экспорт
+          <Download size={16} /> Скачать
         </Button>
       </div>
 

@@ -1,16 +1,16 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_admin_user, get_current_user
 from app.db.models import User
 from app.db.session import get_session
-from app.schemas import ChatCreate, MessageIn
+from app.schemas import ChatCreate, MessageIn, ChatRename
 from app.services import chat_service
 
 router = APIRouter()
-
 
 @router.post("/create")
 async def create_chat(
@@ -26,6 +26,15 @@ async def create_chat(
         "category": "success",
     }
 
+@router.patch("/rename")
+async def rename_chat(
+    chat_id: UUID,
+    payload: ChatRename,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    await chat_service.rename_chat(session, user, chat_id, payload.name)
+    return {"result": True, "message": "Чат переименован"}
 
 @router.get("/get")
 async def get_chats(
@@ -38,7 +47,6 @@ async def get_chats(
         "message": "Чаты получены",
         "category": "success",
     }
-
 
 @router.get("/messages/get")
 async def get_messages(
@@ -55,7 +63,6 @@ async def get_messages(
         "category": "success",
     }
 
-
 @router.post("/messages/create")
 async def create_message(
     chat_id: UUID,
@@ -69,7 +76,6 @@ async def create_message(
         "message": "Сообщение создано",
         "category": "success",
     }
-
 
 @router.delete("/messages/delete")
 async def delete_message(
@@ -85,7 +91,6 @@ async def delete_message(
         "category": "success",
     }
 
-
 @router.patch("/delete")
 async def delete_chat(
     chat_id: UUID,
@@ -94,7 +99,6 @@ async def delete_chat(
 ):
     await chat_service.soft_delete_chat(session, user, chat_id)
     return {"result": True, "message": "Чат удален", "category": "success"}
-
 
 @router.get("/delete/irrevocably/get")
 async def get_deleted(
@@ -107,7 +111,6 @@ async def get_deleted(
         "message": "Чаты на удаление получены",
         "category": "success",
     }
-
 
 @router.delete("/delete/irrevocably/list")
 async def purge_deleted(
@@ -122,7 +125,6 @@ async def purge_deleted(
         "category": "success",
     }
 
-
 @router.delete("/delete/irrevocably/all")
 async def purge_all_deleted(
     _: User = Depends(get_admin_user),
@@ -130,7 +132,6 @@ async def purge_all_deleted(
 ):
     await chat_service.purge_deleted(session, None)
     return {"result": True, "message": "Чаты удалены", "category": "success"}
-
 
 @router.patch("/recovery/list")
 async def recovery_list(
@@ -140,3 +141,22 @@ async def recovery_list(
 ):
     await chat_service.restore_chats(session, chats)
     return {"result": True, "message": "Чаты восстановлены", "category": "success"}
+
+@router.get("/export/{chat_id}")
+async def export_chat(
+    chat_id: UUID,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    name, messages = await chat_service.get_messages(session, user, chat_id)
+    lines = [f"# {name}\n"]
+    for msg in messages:
+        role = "Пользователь" if msg["chat_role"] == "user" else "Ассистент"
+        lines.append(f"**{role}:**\n{msg['text']}\n")
+    
+    md_content = "\n".join(lines)
+    return StreamingResponse(
+        iter([md_content]),
+        media_type="text/markdown",
+        headers={"Content-Disposition": f"attachment; filename=chat_{chat_id}.md"}
+    )

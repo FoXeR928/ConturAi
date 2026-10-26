@@ -1,4 +1,4 @@
-import { LogOut, Plus, Shield, Trash2 } from 'lucide-react';
+import { LogOut, Plus, Shield, Trash2, Edit2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../../ui/Button';
 import { chatsApi } from '../../api/chats';
@@ -22,6 +22,19 @@ export function Sidebar({
   isAdmin,
   onChatDeleted,
 }: SidebarProps) {
+  const handleRename = async (e: React.MouseEvent, id: string, currentName: string) => {
+    e.stopPropagation();
+    const newName = prompt('Новое название:', currentName);
+    if (newName && newName !== currentName) {
+      try {
+        await chatsApi.renameChat(id, newName);
+        onChatDeleted(); // Обновляем список
+      } catch (err: any) {
+        alert(err.message);
+      }
+    }
+  };
+
   const handleDelete = async (e: React.MouseEvent, chatId: string) => {
     e.stopPropagation();
     if (!confirm('Переместить чат в корзину?')) return;
@@ -66,14 +79,23 @@ export function Sidebar({
                 : 'hover:bg-gray-800 border-l-4 border-transparent'
             }`}
           >
-            <span className="truncate pr-2">{chat.name}</span>
-            <button
-              onClick={(e) => handleDelete(e, chat.id)}
-              className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-500 transition-opacity"
-              title="Удалить в корзину"
-            >
-              <Trash2 size={16} />
-            </button>
+            <span className="truncate pr-2 flex-1">{chat.name}</span>
+            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={(e) => handleRename(e, chat.id, chat.name)}
+                className="text-gray-500 hover:text-blue-500"
+                title="Переименовать"
+              >
+                <Edit2 size={16} />
+              </button>
+              <button
+                onClick={(e) => handleDelete(e, chat.id)}
+                className="text-gray-500 hover:text-red-500"
+                title="Удалить в корзину"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
           </div>
         ))}
       </div>

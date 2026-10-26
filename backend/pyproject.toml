@@ -26,6 +26,9 @@ dependencies = [
     "pdf2image>=1.17.0",
     "pdfplumber>=0.11.10",
     "cryptography>=50.0.2",
+    "psutil>=6.0.0",
+    "pynvml>=11.5.0",
+    "apscheduler>=3.10.4",
 ]
 
 [dependency-groups]

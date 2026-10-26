@@ -15,10 +15,10 @@ export const docsApi = {
     return request('/ai/docs/read', { method: 'POST', body: fd });
   },
 
-  addDoc: (name: string, text: string, uploadId?: string) =>
+  addDoc: (name: string, text: string, uploadId?: string, tags: string[] = []) =>
     request('/ai/docs/create', {
       method: 'POST',
-      body: JSON.stringify({ name, text, upload_id: uploadId }),
+      body: JSON.stringify({ name, text, upload_id: uploadId, tags }),
     }),
 
   deleteDoc: (uploadId: string) =>

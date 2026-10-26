@@ -8,6 +8,9 @@ import { DocsPanel } from '../features/admin/DocsPanel';
 import { DeletedChatsPanel } from '../features/admin/DeletedChatsPanel';
 import { DatabasePanel } from '../features/admin/DatabasePanel';
 import { FewShotsPanel } from '../features/admin/FewShotsPanel';
+import { SystemStatsPanel } from '../features/admin/SystemStatsPanel';
+import { DownloadRequestsPanel } from '../features/admin/DownloadRequestsPanel';
+import { AuditPanel } from '../features/admin/AuditPanel';
 
 type Tab = 'users' | 'prompts' | 'llm' | 'docs' | 'chats' | 'system' | 'downloads' | 'audit' | 'few-shots' | 'database';
 
@@ -19,6 +22,9 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'chats', label: 'Корзина чатов' },
   { id: 'database', label: 'Базы данных' },
   { id: 'few-shots', label: 'База знаний' },
+  { id: 'downloads', label: 'Запросы на скачивание' },
+  { id: 'audit', label: 'Журнал событий' },
+  { id: 'system', label: 'Мониторинг' },
 ];
 
 export function AdminPage({ userName, onLogout }: { userName?: string; onLogout: () => void; }) {
@@ -54,6 +60,9 @@ export function AdminPage({ userName, onLogout }: { userName?: string; onLogout:
         {tab === 'chats' && <DeletedChatsPanel />}
         {tab === 'database' && <DatabasePanel />}
         {tab === 'few-shots' && <FewShotsPanel />}
+        {tab === 'downloads' && <DownloadRequestsPanel />}
+        {tab === 'audit' && <AuditPanel />}
+        {tab === 'system' && <SystemStatsPanel />}
       </div>
     </Layout>
   );

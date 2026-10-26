@@ -6,6 +6,8 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pymorphy3 import MorphAnalyzer
 from sentence_transformers import SentenceTransformer
 from sqlalchemy import select, func, text as sql_text
+from sentence_transformers import SentenceTransformer, CrossEncoder
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -13,7 +15,6 @@ from app.db.models import Document
 from app.services import llm_config_service
 
 _morph = MorphAnalyzer()
-
 
 def normalize_text(text: str) -> str:
     cleaned = re.sub(r"[^\w\s]", "", text.lower())
@@ -34,6 +35,11 @@ def split_text(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
 def get_model() -> SentenceTransformer:
     return SentenceTransformer(settings.embedding_model_path)
 
+@lru_cache(maxsize=1)
+def get_reranker() -> CrossEncoder:
+    # Модель для пересортировки
+    return CrossEncoder(settings.reranker_model_path)
+
 
 async def embed_texts(texts: list[str]) -> list[list[float]]:
     loop = asyncio.get_running_loop()
@@ -48,6 +54,23 @@ async def embed_texts(texts: list[str]) -> list[list[float]]:
 
 async def embed_one(text: str) -> list[float]:
     return (await embed_texts([text]))[0]
+
+async def rerank_documents(query: str, docs: list[Document], top_n: int) -> list[Document]:
+    if not docs:
+        return []
+    
+    loop = asyncio.get_running_loop()
+    model = get_reranker()
+    pairs = [[query, doc.text] for doc in docs]
+    
+    def _predict():
+        return model.predict(pairs)
+
+    scores = await loop.run_in_executor(None, _predict)
+    scored_docs = list(zip(docs, scores))
+    scored_docs.sort(key=lambda x: x[1], reverse=True)
+    
+    return [doc for doc, score in scored_docs[:top_n]]
 
 
 async def add_document(

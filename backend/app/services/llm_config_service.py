@@ -84,6 +84,11 @@ DEFAULT_LLM_CONFIGS: dict[str, dict[str, str]] = {
         "description": "Сколько чанков эмбеддить за раз",
         "input_type": "number",
     },
+    "rag_history_limit": {
+        "value": "20",
+        "description": "Сколько последних сообщений загружать в контекст (1-50)",
+        "input_type": "number",
+    },
 
     # --- JWT ---
     "token_expire_minutes": {
@@ -151,6 +156,7 @@ async def get_rag(session: AsyncSession) -> dict[str, int]:
         "chunk_size": int(raw.get("rag_chunk_size", "800")),
         "chunk_overlap": int(raw.get("rag_chunk_overlap", "100")),
         "batch_size": int(raw.get("rag_batch_size", "64")),
+        "history_limit": int(raw.get("rag_history_limit", "20")),
     }
 
 
