@@ -34,7 +34,6 @@ db_user() { grep '^DB_USER=' .env | cut -d= -f2; }
 db_name() { grep '^DB_NAME=' .env | cut -d= -f2; }
 
 download_models() {
-    # Важно: монтируем models без :ro, чтобы можно было скачивать
     dc run --rm --no-deps \
         -v "$(pwd)/models:/models" \
         -e HF_HUB_OFFLINE=0 \
@@ -117,7 +116,8 @@ pick_model() {
     update_env "VLLM_MODEL_PATH"   "/models/${model_file}"
     update_env "VLLM_SERVED_NAME"  "local-model"
     update_env "VLLM_MAX_MODEL_LEN" "${max_len}"
-    update_env "MODELS_TO_DOWNLOAD" "intfloat/multilingual-e5-large:multilingual-e5-large,${model_name}:${model_file}"
+    # Добавлен bge-reranker-v2-m3 в список загрузки
+    update_env "MODELS_TO_DOWNLOAD" "intfloat/multilingual-e5-large:multilingual-e5-large,BAAI/bge-reranker-v2-m3:bge-reranker-v2-m3,${model_name}:${model_file}"
     update_env "EMBEDDING_MODEL_PATH" "/models/multilingual-e5-large"
     update_env "EMBEDDING_DIM" "1024"
     
@@ -295,7 +295,9 @@ manage_menu() {
         echo "--- manage.py ---"
         echo "  1) init-db              2) reset-admin"
         echo "  3) download-models      4) download-models --force"
-        echo "  5) set-llm              0) Назад"
+        echo "  5) set-llm              6) reembed (переиндексация)"
+        echo "  7) backup (резервная копия)"
+        echo "  0) Назад"
         read -r -p "Номер: " m
         case "$m" in
             1) exec_backend init-db;;
@@ -310,6 +312,8 @@ manage_menu() {
                 [ -n "$temp" ]  && args+=" --temperature $temp"
                 exec_backend set-llm $args
                 ;;
+            6) exec_backend reembed;;
+            7) exec_backend backup;;
             0) return;;
         esac
     done

@@ -10,7 +10,7 @@ if errorlevel 1 (
 )
 
 set "MANAGE=docker compose exec -T backend python scripts/manage.py"
-set "DOWNLOAD=docker compose run --rm --no-deps -v "%cd%\models:/models" -e HF_HUB_OFFLINE=0 -e TRANSFORMERS_OFFLINE=0 backend python scripts/manage.py download-models"
+set "DOWNLOAD=docker compose run --rm --no-deps -v ".\models:/models" -e HF_HUB_OFFLINE=0 -e TRANSFORMERS_OFFLINE=0 -e HF_DATASETS_OFFLINE=0 backend python scripts/manage.py download-models"
 
 goto main_menu
 
@@ -36,7 +36,6 @@ if not exist backend\pyproject.toml (
 )
 echo [INFO] Пересборка uv.lock...
 
-REM Запоминаем время модификации до
 for %%F in (backend\uv.lock) do set "OLD_TIME=%%~tF"
 
 docker run --rm -v "%cd%\backend:/app" -w /app -e UV_PROJECT_ENVIRONMENT=/tmp/uv-venv python:3.12-slim sh -c "pip install --quiet uv==0.5.11 && uv lock"
@@ -45,7 +44,6 @@ if errorlevel 1 (
     pause & exit /b 1
 )
 
-REM Проверяем, что файл обновился
 for %%F in (backend\uv.lock) do set "NEW_TIME=%%~tF"
 if "!OLD_TIME!"=="!NEW_TIME!" (
     echo [WARN] uv.lock не изменился — возможно, был актуален
@@ -115,7 +113,8 @@ if "%M%"=="4" (
     set "MAX_LEN=8192"
 )
 
-set "MODELS=intfloat/multilingual-e5-large:multilingual-e5-large,!MODEL_NAME!:!MODEL_FILE!"
+REM Добавлен реранкер в список загрузки
+set "MODELS=intfloat/multilingual-e5-large:multilingual-e5-large,BAAI/bge-reranker-v2-m3:bge-reranker-v2-m3,!MODEL_NAME!:!MODEL_FILE!"
 
 powershell -NoProfile -Command ^
   "$k=@{'VLLM_MODEL_PATH'='/models/!MODEL_FILE!';'VLLM_MAX_MODEL_LEN'='!MAX_LEN!';'VLLM_SERVED_NAME'='local-model';'EMBEDDING_MODEL_PATH'='/models/multilingual-e5-large';'EMBEDDING_DIM'='1024';'MODELS_TO_DOWNLOAD'='!MODELS!'};" ^
@@ -142,6 +141,17 @@ call :use_platform !MODE!
 call :pick_model
 exit /b 0
 
+REM ---------- Ожидание БД ----------
+:wait_postgres
+echo [INFO] Ожидание PostgreSQL...
+:wait_loop
+docker compose exec -T postgres pg_isready -U conturai_user >nul 2>&1
+if errorlevel 1 (
+    timeout /t 2 /nobreak >nul
+    goto wait_loop
+)
+exit /b 0
+
 REM ---------- Установка / Обновление ----------
 :full_install
 call :pick_platform
@@ -153,8 +163,7 @@ docker compose down --remove-orphans 2>nul
 docker compose up -d --build
 if errorlevel 1 ( pause & exit /b 1 )
 
-echo [INFO] Ожидание...
-timeout /t 10 /nobreak >nul
+call :wait_postgres
 
 docker compose exec -T postgres psql -U conturai_user -d conturai_db -c "SELECT 1" >nul 2>&1
 if errorlevel 1 (
@@ -195,13 +204,38 @@ call :pick_platform
 call :regen_lock
 
 docker compose up -d --build
-timeout /t 10 /nobreak >nul
+call :wait_postgres
+
 %DOWNLOAD%
 %MANAGE% init-db
 %MANAGE% reset-admin
 echo [OK] Полная переустановка завершена.
 pause
 exit /b 0
+
+REM ---------- Меню manage.py ----------
+:manage_menu
+echo.
+echo ==================================================
+echo   Управление БД и моделями
+echo ==================================================
+echo   1^) init-db (Создать таблицы)
+echo   2^) reset-admin (Сбросить пароль админа)
+echo   3^) download-models (Скачать модели)
+echo   4^) reembed (Переиндексация RAG)
+echo   5^) backup (Резервная копия)
+echo   0^) Назад
+set /p M_ACT=[1]: 
+if "%M_ACT%"=="" set M_ACT=1
+
+if "%M_ACT%"=="1" %MANAGE% init-db
+if "%M_ACT%"=="2" %MANAGE% reset-admin
+if "%M_ACT%"=="3" %DOWNLOAD%
+if "%M_ACT%"=="4" %MANAGE% reembed
+if "%M_ACT%"=="5" %MANAGE% backup
+if "%M_ACT%"=="0" goto main_menu
+pause
+goto manage_menu
 
 REM ---------- Меню ----------
 :main_menu
@@ -212,11 +246,13 @@ echo ==================================================
 echo   1^) Установка / обновление
 echo   2^) Полная переустановка
 echo   3^) Запустить контейнеры (up -d)
-echo   4^) Выход
+echo   4^) Управление БД и моделями
+echo   5^) Выход
 set /p MAIN=[1]: 
 if "%MAIN%"=="" set MAIN=1
 if "%MAIN%"=="1" call :full_install & goto main_menu
 if "%MAIN%"=="2" call :full_reinstall & goto main_menu
 if "%MAIN%"=="3" ( docker compose up -d & pause & goto main_menu )
-if "%MAIN%"=="4" exit /b 0
+if "%MAIN%"=="4" goto manage_menu
+if "%MAIN%"=="5" exit /b 0
 goto main_menu
