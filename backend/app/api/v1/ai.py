@@ -150,6 +150,21 @@ async def list_docs(
         "category": "success",
     }
 
+@router.get("/docs/tags")
+async def list_tags(
+    _: User = Depends(get_editor_user),
+    session: AsyncSession = Depends(get_session),
+):
+    # Достаем уникальные теги из всех загрузок
+    from sqlalchemy import select
+    from app.db.models import Upload
+    uploads = (await session.execute(select(Upload.tags))).scalars().all()
+    tags = set()
+    for tag_list in uploads:
+        if tag_list:
+            tags.update(tag_list)
+    return {"result": True, "tags": sorted(list(tags))}
+
 
 @router.get("/docs/{upload_id}/download")
 async def download_doc(

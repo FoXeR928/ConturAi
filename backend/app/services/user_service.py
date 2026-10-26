@@ -54,7 +54,7 @@ async def create_user(
     ).scalar_one_or_none()
     if exists:
         raise AppError("Пользователь уже создан", "warning", 409)
-    user = User(login=login, user_name=user_name)
+    user = User(login=login, user_name=user_name, role=role)
     user.set_password(password)
     session.add(user)
     await session.commit()
@@ -77,28 +77,30 @@ async def update_password(
 async def _admins_count(session: AsyncSession) -> int:
     return (
         await session.execute(
-            select(func.count(User.login)).where(User.is_admin.is_(True))
+            select(func.count(User.login)).where(User.role == "admin")
         )
     ).scalar_one()
 
 
 async def update_role(
-    session: AsyncSession, actor: User, login: str, is_admin: bool
+    session: AsyncSession, actor: User, login: str, role: str
 ) -> None:
     user = (
         await session.execute(select(User).where(User.login == login))
     ).scalar_one_or_none()
     if not user:
         raise AppError("Не найден пользователь", "warning", 404)
-    if user.is_admin and not is_admin:
+        
+    if user.is_admin and role != "admin":
         if await _admins_count(session) <= 1:
             raise AppError(
                 "Нельзя изменить роль из-за отсутствия других администраторов",
                 "warning",
                 403,
             )
+            
     await session.execute(
-        update(User).where(User.login == login).values(is_admin=is_admin)
+        update(User).where(User.login == login).values(role=role)
     )
     await session.commit()
 

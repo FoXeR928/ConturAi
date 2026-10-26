@@ -31,9 +31,8 @@ class User(Base):
     password_hash: Mapped[str | None] = mapped_column(String(255))
     user_name: Mapped[str | None] = mapped_column(String(128))
     
-    # --- RBAC ---
+    # --- ROLE ---
     role: Mapped[str] = mapped_column(String(32), default="user", nullable=False)
-    is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     
     is_system: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     chat_role: Mapped[str] = mapped_column(String(32), default="user", nullable=False)
@@ -44,6 +43,10 @@ class User(Base):
     updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), onupdate=func.now()
     )
+
+    @property
+    def is_admin(self) -> bool:
+        return self.role == "admin"
 
     @property
     def is_editor(self) -> bool:
@@ -59,6 +62,7 @@ class User(Base):
             bcrypt.checkpw(password.encode(), self.password_hash.encode())
             and not self.disabled
         )
+
 
 
 class Chat(Base):

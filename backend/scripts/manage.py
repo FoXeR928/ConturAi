@@ -132,12 +132,11 @@ async def cmd_reset_admin() -> None:
         admin = (await session.execute(select(User).where(User.login == ADMIN_LOGIN))).scalar_one_or_none()
         if admin:
             admin.set_password(password)
-            admin.is_admin = True
-            admin.role = "admin" # <-- Обновляем роль
+            admin.role = "admin"
             admin.disabled = False
             logger.warning(f"Пароль администратора '{ADMIN_LOGIN}' сброшен.")
         else:
-            admin = User(login=ADMIN_LOGIN, user_name=ADMIN_NAME, is_admin=True, role="admin")
+            admin = User(login=ADMIN_LOGIN, user_name=ADMIN_NAME, role="admin")
             admin.set_password(password)
             session.add(admin)
             logger.warning(f"Администратор '{ADMIN_LOGIN}' создан.")

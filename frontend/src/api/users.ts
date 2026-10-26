@@ -4,10 +4,10 @@ export const usersApi = {
   getUsers: (includeDeleted = false) =>
     request(`/users/get?include_deleted=${includeDeleted}`),
 
-  createUser: (login: string, user_name: string, password: string) =>
+  createUser: (login: string, user_name: string, password: string, role: string = 'user') =>
     request('/users/registration', {
       method: 'POST',
-      body: JSON.stringify({ login, user_name, password }),
+      body: JSON.stringify({ login, user_name, password, role }),
     }),
 
   updateUserStatus: (login: string, disabled: boolean) =>
@@ -16,10 +16,10 @@ export const usersApi = {
       body: JSON.stringify({ login, disabled }),
     }),
 
-  updateUserRole: (login: string, is_admin: boolean) =>
+  updateUserRole: (login: string, role: string) =>
     request('/users/change/role', {
       method: 'PATCH',
-      body: JSON.stringify({ login, is_admin }),
+      body: JSON.stringify({ login, role }),
     }),
 
   deleteUser: (login: string) =>

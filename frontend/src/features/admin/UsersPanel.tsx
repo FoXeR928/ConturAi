@@ -3,11 +3,13 @@ import { Button } from '../../ui/Button';
 import { Input } from '../../ui/Input';
 import { Modal } from '../../components/Modal';
 import { usersApi } from '../../api/users';
+import { useToast } from '../../components/ToastContext';
 
 interface UserRow {
   login: string;
   user_name: string;
   is_admin: boolean;
+  role: string;
   disabled: boolean;
 }
 
@@ -15,8 +17,9 @@ export function UsersPanel() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [showDeleted, setShowDeleted] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ login: '', user_name: '', password: '' });
+  const [form, setForm] = useState({ login: '', user_name: '', password: '', role: 'user' });
   const [error, setError] = useState('');
+  const { toast } = useToast();
 
   const load = async () => {
     try {
@@ -33,10 +36,11 @@ export function UsersPanel() {
 
   const create = async () => {
     try {
-      await usersApi.createUser(form.login, form.user_name, form.password);
+      await usersApi.createUser(form.login, form.user_name, form.password, form.role);
       setShowCreate(false);
-      setForm({ login: '', user_name: '', password: '' });
+      setForm({ login: '', user_name: '', password: '', role: 'user' });
       load();
+      toast('Пользователь создан', 'success');
     } catch (e: any) {
       setError(e.message);
     }
@@ -51,12 +55,13 @@ export function UsersPanel() {
     }
   };
 
-  const toggleRole = async (u: UserRow) => {
+  const updateRole = async (login: string, newRole: string) => {
     try {
-      await usersApi.updateUserRole(u.login, !u.is_admin);
+      await usersApi.updateUserRole(login, newRole);
+      toast(`Роль изменена на ${newRole}`, 'success');
       load();
     } catch (e: any) {
-      setError(e.message);
+      toast(e.message, 'error');
     }
   };
 
@@ -119,11 +124,17 @@ export function UsersPanel() {
                   <td className="p-3 font-mono text-xs">{u.login}</td>
                   <td className="p-3">{u.user_name}</td>
                   <td className="p-3">
-                    <span className={`px-2 py-1 rounded text-xs ${
-                      u.is_admin ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700'
-                    }`}>
-                      {u.is_admin ? 'admin' : 'user'}
-                    </span>
+                    {/* Выпадающий список для ролей */}
+                    <select
+                      value={u.role || 'user'}
+                      onChange={(e) => updateRole(u.login, e.target.value)}
+                      disabled={isDeleted}
+                      className="border rounded p-1 text-xs bg-white"
+                    >
+                      <option value="user">user</option>
+                      <option value="editor">editor</option>
+                      <option value="admin">admin</option>
+                    </select>
                   </td>
                   <td className="p-3">
                     <span className={`px-2 py-1 rounded text-xs ${
@@ -135,9 +146,6 @@ export function UsersPanel() {
                   <td className="p-3 space-x-2">
                     {!isDeleted ? (
                       <>
-                        <button className="text-blue-600 hover:underline" onClick={() => toggleRole(u)}>
-                          Роль
-                        </button>
                         <button className="text-yellow-600 hover:underline" onClick={() => toggleStatus(u)}>
                           {u.disabled ? 'Разблокировать' : 'Заблокировать'}
                         </button>
@@ -184,6 +192,15 @@ export function UsersPanel() {
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
             />
+            <select
+              className="w-full border rounded-lg p-2"
+              value={form.role}
+              onChange={(e) => setForm({ ...form, role: e.target.value })}
+            >
+              <option value="user">Пользователь (user)</option>
+              <option value="editor">Редактор (editor)</option>
+              <option value="admin">Администратор (admin)</option>
+            </select>
             <Button onClick={create} className="w-full">
               Создать
             </Button>

@@ -11,7 +11,6 @@ import { useToast } from '../../components/ToastContext';
 
 interface ChatWindowProps {
   messages: any[];
-  // ОБНОВЛЕНО: добавляем tags в тип функции
   onSendMessage: (text: string, tags: string[]) => Promise<void>;
   loading: boolean;
   chatId: string;
@@ -20,9 +19,24 @@ interface ChatWindowProps {
 
 export function ChatWindow({ messages, onSendMessage, loading, chatId, onRefresh }: ChatWindowProps) {
   const [input, setInput] = useState('');
-  const [tagInput, setTagInput] = useState(''); // Стейт для тегов
+  const [tagInput, setTagInput] = useState('');
+  const [allTags, setAllTags] = useState<string[]>([]); // <-- Список всех тегов для подсказок
   const bottomRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Достаем роль пользователя
+  const stored = localStorage.getItem('me');
+  const isAdmin = stored ? JSON.parse(stored).isAdmin : false;
+
+  // Загружаем доступные теги
+  useEffect(() => {
+    fetch(`${API_BASE}/ai/docs/tags`, {
+      headers: { Authorization: `Bearer ${getToken()}` }
+    })
+      .then(res => res.json())
+      .then(data => setAllTags(data.tags || []))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -31,7 +45,7 @@ export function ChatWindow({ messages, onSendMessage, loading, chatId, onRefresh
   const handleSend = async () => {
     if (!input.trim() || loading) return;
     const text = input;
-    const tags = tagInput.split(',').map(t => t.trim()).filter(Boolean); // Парсим теги
+    const tags = tagInput.split(',').map(t => t.trim()).filter(Boolean);
     
     setInput('');
     await onSendMessage(text, tags);
@@ -48,6 +62,12 @@ export function ChatWindow({ messages, onSendMessage, loading, chatId, onRefresh
   };
 
   const handleExport = async () => {
+    // Если не админ — показываем заглушку (в будущем можно отправлять заявку)
+    if (!isAdmin) {
+      toast('Скачивание чатов доступно только администраторам. Запросите доступ.', 'error');
+      return;
+    }
+    
     try {
       const token = getToken();
       const res = await fetch(`${API_BASE}/chats/export/${chatId}`, {
@@ -123,10 +143,14 @@ export function ChatWindow({ messages, onSendMessage, loading, chatId, onRefresh
       </div>
 
       <div className="p-4 bg-white border-t border-gray-200">
-        {/* Поле ввода тегов */}
+        {/* Поле ввода тегов с автодополнением */}
         <div className="flex gap-2 max-w-4xl mx-auto mb-2">
+          <datalist id="available-tags">
+            {allTags.map(t => <option key={t} value={t} />)}
+          </datalist>
           <input 
-            placeholder="Фильтр по тегам (через запятую)" 
+            list="available-tags"
+            placeholder="Фильтр по тегам (начните вводить...)" 
             className="text-sm border rounded px-2 py-1 w-1/2"
             value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}

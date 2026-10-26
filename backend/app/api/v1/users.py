@@ -31,7 +31,7 @@ async def registration(
     session: AsyncSession = Depends(get_session),
 ):
     await user_service.create_user(
-        session, payload.login, payload.user_name, payload.password
+        session, payload.login, payload.user_name, payload.password, payload.role
     )
     return {"result": True, "message": "Пользователь создан", "category": "success"}
 
@@ -52,7 +52,7 @@ async def change_role(
     actor: User = Depends(get_admin_user),
     session: AsyncSession = Depends(get_session),
 ):
-    await user_service.update_role(session, actor, payload.login, payload.is_admin)
+    await user_service.update_role(session, actor, payload.login, payload.role)
     return {"result": True, "message": "Роль изменена", "category": "success"}
 
 

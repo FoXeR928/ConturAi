@@ -10,7 +10,7 @@ class TextAdd(BaseModel):
 
 class MessageIn(BaseModel):
     text: str
-    tags: List[str] = [] # <-- Важно
+    tags: List[str] = [] 
 
 class ChatCreate(BaseModel):
     name: str
@@ -22,6 +22,7 @@ class RegistrationUser(BaseModel):
     login: str
     user_name: str
     password: str
+    role: Literal["user", "editor", "admin"] = "user" 
 
 class UpdatePassword(BaseModel):
     login: str
@@ -29,7 +30,7 @@ class UpdatePassword(BaseModel):
 
 class UpdateRole(BaseModel):
     login: str
-    is_admin: bool
+    role: Literal["user", "editor", "admin"]
 
 class UpdateStatus(BaseModel):
     login: str
