@@ -4,6 +4,8 @@ export const chatsApi = {
   getChats: () => request('/chats/get'),
   createChat: (name: string) => request('/chats/create', { method: 'POST', body: JSON.stringify({ name }) }),
   getMessages: (chatId: string) => request(`/chats/messages/get?chat_id=${chatId}`),
+  renameChat: (chatId: string, name: string) => 
+    request(`/chats/rename?chat_id=${chatId}`, { method: 'PATCH', body: JSON.stringify({ name }) }),
   softDeleteChat: (chatId: string) => request(`/chats/delete?chat_id=${chatId}`, { method: 'PATCH' }),
   deleteMessage: (chatId: string, messageId: string) => request(`/chats/messages/delete?chat_id=${chatId}&message_id=${messageId}`, { method: 'DELETE' }),
   getDeletedChats: () => request('/chats/delete/irrevocably/get'),

@@ -253,7 +253,7 @@ exit /b 0
 
 REM ---------- Обертка для скачивания ----------
 :download_models
-%DOWLOAD%
+%DOWNLOAD%
 exit /b 0
 
 REM ---------- Меню manage.py ----------

@@ -1,3 +1,7 @@
+
+import os
+os.environ["TIKTOKEN_CACHE_DIR"] = "/app/.tiktoken_cache"
+
 import json
 import httpx
 from uuid import UUID
@@ -17,6 +21,18 @@ from app.services import llm_config_service, prompt_service
 _client: AsyncOpenAI | None = None
 _client_key: tuple[str, str] | None = None
 
+# Глобальный энкодер для подсчета токенов (cl100k_base хорошо работает с англ. и рус. для Qwen/Llama)
+_encoder = tiktoken.get_encoding("cl100k_base")
+
+def _count_tokens(text: str) -> int:
+    return len(_encoder.encode(text))
+
+def _trim_to_tokens(text: str, max_tokens: int) -> str:
+    """Обрезает текст до заданного количества токенов."""
+    tokens = _encoder.encode(text)
+    if len(tokens) <= max_tokens:
+        return text
+    return _encoder.decode(tokens[:max_tokens]) + "..."
 
 def _get_client(base_url: str, api_key: str) -> AsyncOpenAI:
     global _client, _client_key
@@ -254,16 +270,3 @@ async def ask_stream(
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(stream_generator(), media_type="text/event-stream")
-
-# Глобальный энкодер для подсчета токенов (cl100k_base хорошо работает с англ. и рус. для Qwen/Llama)
-_encoder = tiktoken.get_encoding("cl100k_base")
-
-def _count_tokens(text: str) -> int:
-    return len(_encoder.encode(text))
-
-def _trim_to_tokens(text: str, max_tokens: int) -> str:
-    """Обрезает текст до заданного количества токенов."""
-    tokens = _encoder.encode(text)
-    if len(tokens) <= max_tokens:
-        return text
-    return _encoder.decode(tokens[:max_tokens]) + "..."
