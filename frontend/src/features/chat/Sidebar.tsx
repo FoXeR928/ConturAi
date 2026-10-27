@@ -1,22 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // <-- Добавлен useEffect
 import { Plus, Shield, Trash2, Edit2, LogOut, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../../ui/Button';
 import { chatsApi, Chat } from '../../api/chats';
 import { useToast } from '../../components/ToastContext';
+import { healthApi } from '../../api/health'; // <-- Импорт API версии
 
 // ==============================================================================
 // БЛОК 1: ТИПИЗАЦИЯ
 // ==============================================================================
 
 interface SidebarProps {
-  chats: Chat[]; // <-- Используем типизированный массив
+  chats: Chat[];
   activeChatId: string | null;
   onSelectChat: (id: string) => void;
   onCreateChat: () => void;
   onLogout: () => void;
   isAdmin?: boolean;
-  onChatDeleted: () => void; // Вызывается для обновления списка после изменений
+  onChatDeleted: () => void;
 }
 
 // ==============================================================================
@@ -32,24 +33,33 @@ export function Sidebar({
   isAdmin,
   onChatDeleted,
 }: SidebarProps) {
-  // Храним ID чата, с которым сейчас происходит действие (удаление или переименование)
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [version, setVersion] = useState(''); // <-- Стейт для версии
   const { toast } = useToast();
 
   // ==========================================================================
-  // БЛОК 3: ДЕЙСТВИЯ (ПЕРЕИМЕНОВАНИЕ И УДАЛЕНИЕ)
+  // БЛОК 3: ЗАГРУЗКА ВЕРСИИ
+  // ==========================================================================
+  
+  useEffect(() => {
+    healthApi.getStatus()
+      .then(res => setVersion(res.version))
+      .catch(() => setVersion(''));
+  }, []);
+
+  // ==========================================================================
+  // БЛОК 4: ДЕЙСТВИЯ (ПЕРЕИМЕНОВАНИЕ И УДАЛЕНИЕ)
   // ==========================================================================
 
   const handleRename = async (e: React.MouseEvent, id: string, currentName: string) => {
-    e.stopPropagation(); // Чтобы клик не открывал чат
-    
+    e.stopPropagation();
     const newName = prompt('Новое название:', currentName);
     if (!newName || !newName.trim() || newName === currentName) return;
 
     setActionLoading(id);
     try {
       await chatsApi.renameChat(id, newName.trim());
-      onChatDeleted(); // Обновляем список в родительском компоненте
+      onChatDeleted();
       toast('Чат переименован', 'success');
     } catch (err: any) {
       toast(err.message, 'error');
@@ -75,7 +85,7 @@ export function Sidebar({
   };
 
   // ==========================================================================
-  // БЛОК 4: РЕНДЕР ИНТЕРФЕЙСА
+  // БЛОК 5: РЕНДЕР ИНТЕРФЕЙСА
   // ==========================================================================
 
   return (
@@ -112,7 +122,7 @@ export function Sidebar({
         )}
       </div>
 
-      {/* Список чатов */}
+      {/* Список чатов (занимает всё оставшееся место) */}
       <div className="flex-1 overflow-y-auto px-2 pb-4 space-y-1 scrollbar-thin scrollbar-thumb-gray-700">
         {chats.map((chat) => {
           const isActive = activeChatId === chat.id;
@@ -132,15 +142,12 @@ export function Sidebar({
                 {chat.name}
               </span>
               
-              {/* Кнопки действий (появляются при наведении) */}
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 {isBusy ? (
-                  // Спиннер, если идет удаление/переименование
                   <div className="p-1 text-blue-400">
                     <RefreshCw size={14} className="animate-spin" />
                   </div>
                 ) : (
-                  // Обычные кнопки
                   <>
                     <button
                       onClick={(e) => handleRename(e, chat.id, chat.name)}
@@ -163,13 +170,18 @@ export function Sidebar({
           );
         })}
         
-        {/* Заглушка, если чатов нет */}
         {chats.length === 0 && (
           <div className="text-center text-gray-500 text-sm mt-10">
             Нет чатов.<br/>Создайте новый!
           </div>
         )}
       </div>
+
+      {/* БЛОК ВЕРСИИ (Футер сайдбара) */}
+      <div className="p-4 border-t border-gray-800 text-center text-xs text-gray-500 shrink-0">
+        ConturAI {version ? `v${version}` : ''}
+      </div>
+      
     </div>
   );
 }

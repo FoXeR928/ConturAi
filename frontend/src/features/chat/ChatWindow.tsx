@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Send, Trash2, Download, Zap, AlignLeft, ChevronDown, Check, X } from 'lucide-react';
+import { Send, Trash2, Download, Zap, AlignLeft, ChevronDown, Check, X, MessageSquare } from 'lucide-react';
 import { Input } from '../../ui/Input';
 import { Button } from '../../ui/Button';
 import { chatsApi } from '../../api/chats';

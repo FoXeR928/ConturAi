@@ -194,7 +194,6 @@ export function SystemStatsPanel() {
             {stats.gpus.map((gpu: GpuInfo, idx: number) => {
               const isNvidia = gpu.vendor === 'NVIDIA';
               const isAmd = gpu.vendor === 'AMD';
-              const isIntel = gpu.vendor === 'INTEL';
               
               const badgeColor = isNvidia ? 'bg-green-100 text-green-700' : isAmd ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700';
               const borderColor = isNvidia ? 'border-green-500' : isAmd ? 'border-red-500' : 'border-blue-500';
