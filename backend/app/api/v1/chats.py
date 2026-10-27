@@ -219,12 +219,20 @@ async def export_chat(
 ):
     """
     Экспорт чата в формате Markdown (.md).
-    Генерирует текстовый файл на лету и отдает его браузеру на скачивание.
+    Проверяет права: админы скачивают свободно, остальные — только с разрешения.
     """
-    # Получаем историю сообщений
+    # 1. Проверяем доступ (админ проходит сразу, остальные ищут одобренную заявку)
+    has_access = await download_service.check_access(session, user, chat_id=chat_id)
+    if not has_access:
+        raise AppError(
+            "Скачивание запрещено. Запросите доступ у администратора.",
+            "warning",
+            403
+        )
+
+    # 2. Генерируем Markdown
     name, messages = await chat_service.get_messages(session, user, chat_id)
     
-    # Формируем Markdown-текст
     lines = [f"# {name}\n"]
     for msg in messages:
         role = "Пользователь" if msg["chat_role"] == "user" else "Ассистент"
@@ -232,13 +240,10 @@ async def export_chat(
     
     md_content = "\n".join(lines)
     
-    # Отдаем как файл.
-    # StreamingResponse используется для отдачи файлов "на лету" без сохранения на диск.
     return StreamingResponse(
         iter([md_content]),
         media_type="text/markdown",
         headers={
-            # Заголовок Content-Disposition заставляет браузер скачать файл, а не открывать его
             "Content-Disposition": f"attachment; filename=chat_{chat_id}.md"
         }
     )

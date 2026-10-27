@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Layout } from '../components/Layout';
 import { Header } from '../components/Header';
+import { healthApi } from '../api/health';
 
 // Импорт всех панелей
 import { UsersPanel } from '../features/admin/UsersPanel';
@@ -52,6 +53,16 @@ export function AdminPage({ userName, onLogout }: { userName?: string; onLogout:
   // Состояние активной вкладки (по умолчанию — Пользователи)
   const [tab, setTab] = useState<Tab>('users');
 
+  // Состояние для версии
+  const [version, setVersion] = useState('');
+
+  // Запрашиваем версию при загрузке
+  useEffect(() => {
+    healthApi.getStatus()
+      .then(res => setVersion(res.version))
+      .catch(() => setVersion(''));
+  }, []);
+
   return (
     <Layout
       // ========================================================================
@@ -90,6 +101,11 @@ export function AdminPage({ userName, onLogout }: { userName?: string; onLogout:
                 </button>
               );
             })}
+          </div>
+          
+          {/* БЛОК ВЕРСИИ (Футер сайдбара) */}
+          <div className="p-4 border-t border-gray-800 text-center text-xs text-gray-500 shrink-0">
+            ConturAI {version ? `v${version}` : ''}
           </div>
         </div>
       }

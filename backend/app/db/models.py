@@ -231,8 +231,10 @@ class DownloadRequest(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     user_login: Mapped[str] = mapped_column(ForeignKey("users.login", ondelete="CASCADE"), index=True)
-    upload_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("uploads.id", ondelete="CASCADE"), index=True)
     
+    upload_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("uploads.id", ondelete="CASCADE"), index=True)
+    chat_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("chats.id", ondelete="CASCADE"), index=True, nullable=True)
+
     # Статус заявки: pending (ожидает), approved (одобрено), rejected (отклонено)
     status: Mapped[str] = mapped_column(String(32), default="pending") 
     

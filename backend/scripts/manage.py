@@ -69,64 +69,76 @@ async def cmd_init_db() -> None:
 # ==============================================================================
 
 async def cmd_migrate() -> None:
-    """
-    Применяет новые изменения к схеме БД (добавляет колонки, индексы).
-    В проекте нет Alembic, поэтому миграции пишутся вручную.
-    """
     setup_logging()
     logger.info("Применение миграций...")
-    
-    async with engine.begin() as conn:
-        # 1. Создаем новые таблицы (если они появились в models.py)
-        try:
-            await conn.run_sync(Base.metadata.create_all)
-            logger.info("Схема проверена (новые таблицы созданы).")
-        except Exception as e:
-            logger.warning(f"Ошибка создания таблиц: {e}")
 
-        # 2. Миграции llm_configs (шифрование API-ключей)
-        try:
+    # 1. Создание новых таблиц (если появились)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+        logger.info("Схема проверена (новые таблицы созданы).")
+
+    # 2. Миграция llm_configs (колонка is_secret)
+    try:
+        async with engine.begin() as conn:
             await conn.execute(text("ALTER TABLE llm_configs ADD COLUMN is_secret BOOLEAN DEFAULT FALSE NOT NULL;"))
             logger.info("Колонка 'is_secret' добавлена в llm_configs.")
-        except Exception as e:
-            logger.debug(f"Колонка 'is_secret' уже существует или ошибка: {e}")
-            
-        await conn.execute(text("UPDATE llm_configs SET is_secret = TRUE WHERE key = 'vllm_api_key';"))
-        
-        # 3. Миграции documents (полнотекстовый поиск)
-        try:
-            await conn.execute(text(
-                "ALTER TABLE documents ADD COLUMN tsv tsvector GENERATED ALWAYS AS (to_tsvector('russian', text)) STORED;"
-            ))
-            logger.info("Колонка 'tsv' добавлена в documents.")
-        except Exception as e:
-            logger.debug(f"Колонка 'tsv' уже существует: {e}")
+    except Exception as e:
+        logger.debug(f"Колонка 'is_secret' уже существует.")
 
-        try:
-            await conn.execute(text(
-                "CREATE INDEX IF NOT EXISTS documents_tsv_gin ON documents USING GIN (tsv);"
-            ))
+    # 3. Обновление данных llm_configs (ОТДЕЛЬНАЯ ТРАНЗАКЦИЯ)
+    async with engine.begin() as conn:
+        await conn.execute(text("UPDATE llm_configs SET is_secret = TRUE WHERE key = 'vllm_api_key';"))
+        logger.info("Данные llm_configs обновлены.")
+
+    # 4. Миграция download_requests (для скачивания чатов)
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("ALTER TABLE download_requests ALTER COLUMN upload_id DROP NOT NULL;"))
+            await conn.execute(text("ALTER TABLE download_requests ADD COLUMN chat_id UUID REFERENCES chats(id) ON DELETE CASCADE;"))
+            logger.info("Колонка 'chat_id' добавлена в download_requests.")
+    except Exception as e:
+        logger.debug(f"Колонки download_requests уже существуют.")
+
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_download_requests_chat_id ON download_requests (chat_id);"))
+            logger.info("Индекс 'ix_download_requests_chat_id' создан.")
+    except Exception as e:
+        logger.debug(f"Ошибка индекса: {e}")
+
+    # 5. Миграция документов (полнотекстовый поиск tsv)
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("ALTER TABLE documents ADD COLUMN tsv tsvector GENERATED ALWAYS AS (to_tsvector('russian', text)) STORED;"))
+            logger.info("Колонка 'tsv' добавлена в documents.")
+    except Exception as e:
+        logger.debug(f"Колонка 'tsv' уже существует.")
+
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS documents_tsv_gin ON documents USING GIN (tsv);"))
             logger.info("GIN-индекс для 'tsv' создан.")
-        except Exception as e:
-            logger.error(f"Ошибка создания индекса: {e}")
-        
-        # 4. Миграции messages (сбор статистики токенов и времени)
-        try:
+    except Exception as e:
+        logger.debug(f"Ошибка индекса tsv: {e}")
+
+    # 6. Миграция статистики LLM (messages)
+    try:
+        async with engine.begin() as conn:
             await conn.execute(text("ALTER TABLE messages ADD COLUMN prompt_tokens INTEGER DEFAULT 0 NOT NULL;"))
             await conn.execute(text("ALTER TABLE messages ADD COLUMN completion_tokens INTEGER DEFAULT 0 NOT NULL;"))
             await conn.execute(text("ALTER TABLE messages ADD COLUMN duration_ms INTEGER DEFAULT 0 NOT NULL;"))
             logger.info("Колонки статистики LLM добавлены в messages.")
-        except Exception as e:
-            logger.debug(f"Колонки статистики уже существуют: {e}")
+    except Exception as e:
+        logger.debug(f"Колонки статистики уже существуют.")
 
-    # 5. Шифрование существующего API-ключа (если он хранится в открытом виде)
+    # 7. Шифрование существующего API-ключа (если нужно)
     from app.core.security import encrypt_secret
     async with async_session_factory() as session:
         cfg = (await session.execute(select(LlmConfig).where(LlmConfig.key == 'vllm_api_key'))).scalar_one_or_none()
-        if cfg and cfg.value and not cfg.value.startswith("gAAAA"): # "gAAAA" — признак шифра Fernet
+        if cfg and cfg.value and not cfg.value.startswith("gAAAA"):
             cfg.value = encrypt_secret(cfg.value)
             await session.commit()
-            logger.info("Существующий API-ключ успешно зашифрован.")
+            logger.info("Существующий API-ключ зашифрован.")
 
     logger.success("Миграция завершена.")
 

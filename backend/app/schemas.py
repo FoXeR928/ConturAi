@@ -102,7 +102,9 @@ class FewShotCreate(BaseModel):
 
 class DownloadRequestCreate(BaseModel):
     """Схема заявки на скачивание файла (от пользователя)."""
-    upload_id: UUID
+    upload_id: UUID | None = None
+    chat_id: UUID | None = None
+
 
 class DownloadRequestAction(BaseModel):
     """

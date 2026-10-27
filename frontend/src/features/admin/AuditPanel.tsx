@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { auditApi, AuditLogItem } from '../../api/audit';
 import { Button } from '../../ui/Button';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, ClipboardList } from 'lucide-react';
 
 // ==============================================================================
 // БЛОК 1: КОМПОНЕНТ И СОСТОЯНИЯ
@@ -61,7 +61,9 @@ export function AuditPanel() {
     <div>
       {/* Шапка */}
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">Журнал событий</h2>
+        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+          <ClipboardList size={24} className="text-blue-600" /> Журнал событий
+        </h2>
         <Button onClick={load} disabled={loading} variant="secondary" className="flex items-center gap-2">
           <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
           {loading ? 'Загрузка...' : 'Обновить'}

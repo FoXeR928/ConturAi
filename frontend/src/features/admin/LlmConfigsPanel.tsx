@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '../../ui/Button';
 import { Input } from '../../ui/Input';
 import { llmConfigsApi, LlmConfigItem } from '../../api/llmConfigs';
-import { RefreshCw, Check } from 'lucide-react';
+import { RefreshCw, Check, Settings } from 'lucide-react';
 
 // ==============================================================================
 // БЛОК 1: КОНФИГУРАЦИЯ ГРУПП
@@ -133,7 +133,9 @@ export function LlmConfigsPanel() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-4">Параметры LLM</h2>
+      <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+        <Settings size={24} className="text-blue-600" /> Параметры LLM
+      </h2>
 
       {error && <div className="bg-red-50 text-red-600 p-3 rounded mb-4">{error}</div>}
 

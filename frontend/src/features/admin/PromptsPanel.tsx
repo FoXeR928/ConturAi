@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../ui/Button';
+import { Input } from '../../ui/Input';
 import { promptsApi, PromptItem } from '../../api/prompts';
-import { RefreshCw, Check, AlertCircle } from 'lucide-react';
+import { RefreshCw, Check, AlertCircle, Terminal } from 'lucide-react';
 
 // ==============================================================================
 // БЛОК 1: КОНСТАНТЫ И СПРАВОЧНИКИ
@@ -86,7 +87,9 @@ export function PromptsPanel() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-4">Промпты</h2>
+      <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+        <Terminal size={24} className="text-blue-600" /> Промпты
+      </h2>
 
       {/* Информационная плашка с подсказками */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-sm text-blue-900 shadow-sm">
@@ -127,6 +130,7 @@ export function PromptsPanel() {
         {prompts.map((p) => {
           const isSaving = savingKey === p.key;
           const isSaved = savedKey === p.key;
+          const isAiName = p.key === 'ai_name';
 
           return (
             <div key={p.key} className="bg-white rounded-lg shadow border border-gray-100 overflow-hidden">
@@ -149,13 +153,22 @@ export function PromptsPanel() {
               </div>
               
               <div className="p-4">
-                <textarea
-                  className="w-full border rounded-lg p-3 font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-y"
-                  rows={p.key === 'user_prompt' ? 4 : 10}
-                  value={editing[p.key] ?? ''}
-                  onChange={(e) => setEditing({ ...editing, [p.key]: e.target.value })}
-                  spellCheck={false}
-                />
+                {isAiName ? (
+                  <Input
+                    value={editing[p.key] ?? ''}
+                    onChange={(e) => setEditing({ ...editing, [p.key]: e.target.value })}
+                    className="font-mono max-w-xs"
+                    placeholder="Например: Контур"
+                  />
+                ) : (
+                  <textarea
+                    className="w-full border rounded-lg p-3 font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-y"
+                    rows={p.key === 'user_prompt' ? 4 : 10}
+                    value={editing[p.key] ?? ''}
+                    onChange={(e) => setEditing({ ...editing, [p.key]: e.target.value })}
+                    spellCheck={false}
+                  />
+                )}
                 
                 <div className="mt-3 flex justify-end">
                   <Button 
