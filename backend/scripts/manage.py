@@ -25,15 +25,22 @@ from app.services import llm_config_service
 from app.services.prompt_service import DEFAULT_PROMPTS
 from app.rag import embed_texts
 
+# ==============================================================================
+# БЛОК 1: ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ (INIT-DB)
+# ==============================================================================
 
 async def _create_schema() -> None:
+    """Создает все таблицы и расширение vector, если их еще нет."""
     async with engine.begin() as conn:
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        # create_all автоматически найдет все классы, унаследованные от Base,
+        # и создаст для них таблицы (если они не существуют).
         await conn.run_sync(Base.metadata.create_all)
     logger.info("Схема базы данных создана")
 
 
 async def _seed_prompts(session) -> None:
+    """Заполняет таблицу prompts дефолтными значениями из prompt_service."""
     for key, meta in DEFAULT_PROMPTS.items():
         exists = (await session.execute(select(Prompt).where(Prompt.key == key))).scalar_one_or_none()
         if exists is None:
@@ -43,39 +50,57 @@ async def _seed_prompts(session) -> None:
 
 
 async def cmd_init_db() -> None:
+    """Полная инициализация: создание таблиц, промптов и настроек LLM."""
     setup_logging()
     load_or_create_jwt_key()
     logger.info("Инициализация БД...")
+    
     await _create_schema()
+    
     async with async_session_factory() as session:
         await _seed_prompts(session)
         await llm_config_service.seed_defaults(session)
+        
     logger.success("Инициализация БД завершена")
 
 
+# ==============================================================================
+# БЛОК 2: МИГРАЦИИ (ДОБАВЛЕНИЕ НОВЫХ КОЛОНОК)
+# ==============================================================================
+
 async def cmd_migrate() -> None:
+    """
+    Применяет новые изменения к схеме БД (добавляет колонки, индексы).
+    В проекте нет Alembic, поэтому миграции пишутся вручную.
+    """
     setup_logging()
     logger.info("Применение миграций...")
     
-    # 1. Миграции LLM конфигов (is_secret)
     async with engine.begin() as conn:
+        # 1. Создаем новые таблицы (если они появились в models.py)
+        try:
+            await conn.run_sync(Base.metadata.create_all)
+            logger.info("Схема проверена (новые таблицы созданы).")
+        except Exception as e:
+            logger.warning(f"Ошибка создания таблиц: {e}")
+
+        # 2. Миграции llm_configs (шифрование API-ключей)
         try:
             await conn.execute(text("ALTER TABLE llm_configs ADD COLUMN is_secret BOOLEAN DEFAULT FALSE NOT NULL;"))
             logger.info("Колонка 'is_secret' добавлена в llm_configs.")
         except Exception as e:
             logger.debug(f"Колонка 'is_secret' уже существует или ошибка: {e}")
             
-        # Находим vllm_api_key и помечаем как секрет
         await conn.execute(text("UPDATE llm_configs SET is_secret = TRUE WHERE key = 'vllm_api_key';"))
         
-        # 2. Миграции полнотекстового поиска (tsv) в documents
+        # 3. Миграции documents (полнотекстовый поиск)
         try:
             await conn.execute(text(
                 "ALTER TABLE documents ADD COLUMN tsv tsvector GENERATED ALWAYS AS (to_tsvector('russian', text)) STORED;"
             ))
             logger.info("Колонка 'tsv' добавлена в documents.")
         except Exception as e:
-            logger.debug(f"Колонка 'tsv' уже существует или ошибка: {e}")
+            logger.debug(f"Колонка 'tsv' уже существует: {e}")
 
         try:
             await conn.execute(text(
@@ -84,51 +109,37 @@ async def cmd_migrate() -> None:
             logger.info("GIN-индекс для 'tsv' создан.")
         except Exception as e:
             logger.error(f"Ошибка создания индекса: {e}")
+        
+        # 4. Миграции messages (сбор статистики токенов и времени)
+        try:
+            await conn.execute(text("ALTER TABLE messages ADD COLUMN prompt_tokens INTEGER DEFAULT 0 NOT NULL;"))
+            await conn.execute(text("ALTER TABLE messages ADD COLUMN completion_tokens INTEGER DEFAULT 0 NOT NULL;"))
+            await conn.execute(text("ALTER TABLE messages ADD COLUMN duration_ms INTEGER DEFAULT 0 NOT NULL;"))
+            logger.info("Колонки статистики LLM добавлены в messages.")
+        except Exception as e:
+            logger.debug(f"Колонки статистики уже существуют: {e}")
 
-    # 3. Шифрование существующего API-ключа (если нужно)
+    # 5. Шифрование существующего API-ключа (если он хранится в открытом виде)
     from app.core.security import encrypt_secret
     async with async_session_factory() as session:
         cfg = (await session.execute(select(LlmConfig).where(LlmConfig.key == 'vllm_api_key'))).scalar_one_or_none()
-        if cfg and cfg.value and not cfg.value.startswith("gAAAA"): # Признак Fernet
+        if cfg and cfg.value and not cfg.value.startswith("gAAAA"): # "gAAAA" — признак шифра Fernet
             cfg.value = encrypt_secret(cfg.value)
             await session.commit()
-            logger.info("Существующий API-ключ зашифрован.")
+            logger.info("Существующий API-ключ успешно зашифрован.")
 
     logger.success("Миграция завершена.")
 
 
-async def cmd_backup() -> None:
-    setup_logging()
-    backup_dir = Path("./data/backups")
-    backup_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    
-    # Дамп БД (используем pg_dump с хоста, а не docker exec)
-    db_file = backup_dir / f"db_{timestamp}.sql"
-    logger.info(f"Создание дампа БД: {db_file}")
-    
-    env = os.environ.copy()
-    env["PGPASSWORD"] = settings.db_password
-    
-    try:
-        subprocess.run(
-            ["pg_dump", "-h", settings.db_host, "-U", settings.db_user, "-d", settings.db_name, "-f", str(db_file)],
-            env=env, check=True, capture_output=True
-        )
-        logger.info("Дамп БД успешно создан.")
-    except FileNotFoundError:
-        logger.error("pg_dump не найден. Установите postgresql-client в контейнер.")
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Ошибка pg_dump: {e.stderr.decode()}")
-    
-    # Архив загрузок
-    zip_file = backup_dir / f"uploads_{timestamp}"
-    logger.info(f"Архивация загрузок: {zip_file}.zip")
-    shutil.make_archive(str(zip_file), 'zip', "./data/uploads")
-    logger.success("Бэкап завершен!")
-
+# ==============================================================================
+# БЛОК 3: УПРАВЛЕНИЕ АДМИНИСТРАТОРОМ (RESET-ADMIN)
+# ==============================================================================
 
 async def cmd_reset_admin() -> None:
+    """
+    Создает администратора или сбрасывает ему пароль на случайный.
+    Также создает системного пользователя, от имени которого отвечает LLM.
+    """
     setup_logging()
     async with async_session_factory() as session:
         password = secrets.token_urlsafe(16)
@@ -136,15 +147,16 @@ async def cmd_reset_admin() -> None:
         
         if admin:
             admin.set_password(password)
-            admin.is_admin = True  # <-- ИСПРАВЛЕНО: используем is_admin вместо role
+            admin.role = "admin"  # ИСПРАВЛЕНО: используем role вместо is_admin
             admin.disabled = False
             logger.warning(f"Пароль администратора '{ADMIN_LOGIN}' сброшен.")
         else:
-            admin = User(login=ADMIN_LOGIN, user_name=ADMIN_NAME, is_admin=True) # <-- ИСПРАВЛЕНО
+            admin = User(login=ADMIN_LOGIN, user_name=ADMIN_NAME, role="admin") # ИСПРАВЛЕНО
             admin.set_password(password)
             session.add(admin)
             logger.warning(f"Администратор '{ADMIN_LOGIN}' создан.")
 
+        # Создаем скрытого системного пользователя для ответов LLM (если его нет)
         system = (await session.execute(select(User).where(User.login == SYSTEM_LOGIN))).scalar_one_or_none()
         if system is None:
             session.add(User(login=SYSTEM_LOGIN, is_system=True, chat_role=SYSTEM_CHAT_ROLE))
@@ -157,7 +169,12 @@ async def cmd_reset_admin() -> None:
         logger.warning("=" * 72)
 
 
+# ==============================================================================
+# БЛОК 4: НАСТРОЙКИ LLM (SET-LLM)
+# ==============================================================================
+
 async def cmd_set_llm(args: argparse.Namespace) -> None:
+    """Позволяет обновить параметры vLLM напрямую из командной строки."""
     setup_logging()
     async with async_session_factory() as session:
         pairs = {
@@ -175,7 +192,15 @@ async def cmd_set_llm(args: argparse.Namespace) -> None:
         logger.success("Параметры LLM обновлены")
 
 
+# ==============================================================================
+# БЛОК 5: СКАЧИВАНИЕ МОДЕЛЕЙ С HUGGINGFACE (DOWNLOAD-MODELS)
+# ==============================================================================
+
 def _parse_models(raw: str) -> list[tuple[str, str]]:
+    """
+    Парсит строку формата "repo_id:local_name,repo_id2:local_name2".
+    Если local_name не указан, берет последнюю часть repo_id.
+    """
     entries: list[tuple[str, str]] = []
     for item in raw.split(","):
         item = item.strip()
@@ -190,6 +215,7 @@ def _parse_models(raw: str) -> list[tuple[str, str]]:
 
 
 def _enable_online_mode() -> None:
+    """Временно отключает offline-режим HuggingFace для скачивания моделей."""
     for k in ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE", "HF_DATASETS_OFFLINE"):
         os.environ[k] = "0"
     try:
@@ -206,6 +232,7 @@ def _enable_online_mode() -> None:
 
 
 def cmd_download_models(args: argparse.Namespace) -> None:
+    """Скачивает модели (LLM, эмбеддер, реранкер) с HuggingFace."""
     _enable_online_mode()
     try:
         from huggingface_hub import snapshot_download
@@ -242,6 +269,7 @@ def cmd_download_models(args: argparse.Namespace) -> None:
             except Exception as err:
                 logger.error(f"[fail] {local_name}: {err}")
     finally:
+        # Возвращаем offline-режим (чтобы контейнер не стучался в интернет без надобности)
         for k in ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE", "HF_DATASETS_OFFLINE"):
             os.environ[k] = "1"
         try:
@@ -252,7 +280,15 @@ def cmd_download_models(args: argparse.Namespace) -> None:
         logger.info("HF_HUB_OFFLINE=1 (offline-режим)")
 
 
+# ==============================================================================
+# БЛОК 6: ПЕРЕИНДЕКСАЦИЯ ДОКУМЕНТОВ (REEMBED)
+# ==============================================================================
+
 async def cmd_reembed() -> None:
+    """
+    Пересчитывает вектора (эмбеддинги) для всех чанков в базе.
+    Нужно, если вы сменили модель эмбеддингов (EMBEDDING_MODEL_PATH).
+    """
     setup_logging()
     logger.info("Запуск переиндексации документов...")
     async with async_session_factory() as session:
@@ -285,7 +321,48 @@ async def cmd_reembed() -> None:
     logger.success("Переиндексация успешно завершена!")
 
 
+# ==============================================================================
+# БЛОК 7: РЕЗЕРВНОЕ КОПИРОВАНИЕ (BACKUP)
+# ==============================================================================
+
+async def cmd_backup() -> None:
+    """Создает дамп базы данных (pg_dump) и ZIP-архив загруженных файлов."""
+    setup_logging()
+    backup_dir = Path("./data/backups")
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # 1. Дамп БД
+    db_file = backup_dir / f"db_{timestamp}.sql"
+    logger.info(f"Создание дампа БД: {db_file}")
+    
+    env = os.environ.copy()
+    env["PGPASSWORD"] = settings.db_password
+    
+    try:
+        subprocess.run(
+            ["pg_dump", "-h", settings.db_host, "-U", settings.db_user, "-d", settings.db_name, "-f", str(db_file)],
+            env=env, check=True, capture_output=True
+        )
+        logger.info("Дамп БД успешно создан.")
+    except FileNotFoundError:
+        logger.error("pg_dump не найден. Установите postgresql-client в контейнер.")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Ошибка pg_dump: {e.stderr.decode()}")
+    
+    # 2. Архив загрузок
+    zip_file = backup_dir / f"uploads_{timestamp}"
+    logger.info(f"Архивация загрузок: {zip_file}.zip")
+    shutil.make_archive(str(zip_file), 'zip', "./data/uploads")
+    logger.success("Бэкап завершен!")
+
+
+# ==============================================================================
+# БЛОК 8: CLI ИНТЕРФЕЙС (ARGPARSE)
+# ==============================================================================
+
 def main() -> None:
+    """Главная точка входа для CLI. Регистрирует команды и вызывает нужную функцию."""
     parser = argparse.ArgumentParser(description="ConturAI management CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
 

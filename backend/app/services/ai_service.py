@@ -1,40 +1,48 @@
-
 import os
+# Отключаем скачивание словаря tiktoken из интернета (используем кэш)
 os.environ["TIKTOKEN_CACHE_DIR"] = "/app/.tiktoken_cache"
 
 import json
+import time
 import httpx
+import tiktoken
 from uuid import UUID
 from loguru import logger
 from openai import AsyncOpenAI
-from sqlalchemy import select, func, desc
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timezone, timedelta
 from fastapi.responses import StreamingResponse
 
 from app.core.config import SYSTEM_LOGIN
 from app.core.exceptions import AppError
-from app.db.models import Chat, Message, User, FewShot
+from app.db.models import Chat, Message, User
 from app.rag import format_context, search_documents
 from app.services import llm_config_service, prompt_service
+
+# ==============================================================================
+# БЛОК 1: ИНИЦИАЛИЗАЦИЯ КЛИЕНТА И СЧЕТЧИКОВ ТОКЕНОВ
+# ==============================================================================
 
 _client: AsyncOpenAI | None = None
 _client_key: tuple[str, str] | None = None
 
-# Глобальный энкодер для подсчета токенов (cl100k_base хорошо работает с англ. и рус. для Qwen/Llama)
+# Глобальный энкодер для подсчета токенов (cl100k_base хорошо работает для Qwen/Llama)
 _encoder = tiktoken.get_encoding("cl100k_base")
 
 def _count_tokens(text: str) -> int:
+    """Возвращает количество токенов в строке."""
     return len(_encoder.encode(text))
 
 def _trim_to_tokens(text: str, max_tokens: int) -> str:
-    """Обрезает текст до заданного количества токенов."""
+    """Обрезает текст до заданного количества токенов (для защиты контекста)."""
     tokens = _encoder.encode(text)
     if len(tokens) <= max_tokens:
         return text
     return _encoder.decode(tokens[:max_tokens]) + "..."
 
 def _get_client(base_url: str, api_key: str) -> AsyncOpenAI:
+    """Ленивая инициализация клиента OpenAI (vLLM) с кэшированием."""
     global _client, _client_key
     key = (base_url, api_key)
     if _client is None or _client_key != key:
@@ -43,7 +51,15 @@ def _get_client(base_url: str, api_key: str) -> AsyncOpenAI:
     return _client
 
 
+# ==============================================================================
+# БЛОК 2: ЗАПРОС К НЕЙРОСЕТИ (БАЗОВАЯ ФУНКЦИЯ)
+# ==============================================================================
+
 async def _chat_completion(llm: dict, messages: list[dict[str, str]]):
+    """
+    Отправляет запрос в vLLM. 
+    Возвращает либо строку (если stream=False), либо асинхронный генератор (если stream=True).
+    """
     client = _get_client(llm["base_url"], llm["api_key"])
 
     kwargs: dict = {
@@ -56,6 +72,7 @@ async def _chat_completion(llm: dict, messages: list[dict[str, str]]):
         "frequency_penalty": llm["frequency_penalty"],
         "stream": llm.get("stream", False),
     }
+    # Добавляем опциональные параметры
     if llm["seed"] is not None:
         kwargs["seed"] = llm["seed"]
     if llm["top_k"] and llm["top_k"] > 0:
@@ -63,15 +80,18 @@ async def _chat_completion(llm: dict, messages: list[dict[str, str]]):
 
     response = await client.chat.completions.create(**kwargs)
     
-    # Если стриминг выключен, возвращаем просто строку (как раньше)
     if not llm.get("stream", False):
         return response.choices[0].message.content or ""
         
-    # Если стриминг включен, возвращаем асинхронный генератор
     return response
 
 
+# ==============================================================================
+# БЛОК 3: ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (ФОРМАТИРОВАНИЕ И ИСТОРИЯ)
+# ==============================================================================
+
 def _safe_format(template: str, **kwargs) -> str:
+    """Безопасный .format(), который не падает, если в промте есть неизвестная переменная."""
     try:
         return template.format(**kwargs)
     except KeyError as err:
@@ -87,7 +107,7 @@ async def _build_history(
     chat_id: UUID,
     limit: int,
 ) -> list[dict[str, str]]:
-    # Берем последние N сообщений (сортируем по убыванию, чтобы получить самые свежие, затем переворачиваем)
+    """Загружает последние N сообщений из БД и переворачивает их в хронологический порядок."""
     rows = (
         await session.execute(
             select(User.chat_role, Message.text)
@@ -99,10 +119,14 @@ async def _build_history(
     ).all()
     
     history = []
-    for role, text in reversed(rows): # reversed, чтобы вернуть хронологический порядок
+    for role, text in reversed(rows):
         history.append({"role": role, "content": text})
     return history
 
+
+# ==============================================================================
+# БЛОК 4: ОБЫЧНЫЙ ОТВЕТ (БЕЗ СТРИМИНГА)
+# ==============================================================================
 
 async def ask(
     session: AsyncSession,
@@ -110,15 +134,15 @@ async def ask(
     chat_id: UUID,
     question: str,
 ) -> str:
-    chat = (
-        await session.execute(select(Chat).where(Chat.id == chat_id))
-    ).scalar_one_or_none()
+    """Генерирует полный ответ от нейросети и сохраняет его в БД."""
+    # 1. Проверка прав доступа к чату
+    chat = (await session.execute(select(Chat).where(Chat.id == chat_id))).scalar_one_or_none()
     if not chat or chat.is_deleted:
         raise AppError("Не найден чат", "warning", 404)
     if chat.user_login != user.login and not user.is_admin:
         raise AppError("Нет доступа", "warning", 403)
 
-    # 1. Получаем настройки
+    # 2. Загрузка настроек и расчет бюджета токенов
     llm = await llm_config_service.get_typed(session)
     raw_configs = await llm_config_service.get_all(session)
     
@@ -126,23 +150,21 @@ async def ask(
     history_limit = int(raw_configs.get("chat_history_limit", "10"))
     max_answer_tokens = llm["max_tokens"]
 
-    # Бюджет токенов: сколько останется на сам вопрос, RAG и историю
-    # Оставляем запас для ответа модели и системного промта
+    # Оставляем запас (150 токенов) на системные сообщения
     budget_tokens = max_model_len - max_answer_tokens - 150 
     if budget_tokens < 500:
-        # Если max_tokens съедает всё, принудительно уменьшаем ответ
         max_answer_tokens = max(512, int(max_model_len * 0.3))
         budget_tokens = max_model_len - max_answer_tokens - 150
 
-    # 2. RAG (Ограничиваем контекст)
+    # 3. RAG: поиск контекста
     docs = await search_documents(session, question)
     context = format_context(docs)
     
-    # Ограничиваем контекст максимум 40% от бюджета
+    # Ограничиваем контекст (не более 40% от доступного бюджета)
     max_context_tokens = int(budget_tokens * 0.4)
     context = _trim_to_tokens(context, max_context_tokens)
 
-    # 3. Промты
+    # 4. Формирование промтов
     prompts = await prompt_service.get_all_prompts(session)
     ai_name = prompts.get("ai_name", "AI")
     system_prompt = prompts.get("system_prompt", "")
@@ -151,20 +173,17 @@ async def ask(
     system_content = _safe_format(system_prompt, name=ai_name, context=context)
     prompt_text = _safe_format(user_prompt, context=context, quest=question)
 
-    # Считаем токены системного промта
+    # 5. Сборка истории с учетом лимита токенов
     system_tokens = _count_tokens(system_content)
     prompt_tokens = _count_tokens(prompt_text)
     
-    # Сколько осталось на историю
     history_budget = budget_tokens - system_tokens - prompt_tokens
-    
-    # 4. Собираем историю с учетом лимита
     history = [{"role": "system", "content": system_content}]
     
     if history_budget > 50:
         raw_history = await _build_history(session, chat_id, limit=history_limit)
         
-        # Идем с конца (самые свежие), добавляем, пока влезаем в бюджет
+        # Идем с конца (самые свежие), пока влезаем в бюджет
         valid_history = []
         current_tokens = 0
         for msg in reversed(raw_history):
@@ -178,26 +197,43 @@ async def ask(
 
     history.append({"role": "user", "content": prompt_text})
 
-    # 5. Запрос к LLM
-    # Важно: передаем обновленный max_answer_tokens
+    # 6. Запрос к LLM
     llm["max_tokens"] = max_answer_tokens
     
+    start_time = time.time()
     try:
         answer = await _chat_completion(llm, history)
     except Exception as err:
         logger.error(f"Ошибка при запросе к vLLM: {err}")
         raise AppError("Нейросеть временно недоступна", "error", 503)
+    
+    # 7. Подсчет метрик
+    duration_ms = int((time.time() - start_time) * 1000)
+    total_prompt_tokens = sum(_count_tokens(m["content"]) for m in history)
+    completion_tokens = _count_tokens(answer)
 
-    # 6. Сохранить в БД
+    # 8. Сохранение в БД
     time_question = datetime.now(timezone.utc)
     time_answer = time_question + timedelta(milliseconds=10)
     
     session.add(Message(user_login=user.login, chat_id=chat_id, text=question, created_at=time_question))
-    session.add(Message(user_login=SYSTEM_LOGIN, chat_id=chat_id, text=answer, created_at=time_answer))
+    session.add(Message(
+        user_login=SYSTEM_LOGIN, 
+        chat_id=chat_id, 
+        text=answer, 
+        created_at=time_answer,
+        prompt_tokens=total_prompt_tokens,
+        completion_tokens=completion_tokens,
+        duration_ms=duration_ms
+    ))
     await session.commit()
 
     return answer
 
+
+# ==============================================================================
+# БЛОК 5: СТРИМИНГОВЫЙ ОТВЕТ (SSE)
+# ==============================================================================
 
 async def ask_stream(
     session: AsyncSession,
@@ -206,25 +242,38 @@ async def ask_stream(
     question: str,
     tags: list[str] | None = None,
 ):
+    """Генерирует ответ в режиме реального времени (Server-Sent Events)."""
+    # 1. Проверка прав
     chat = (await session.execute(select(Chat).where(Chat.id == chat_id))).scalar_one_or_none()
     if not chat or chat.is_deleted:
         raise AppError("Не найден чат", "warning", 404)
     if chat.user_login != user.login and not user.is_admin:
         raise AppError("Нет доступа", "warning", 403)
 
+    # 2. Подготовка контекста и истории (упрощенная логика для стриминга)
     docs = await search_documents(session, question, tags=tags)
     context = format_context(docs)
 
     prompts = await prompt_service.get_all_prompts(session)
+    ai_name = prompts.get("ai_name", "AI")
+    system_prompt = prompts.get("system_prompt", "")
     user_prompt = prompts.get("user_prompt", "Вопрос: {quest}")
+    
+    system_content = _safe_format(system_prompt, name=ai_name, context=context)
     prompt = _safe_format(user_prompt, context=context, quest=question)
 
-    history = await _build_history(session, chat_id, context=context)
+    # ВАЖНО: передаем limit из настроек, чтобы не переполнить контекст
+    raw_configs = await llm_config_service.get_all(session)
+    history_limit = int(raw_configs.get("chat_history_limit", "10"))
+    
+    raw_history = await _build_history(session, chat_id, limit=history_limit)
+    history = [{"role": "system", "content": system_content}]
+    history.extend(raw_history)
     history.append({"role": "user", "content": prompt})
 
     llm = await llm_config_service.get_typed(session)
     
-    # Проверка доступности vLLM
+    # 3. Проверка доступности vLLM (Healthcheck)
     try:
         async with httpx.AsyncClient(timeout=2.0) as client:
             resp = await client.get(f"{llm['base_url'].rsplit('/v1', 1)[0]}/health")
@@ -236,6 +285,7 @@ async def ask_stream(
 
     client = _get_client(llm["base_url"], llm["api_key"])
     
+    # 4. Формирование параметров запроса
     kwargs = {
         "model": llm["model"],
         "messages": history,
@@ -247,7 +297,9 @@ async def ask_stream(
     if llm["seed"] is not None: kwargs["seed"] = llm["seed"]
     if llm["top_k"] and llm["top_k"] > 0: kwargs["extra_body"] = {"top_k": llm["top_k"]}
 
+    # 5. Асинхронный генератор для отдачи чанков
     async def stream_generator():
+        start_time = time.time()
         full_answer = ""
         try:
             response = await client.chat.completions.create(**kwargs)
@@ -255,17 +307,33 @@ async def ask_stream(
                 content = chunk.choices[0].delta.content or ""
                 if content:
                     full_answer += content
-                    yield f"data: {json.dumps({'text': content}, ensure_ascii=False)}\n\n" # <-- ТЕПЕРЬ ИМПОРТ ЕСТЬ
+                    # Отправляем клиенту в формате SSE
+                    yield f"data: {json.dumps({'text': content}, ensure_ascii=False)}\n\n"
         except Exception as err:
             logger.error(f"Ошибка стриминга: {err}")
             yield f"data: {json.dumps({'error': 'Ошибка генерации'}, ensure_ascii=False)}\n\n"
             return
+        finally:
+            # Этот блок выполнится даже если клиент оборвал соединение.
+            # Сохраняем то, что успели сгенерировать, и метрики.
+            duration_ms = int((time.time() - start_time) * 1000)
+            total_prompt_tokens = sum(_count_tokens(m["content"]) for m in history)
+            completion_tokens = _count_tokens(full_answer)
 
-        time_question = datetime.now(timezone.utc)
-        time_answer = time_question + timedelta(milliseconds=10)
-        session.add(Message(user_login=user.login, chat_id=chat_id, text=question, created_at=time_question))
-        session.add(Message(user_login=SYSTEM_LOGIN, chat_id=chat_id, text=full_answer, created_at=time_answer))
-        await session.commit()
+            time_question = datetime.now(timezone.utc)
+            time_answer = time_question + timedelta(milliseconds=10)
+            
+            session.add(Message(user_login=user.login, chat_id=chat_id, text=question, created_at=time_question))
+            session.add(Message(
+                user_login=SYSTEM_LOGIN, 
+                chat_id=chat_id, 
+                text=full_answer, 
+                created_at=time_answer,
+                prompt_tokens=total_prompt_tokens,
+                completion_tokens=completion_tokens,
+                duration_ms=duration_ms
+            ))
+            await session.commit()
         
         yield "data: [DONE]\n\n"
 
