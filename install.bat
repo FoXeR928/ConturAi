@@ -153,6 +153,14 @@ exit /b 0
 
 REM ---------- Установка с нуля ----------
 :full_install
+echo.
+echo [WARN] Это установка С НУЛЯ. Если проект уже настроен, используйте "Обновление".
+if exist .env (
+    echo [ERROR] Файл .env уже существует. 
+    echo Для чистой установки удалите файл .env и папку data, либо выберите пункт "Полная переустановка".
+    pause & exit /b 1
+)
+
 call :pick_platform
 if errorlevel 1 exit /b 1
 call :regen_lock
@@ -174,17 +182,10 @@ if errorlevel 1 (
 echo [INFO] Скачивание моделей...
 %DOWNLOAD%
 %MANAGE% init-db
-
-for /f "tokens=*" %%c in ('docker compose exec -T postgres psql -U conturai_user -d conturai_db -tAc "SELECT count(*) FROM users WHERE login='admin'" 2^>nul') do set ADMIN_COUNT=%%c
-set "ADMIN_COUNT=%ADMIN_COUNT: =%"
-if "%ADMIN_COUNT%"=="" set ADMIN_COUNT=0
-if "%ADMIN_COUNT%"=="0" (
-    %MANAGE% reset-admin
-) else (
-    echo [INFO] Администратор уже существует.
-)
+%MANAGE% reset-admin
 
 echo [OK] Установка завершена.
+echo Frontend: http://localhost:3000
 pause
 exit /b 0
 
