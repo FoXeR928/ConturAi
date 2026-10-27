@@ -133,6 +133,7 @@ async def ask(
     user: User,
     chat_id: UUID,
     question: str,
+    tags: list[str] | None = None,
 ) -> str:
     """Генерирует полный ответ от нейросети и сохраняет его в БД."""
     # 1. Проверка прав доступа к чату
@@ -157,7 +158,7 @@ async def ask(
         budget_tokens = max_model_len - max_answer_tokens - 150
 
     # 3. RAG: поиск контекста
-    docs = await search_documents(session, question)
+    docs = await search_documents(session, question, tags=tags)
     context = format_context(docs)
     
     # Ограничиваем контекст (не более 40% от доступного бюджета)

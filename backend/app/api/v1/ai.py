@@ -47,7 +47,7 @@ async def create_ai_message(
         return await ai_service.ask_stream(session, user, chat_id, payload.text, tags=payload.tags)
     
     # Если стриминг выключен, генерируем ответ целиком и отдаем обычный JSON
-    answer = await ai_service.ask(session, user, chat_id, payload.text)
+    answer = await ai_service.ask(session, user, chat_id, payload.text, tags=payload.tags) 
     return {
         "result": True,
         "answer": answer,

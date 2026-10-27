@@ -176,46 +176,46 @@ async def search_documents(
     limit: int | None = None,
     tags: list[str] | None = None,
 ) -> list[Document]:
-    """
-    Самый важный метод RAG. Ищет релевантные чанки по базе.
-    Использует современный подход (Hybrid Search).
-    """
     if limit is None:
         cfg = await llm_config_service.get_rag(session)
         limit = cfg["search_limit"]
 
     query_vector = await embed_one(query)
     
-    # --- ШАГ 1: ВЕКТОРНЫЙ ПОИСК (Семантический) ---
-    # Ищет по смыслу. Даже если слова разные, но смысл близок, он найдет.
+    # 1. ВЕКТОРНЫЙ ПОИСК (Топ-10)
     vector_stmt = (
         select(Document)
         .where(Document.embedding.cosine_distance(query_vector) < 0.5)
     )
+    
+    # Если переданы теги — фильтруем по ним (используем оператор ?| для JSONB)
     if tags:
-        vector_stmt = vector_stmt.join(Upload, Document.upload_id == Upload.id).where(Upload.tags.overlap(tags))
+        from app.db.models import Upload
+        vector_stmt = vector_stmt.join(Upload, Document.upload_id == Upload.id).where(
+            Upload.tags.op('?|')(cast(tags, ARRAY(String)))
+        )
     
     vector_stmt = vector_stmt.order_by(Document.embedding.cosine_distance(query_vector)).limit(10)
     vector_docs = list((await session.execute(vector_stmt)).scalars().all())
 
-    # --- ШАГ 2: ПОЛНОТЕКСТОВЫЙ ПОИСК (Точные слова) ---
-    # Ищет по ключевым словам (BM25/ts_rank). Важно для поиска артикулов, имен и аббревиатур,
-    # которые векторный поиск может упустить.
+    # 2. ТЕКСТОВЫЙ ПОИСК (BM25, Топ-10)
     text_stmt = (
         select(Document)
         .where(Document.tsv.op('@@')(func.plainto_tsquery('russian', query)))
     )
+    
     if tags:
-        text_stmt = text_stmt.join(Upload, Document.upload_id == Upload.id).where(Upload.tags.overlap(tags))
+        from app.db.models import Upload
+        text_stmt = text_stmt.join(Upload, Document.upload_id == Upload.id).where(
+            Upload.tags.op('?|')(cast(tags, ARRAY(String)))
+        )
         
     text_stmt = text_stmt.order_by(
         func.ts_rank_cd(Document.tsv, func.plainto_tsquery('russian', query)).desc()
     ).limit(10)
     text_docs = list((await session.execute(text_stmt)).scalars().all())
 
-    # --- ШАГ 3: RRF (Reciprocal Rank Fusion) ---
-    # Объединяем результаты двух поисков в один список. 
-    # Формула: Score = 1 / (60 + rank). Чем выше документ в обоих списках, тем больше его итоговый скор.
+    # 3. RRF (объединение)
     rrf_scores = {}
     doc_map = {}
 
@@ -227,15 +227,13 @@ async def search_documents(
         doc_map[doc.id] = doc
         rrf_scores[doc.id] = rrf_scores.get(doc.id, 0) + 1.0 / (60 + rank + 1)
 
-    # Сортируем по объединенному скору и берем топ-10 для реранкера
     sorted_ids = sorted(rrf_scores.keys(), key=lambda x: rrf_scores[x], reverse=True)
     top_candidates = [doc_map[doc_id] for doc_id in sorted_ids[:10]]
 
     if not top_candidates:
         return []
 
-    # --- ШАГ 4: РЕРАНКИНГ ---
-    # Финальная пересортировка топ-10 кандидатов с помощью тяжелой Cross-Encoder модели.
+    # 4. РЕРАНКИНГ
     return await rerank_documents(query, top_candidates, top_n=limit)
 
 
