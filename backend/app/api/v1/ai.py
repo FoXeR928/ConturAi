@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, UploadFile, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_admin_user, get_current_user, get_editor_user
@@ -10,10 +10,9 @@ from app.db.models import User
 from app.db.session import get_session
 from app.rag import add_document
 from app.schemas import TextAdd, MessageIn
-from app.services import ai_service, file_storage, parser, upload_service, download_service, audit_service
+from app.services import ai_service, file_storage, parser, upload_service, download_service, audit_service, llm_config_service
 
 router = APIRouter()
-
 
 @router.post("/messages/create")
 async def create_ai_message(
@@ -22,6 +21,15 @@ async def create_ai_message(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
+    # Проверяем, включен ли стриминг в настройках
+    raw_configs = await llm_config_service.get_all(session)
+    is_stream = raw_configs.get("vllm_stream", "false").lower() == "true"
+
+    if is_stream:
+        # Возвращаем стрим (фронт будет читать его)
+        return await ai_service.ask_stream(session, user, chat_id, payload.text, tags=payload.tags)
+    
+    # Иначе отдаем обычный JSON (как было)
     answer = await ai_service.ask(session, user, chat_id, payload.text)
     return {
         "result": True,
@@ -37,6 +45,7 @@ async def create_ai_message_stream(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
+    # Принудительный стриминг по запросу фронтенда
     return await ai_service.ask_stream(session, user, chat_id, payload.text, tags=payload.tags)
 
 # ---------- Документы ----------
@@ -155,7 +164,6 @@ async def list_tags(
     _: User = Depends(get_editor_user),
     session: AsyncSession = Depends(get_session),
 ):
-    # Достаем уникальные теги из всех загрузок
     from sqlalchemy import select
     from app.db.models import Upload
     uploads = (await session.execute(select(Upload.tags))).scalars().all()

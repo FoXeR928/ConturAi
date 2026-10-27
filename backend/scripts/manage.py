@@ -19,7 +19,7 @@ from app.core.config import (
 )
 from app.core.logging import setup_logging
 from app.core.secrets import load_or_create_jwt_key
-from app.db.models import Base, Prompt, User, Document
+from app.db.models import Base, Prompt, User, Document, LlmConfig
 from app.db.session import async_session_factory, engine
 from app.services import llm_config_service
 from app.services.prompt_service import DEFAULT_PROMPTS
@@ -52,36 +52,30 @@ async def cmd_init_db() -> None:
         await llm_config_service.seed_defaults(session)
     logger.success("Инициализация БД завершена")
 
+
 async def cmd_migrate() -> None:
     setup_logging()
     logger.info("Применение миграций...")
+    
+    # 1. Миграции LLM конфигов (is_secret)
     async with engine.begin() as conn:
         try:
             await conn.execute(text("ALTER TABLE llm_configs ADD COLUMN is_secret BOOLEAN DEFAULT FALSE NOT NULL;"))
             logger.info("Колонка 'is_secret' добавлена в llm_configs.")
         except Exception as e:
-            logger.warning(f"Колонка 'is_secret' уже существует: {e}")
+            logger.debug(f"Колонка 'is_secret' уже существует или ошибка: {e}")
             
-    # Находим vllm_api_key и шифруем, если он не зашифрован
-    from app.core.security import encrypt_secret
-    async with async_session_factory() as session:
-        await session.execute(text("UPDATE llm_configs SET is_secret = TRUE WHERE key = 'vllm_api_key';"))
-        await session.commit()
+        # Находим vllm_api_key и помечаем как секрет
+        await conn.execute(text("UPDATE llm_configs SET is_secret = TRUE WHERE key = 'vllm_api_key';"))
         
-        # Опционально: перешифровать существующий ключ, если он текстовый
-        cfg = (await session.execute(select(LlmConfig).where(LlmConfig.key == 'vllm_api_key'))).scalar_one_or_none()
-        if cfg and cfg.value and not cfg.value.startswith("gAAAA"): # Признак Fernet
-            cfg.value = encrypt_secret(cfg.value)
-            await session.commit()
-            logger.info("Существующий API-ключ зашифрован.")
-
+        # 2. Миграции полнотекстового поиска (tsv) в documents
         try:
             await conn.execute(text(
                 "ALTER TABLE documents ADD COLUMN tsv tsvector GENERATED ALWAYS AS (to_tsvector('russian', text)) STORED;"
             ))
             logger.info("Колонка 'tsv' добавлена в documents.")
         except Exception as e:
-            logger.warning(f"Колонка 'tsv' уже существует: {e}")
+            logger.debug(f"Колонка 'tsv' уже существует или ошибка: {e}")
 
         try:
             await conn.execute(text(
@@ -90,6 +84,15 @@ async def cmd_migrate() -> None:
             logger.info("GIN-индекс для 'tsv' создан.")
         except Exception as e:
             logger.error(f"Ошибка создания индекса: {e}")
+
+    # 3. Шифрование существующего API-ключа (если нужно)
+    from app.core.security import encrypt_secret
+    async with async_session_factory() as session:
+        cfg = (await session.execute(select(LlmConfig).where(LlmConfig.key == 'vllm_api_key'))).scalar_one_or_none()
+        if cfg and cfg.value and not cfg.value.startswith("gAAAA"): # Признак Fernet
+            cfg.value = encrypt_secret(cfg.value)
+            await session.commit()
+            logger.info("Существующий API-ключ зашифрован.")
 
     logger.success("Миграция завершена.")
 
@@ -130,13 +133,14 @@ async def cmd_reset_admin() -> None:
     async with async_session_factory() as session:
         password = secrets.token_urlsafe(16)
         admin = (await session.execute(select(User).where(User.login == ADMIN_LOGIN))).scalar_one_or_none()
+        
         if admin:
             admin.set_password(password)
-            admin.role = "admin"
+            admin.is_admin = True  # <-- ИСПРАВЛЕНО: используем is_admin вместо role
             admin.disabled = False
             logger.warning(f"Пароль администратора '{ADMIN_LOGIN}' сброшен.")
         else:
-            admin = User(login=ADMIN_LOGIN, user_name=ADMIN_NAME, role="admin")
+            admin = User(login=ADMIN_LOGIN, user_name=ADMIN_NAME, is_admin=True) # <-- ИСПРАВЛЕНО
             admin.set_password(password)
             session.add(admin)
             logger.warning(f"Администратор '{ADMIN_LOGIN}' создан.")

@@ -51,10 +51,10 @@ class Settings(BaseSettings):
         "Qwen/Qwen2.5-0.5B-Instruct:Qwen2.5-0.5B-Instruct"
     )
 
-    embedding_model_path: str = "./models/multilingual-e5-large"
+    embedding_model_path: str = "/models/multilingual-e5-large"
     embedding_dim: int = 1024
 
-    reranker_model_path: str = "./models/bge-reranker-v2-m3"
+    reranker_model_path: str = "/models/bge-reranker-v2-m3"
 
     @property
     def db_url(self) -> str:

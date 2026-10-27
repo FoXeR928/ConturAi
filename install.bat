@@ -113,7 +113,6 @@ if "%M%"=="4" (
     set "MAX_LEN=8192"
 )
 
-REM Добавлен реранкер в список загрузки
 set "MODELS=intfloat/multilingual-e5-large:multilingual-e5-large,BAAI/bge-reranker-v2-m3:bge-reranker-v2-m3,!MODEL_NAME!:!MODEL_FILE!"
 
 powershell -NoProfile -Command ^
@@ -152,7 +151,7 @@ if errorlevel 1 (
 )
 exit /b 0
 
-REM ---------- Установка / Обновление ----------
+REM ---------- Установка с нуля ----------
 :full_install
 call :pick_platform
 if errorlevel 1 exit /b 1
@@ -168,7 +167,7 @@ call :wait_postgres
 docker compose exec -T postgres psql -U conturai_user -d conturai_db -c "SELECT 1" >nul 2>&1
 if errorlevel 1 (
     echo [ERROR] Пароль в .env не совпадает с паролем в pgdata.
-    echo Выберите 2^) Полная переустановка.
+    echo Выберите 3^) Полная переустановка.
     pause & exit /b 1
 )
 
@@ -186,6 +185,33 @@ if "%ADMIN_COUNT%"=="0" (
 )
 
 echo [OK] Установка завершена.
+pause
+exit /b 0
+
+REM ---------- Обновление ----------
+:update_install
+if not exist .env (
+    echo [ERROR] Файл .env не найден. Сначала выполните Установку (пункт 1).
+    pause & exit /b 1
+)
+
+echo [INFO] Обновление (данные сохраняются)...
+call :regen_lock
+
+echo [INFO] Пересборка и перезапуск контейнеров...
+docker compose down --remove-orphans 2>nul
+docker compose up -d --build
+if errorlevel 1 ( pause & exit /b 1 )
+
+call :wait_postgres
+
+echo [INFO] Применение миграций БД...
+%MANAGE% migrate
+
+echo [INFO] Проверка и скачивание моделей...
+%DOWNLOAD%
+
+echo [OK] Обновление успешно завершено.
 pause
 exit /b 0
 
@@ -224,6 +250,7 @@ echo   2^) reset-admin (Сбросить пароль админа)
 echo   3^) download-models (Скачать модели)
 echo   4^) reembed (Переиндексация RAG)
 echo   5^) backup (Резервная копия)
+echo   6^) migrate (Применить миграции)
 echo   0^) Назад
 set /p M_ACT=[1]: 
 if "%M_ACT%"=="" set M_ACT=1
@@ -233,6 +260,7 @@ if "%M_ACT%"=="2" %MANAGE% reset-admin
 if "%M_ACT%"=="3" %DOWNLOAD%
 if "%M_ACT%"=="4" %MANAGE% reembed
 if "%M_ACT%"=="5" %MANAGE% backup
+if "%M_ACT%"=="6" %MANAGE% migrate
 if "%M_ACT%"=="0" goto main_menu
 pause
 goto manage_menu
@@ -243,16 +271,18 @@ echo.
 echo ==================================================
 echo   ConturAI
 echo ==================================================
-echo   1^) Установка / обновление
-echo   2^) Полная переустановка
-echo   3^) Запустить контейнеры (up -d)
-echo   4^) Управление БД и моделями
-echo   5^) Выход
+echo   1^) Установка (с нуля)
+echo   2^) Обновление (сохранить данные)
+echo   3^) Полная переустановка (сброс БД)
+echo   4^) Запустить контейнеры (up -d)
+echo   5^) Управление БД и моделями
+echo   6^) Выход
 set /p MAIN=[1]: 
 if "%MAIN%"=="" set MAIN=1
 if "%MAIN%"=="1" call :full_install & goto main_menu
-if "%MAIN%"=="2" call :full_reinstall & goto main_menu
-if "%MAIN%"=="3" ( docker compose up -d & pause & goto main_menu )
-if "%MAIN%"=="4" goto manage_menu
-if "%MAIN%"=="5" exit /b 0
+if "%MAIN%"=="2" call :update_install & goto main_menu
+if "%MAIN%"=="3" call :full_reinstall & goto main_menu
+if "%MAIN%"=="4" ( docker compose up -d & pause & goto main_menu )
+if "%MAIN%"=="5" goto manage_menu
+if "%MAIN%"=="6" exit /b 0
 goto main_menu

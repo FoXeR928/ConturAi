@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Send, Trash2, Download } from 'lucide-react';
+import { Send, Trash2, Download, Zap, AlignLeft } from 'lucide-react';
 import { Input } from '../../ui/Input';
 import { Button } from '../../ui/Button';
 import { chatsApi } from '../../api/chats';
@@ -11,7 +11,7 @@ import { useToast } from '../../components/ToastContext';
 
 interface ChatWindowProps {
   messages: any[];
-  onSendMessage: (text: string, tags: string[]) => Promise<void>;
+  onSendMessage: (text: string, tags: string[], useStream: boolean) => Promise<void>;
   loading: boolean;
   chatId: string;
   onRefresh: () => void;
@@ -20,15 +20,20 @@ interface ChatWindowProps {
 export function ChatWindow({ messages, onSendMessage, loading, chatId, onRefresh }: ChatWindowProps) {
   const [input, setInput] = useState('');
   const [tagInput, setTagInput] = useState('');
-  const [allTags, setAllTags] = useState<string[]>([]); // <-- Список всех тегов для подсказок
+  const [allTags, setAllTags] = useState<string[]>([]);
+  
+  // Состояние переключателя стриминга
+  const [useStream, setUseStream] = useState<boolean>(() => {
+    const saved = localStorage.getItem('use_stream');
+    return saved !== null ? saved === 'true' : false;
+  });
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Достаем роль пользователя
   const stored = localStorage.getItem('me');
   const isAdmin = stored ? JSON.parse(stored).isAdmin : false;
 
-  // Загружаем доступные теги
   useEffect(() => {
     fetch(`${API_BASE}/ai/docs/tags`, {
       headers: { Authorization: `Bearer ${getToken()}` }
@@ -48,7 +53,13 @@ export function ChatWindow({ messages, onSendMessage, loading, chatId, onRefresh
     const tags = tagInput.split(',').map(t => t.trim()).filter(Boolean);
     
     setInput('');
-    await onSendMessage(text, tags);
+    await onSendMessage(text, tags, useStream);
+  };
+
+  const toggleStream = () => {
+    const newVal = !useStream;
+    setUseStream(newVal);
+    localStorage.setItem('use_stream', String(newVal));
   };
 
   const handleDeleteMessage = async (msgId: string) => {
@@ -62,7 +73,6 @@ export function ChatWindow({ messages, onSendMessage, loading, chatId, onRefresh
   };
 
   const handleExport = async () => {
-    // Если не админ — показываем заглушку (в будущем можно отправлять заявку)
     if (!isAdmin) {
       toast('Скачивание чатов доступно только администраторам. Запросите доступ.', 'error');
       return;
@@ -143,7 +153,6 @@ export function ChatWindow({ messages, onSendMessage, loading, chatId, onRefresh
       </div>
 
       <div className="p-4 bg-white border-t border-gray-200">
-        {/* Поле ввода тегов с автодополнением */}
         <div className="flex gap-2 max-w-4xl mx-auto mb-2">
           <datalist id="available-tags">
             {allTags.map(t => <option key={t} value={t} />)}
@@ -156,6 +165,26 @@ export function ChatWindow({ messages, onSendMessage, loading, chatId, onRefresh
             onChange={(e) => setTagInput(e.target.value)}
           />
         </div>
+        
+        {/* Панель с переключателем */}
+        <div className="flex items-center gap-2 mb-2 px-1 max-w-4xl mx-auto">
+          <button
+            onClick={toggleStream}
+            className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded transition-colors ${
+              useStream 
+                ? 'bg-blue-50 text-blue-600' 
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+            }`}
+            title="Если включено, ответ будет появляться по мере генерации"
+          >
+            {useStream ? <Zap size={14} /> : <AlignLeft size={14} />}
+            {useStream ? 'Стриминг ответа' : 'Полный ответ'}
+          </button>
+          <span className="text-xs text-gray-400">
+            {useStream ? 'Текст появляется по мере генерации' : 'Ожидание полного ответа'}
+          </span>
+        </div>
+
         <div className="flex gap-3 max-w-4xl mx-auto">
           <Input
             value={input}

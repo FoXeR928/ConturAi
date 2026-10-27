@@ -63,6 +63,23 @@ DEFAULT_LLM_CONFIGS: dict[str, dict[str, str]] = {
         "description": "Seed для воспроизводимости (пусто = случайно)",
         "input_type": "text",
     },
+    # --- Генерация ---
+    "vllm_stream": {
+        "value": "false",
+        "description": "Стримить ответ по словам (SSE). Если false — ответ приходит целиком",
+        "input_type": "boolean", # (на фронте сделаем чекбокс)
+    },
+        # --- Лимиты контекста ---
+    "vllm_max_model_len": {
+        "value": "4096",
+        "description": "Максимальная длина контекста модели (должна совпадать с --max-model-len в vLLM)",
+        "input_type": "number",
+    },
+    "chat_history_limit": {
+        "value": "10",
+        "description": "Максимум последних сообщений из истории для отправки в LLM",
+        "input_type": "number",
+    },
 
     # --- RAG ---
     "rag_search_limit": {
@@ -147,6 +164,7 @@ async def get_typed(session: AsyncSession) -> dict[str, Any]:
         "presence_penalty": float(raw.get("vllm_presence_penalty", "0.0")),
         "frequency_penalty": float(raw.get("vllm_frequency_penalty", "0.0")),
         "seed": int(seed_raw) if seed_raw else None,
+        "stream": raw.get("vllm_stream", "false").lower() == "true",
     }
 
 

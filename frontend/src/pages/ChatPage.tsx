@@ -3,7 +3,7 @@ import { Layout } from '../components/Layout';
 import { Header } from '../components/Header';
 import { Sidebar } from '../features/chat/Sidebar';
 import { ChatWindow } from '../features/chat/ChatWindow';
-import { chatsApi, streamAiMessage } from '../api/chats';
+import { chatsApi, aiApi } from '../api/chats';
 
 export function ChatPage({ userName, onLogout }: { userName: string; onLogout: () => void; }) {
   const [chats, setChats] = useState<any[]>([]);
@@ -36,47 +36,64 @@ export function ChatPage({ userName, onLogout }: { userName: string; onLogout: (
     }
   };
 
-  // ОБНОВЛЕНО: принимаем теги
-  const sendMessage = async (text: string, tags: string[] = []) => {
-    if (!activeChat || loading) return;
-    
-    setMessages((prev) => [
-      ...prev, 
-      { chat_role: 'user', text },
-      { chat_role: 'assistant', text: '' } 
-    ]);
+  // ОБНОВЛЕНО: принимаем теги и флаг стриминга
+  const sendMessage = async (text: string, tags: string[], useStream: boolean) => {
+    if (!activeChat) return;
+    setMessages((prev) => [...prev, { chat_role: 'user', text }]);
     setLoading(true);
 
-    try {
-      // ОБНОВЛЕНО: передаем теги в стриминг
-      await streamAiMessage(
-        activeChat,
-        text,
-        tags,
-        (chunk) => {
-          setMessages((prev) => {
-            const newArr = [...prev];
-            newArr[newArr.length - 1] = {
-              ...newArr[newArr.length - 1],
-              text: newArr[newArr.length - 1].text + chunk,
-            };
-            return newArr;
-          });
-        },
-        () => setLoading(false)
-      );
-    } catch (e: any) {
-      setMessages((prev) => {
-        const newArr = [...prev];
-        newArr[newArr.length - 1] = {
-          ...newArr[newArr.length - 1],
-          text: `Ошибка: ${e.message}`,
-        };
-        return newArr;
-      });
-      setLoading(false);
+    if (useStream) {
+      // --- ВЕТКА СТРИМИНГА ---
+      setMessages((prev) => [...prev, { chat_role: 'assistant', text: '' }]);
+      try {
+        await aiApi.askAiStream(
+          activeChat,
+          text,
+          tags,
+          (chunk) => {
+            setMessages((prev) => {
+              const newMessages = [...prev];
+              const lastIdx = newMessages.length - 1;
+              if (newMessages[lastIdx].chat_role === 'assistant') {
+                newMessages[lastIdx] = {
+                  ...newMessages[lastIdx],
+                  text: newMessages[lastIdx].text + chunk,
+                };
+              }
+              return newMessages;
+            });
+          },
+          (error) => {
+            setMessages((prev) => {
+              const newMessages = [...prev];
+              newMessages[newMessages.length - 1].text = `Ошибка: ${error}`;
+              return newMessages;
+            });
+          }
+        );
+      } catch (e: any) {
+        setMessages((prev) => [...prev, { chat_role: 'assistant', text: `Ошибка: ${e.message}` }]);
+      } finally {
+        setLoading(false);
+        loadChats();
+      }
+    } else {
+      // --- ВЕТКА ПОЛНОГО ОТВЕТА ---
+      try {
+        const res = await aiApi.askAi(activeChat, text, tags);
+        if (res.result) {
+          setMessages((prev) => [...prev, { chat_role: 'assistant', text: res.answer }]);
+        } else {
+          setMessages((prev) => [...prev, { chat_role: 'assistant', text: res.message || 'Ошибка' }]);
+        }
+      } catch (e: any) {
+        setMessages((prev) => [...prev, { chat_role: 'assistant', text: `Ошибка: ${e.message}` }]);
+      } finally {
+        setLoading(false);
+        loadChats();
+      }
     }
-  };
+  }; // <-- ВАЖНО: здесь была пропущена закрывающая скобка в твоем коде
 
   const handleChatDeleted = async () => {
     if (activeChat) {
@@ -116,7 +133,7 @@ export function ChatPage({ userName, onLogout }: { userName: string; onLogout: (
       {activeChat ? (
         <ChatWindow
           messages={messages}
-          onSendMessage={sendMessage} // Передаем обновленную функцию
+          onSendMessage={sendMessage}
           loading={loading}
           chatId={activeChat}
           onRefresh={handleRefreshMessages}

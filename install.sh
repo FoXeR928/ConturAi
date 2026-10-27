@@ -61,7 +61,6 @@ regen_lock() {
 
     if [ "$rc" -ne 0 ]; then
         err "Не удалось пересобрать uv.lock (код $rc)"
-        err "Проверьте: docker run python:3.12-slim и доступ к PyPI"
         exit 1
     fi
     log "uv.lock пересобран"
@@ -96,11 +95,11 @@ update_env() {
 
 pick_model() {
     echo ""
-    echo "Выберите модель ИИ (влияет на качество и потребление VRAM):"
+    echo "Выберите модель ИИ:"
     echo "  1) Qwen2.5-0.5B-Instruct (CPU, слабый ПК)"
-    echo "  2) Qwen2.5-1.5B-Instruct (8-12 ГБ VRAM, RTX 2070)"
-    echo "  3) Qwen2.5-3B-Instruct   (16 ГБ VRAM, AMD 9070)"
-    echo "  4) Qwen2.5-7B-Instruct   (24+ ГБ VRAM, если хватит памяти)"
+    echo "  2) Qwen2.5-1.5B-Instruct (8-12 ГБ VRAM)"
+    echo "  3) Qwen2.5-3B-Instruct   (16 ГБ VRAM)"
+    echo "  4) Qwen2.5-7B-Instruct   (24+ ГБ VRAM)"
     read -r -p "Номер [2]: " m
     m="${m:-2}"
 
@@ -116,12 +115,9 @@ pick_model() {
     update_env "VLLM_MODEL_PATH"   "/models/${model_file}"
     update_env "VLLM_SERVED_NAME"  "local-model"
     update_env "VLLM_MAX_MODEL_LEN" "${max_len}"
-    # Добавлен bge-reranker-v2-m3 в список загрузки
     update_env "MODELS_TO_DOWNLOAD" "intfloat/multilingual-e5-large:multilingual-e5-large,BAAI/bge-reranker-v2-m3:bge-reranker-v2-m3,${model_name}:${model_file}"
     update_env "EMBEDDING_MODEL_PATH" "/models/multilingual-e5-large"
     update_env "EMBEDDING_DIM" "1024"
-    
-    log "Выбрана модель: ${model_file} (макс. контекст: ${max_len} токенов)"
 }
 
 use_platform() {
@@ -196,7 +192,7 @@ ensure_admin() {
     fi
 }
 
-# --- Установка ---
+# --- Установка с нуля ---
 
 containers_exist() {
     [ -n "$(dc ps -a --quiet 2>/dev/null || true)" ]
@@ -204,6 +200,12 @@ containers_exist() {
 
 full_install() {
     prepare
+    if [ -f .env ]; then
+        warn ".env уже существует! Если вы хотите переустановить всё с нуля, используйте пункт 'Полная переустановка'."
+        read -r -p "Продолжить обновление существующей установки? (y/N): " ok
+        [ "$ok" = "y" ] || return 1
+    fi
+
     pick_platform || return 1
 
     if containers_exist; then
@@ -219,11 +221,11 @@ full_install() {
 
     if ! check_db_password; then
         err "Пароль в .env не совпадает с паролем в pgdata."
-        echo "Выберите пункт 2 (Полная переустановка), чтобы сбросить БД."
+        echo "Выберите пункт 3 (Полная переустановка), чтобы сбросить БД."
         return 1
     fi
 
-    log "Скачивание моделей (пропускает уже скачанные)..."
+    log "Скачивание моделей..."
     download_models
 
     log "Инициализация схемы БД..."
@@ -235,6 +237,45 @@ full_install() {
     echo "Frontend: http://localhost:3000"
     echo "API:      http://localhost:8000/docs"
 }
+
+# --- Обновление (сохраняет данные) ---
+
+update_install() {
+    prepare
+    if [ ! -f .env ]; then
+        err "Файл .env не найден. Похоже, проект еще не установлен. Используйте пункт 1 (Установка)."
+        return 1
+    fi
+
+    log "Обновление контейнеров и кода (данные сохраняются)..."
+    
+    # 1. Пересобираем uv.lock на случай добавления новых библиотек в pyproject.toml
+    regen_lock
+
+    # 2. Пересобираем образы и перезапускаем
+    dc down --remove-orphans || true
+    dc up -d --build
+
+    # 3. Ждем БД
+    wait_for_postgres
+
+    if ! check_db_password; then
+        err "Пароль в .env не совпадает с паролем в pgdata. Обратитесь к администратору."
+        return 1
+    fi
+
+    # 4. Применяем миграции БД (добавление новых колонок/таблиц)
+    log "Применение миграций БД (migrate)..."
+    exec_backend migrate
+
+    # 5. Докачиваем новые модели (если изменился список MODELS_TO_DOWNLOAD)
+    log "Проверка моделей..."
+    download_models
+
+    log "Обновление успешно завершено!"
+}
+
+# --- Полная переустановка ---
 
 full_reinstall() {
     prepare
@@ -297,6 +338,7 @@ manage_menu() {
         echo "  3) download-models      4) download-models --force"
         echo "  5) set-llm              6) reembed (переиндексация)"
         echo "  7) backup (резервная копия)"
+        echo "  8) migrate (применить миграции)"
         echo "  0) Назад"
         read -r -p "Номер: " m
         case "$m" in
@@ -314,6 +356,7 @@ manage_menu() {
                 ;;
             6) exec_backend reembed;;
             7) exec_backend backup;;
+            8) exec_backend migrate;;
             0) return;;
         esac
     done
@@ -324,18 +367,20 @@ while true; do
     echo "=================================================="
     echo "  ConturAI"
     echo "=================================================="
-    echo "  1) Установка / обновление"
-    echo "  2) Полная переустановка (сброс БД)"
-    echo "  3) Управление контейнерами"
-    echo "  4) Команды manage.py"
-    echo "  5) Выход"
+    echo "  1) Установка (с нуля)"
+    echo "  2) Обновление (сохранить данные)"
+    echo "  3) Полная переустановка (сброс БД)"
+    echo "  4) Управление контейнерами"
+    echo "  5) Команды manage.py"
+    echo "  6) Выход"
     read -r -p "Номер [1]: " choice
     case "${choice:-1}" in
         1) full_install;;
-        2) full_reinstall;;
-        3) containers_menu;;
-        4) manage_menu;;
-        5) exit 0;;
+        2) update_install;;
+        3) full_reinstall;;
+        4) containers_menu;;
+        5) manage_menu;;
+        6) exit 0;;
         *) err "Неверный выбор";;
     esac
 done
