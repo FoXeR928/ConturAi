@@ -46,7 +46,7 @@ if errorlevel 1 (
 
 for %%F in (backend\uv.lock) do set "NEW_TIME=%%~tF"
 if "!OLD_TIME!"=="!NEW_TIME!" (
-    echo [WARN] uv.lock не изменился — возможно, был актуален
+    echo [WARN] uv.lock не изменился
 )
 echo [OK] uv.lock готов
 exit /b 0
@@ -131,12 +131,13 @@ echo   2^) amd
 echo   3^) cpu
 set /p P=[1]: 
 if "%P%"=="" set P=1
-if "%P%"=="1" set MODE=nvidia
-if "%P%"=="2" set MODE=amd
-if "%P%"=="3" set MODE=cpu
-if not defined MODE ( echo [ERROR] Неверный выбор & exit /b 1 )
+
+set "MODE=nvidia"
+if "%P%"=="2" set "MODE=amd"
+if "%P%"=="3" set "MODE=cpu"
+
 call :setup_env
-call :use_platform !MODE!
+call :use_platform %MODE%
 call :pick_model
 exit /b 0
 
@@ -154,33 +155,23 @@ exit /b 0
 REM ---------- Установка с нуля ----------
 :full_install
 echo.
-echo [WARN] Это установка С НУЛЯ. Если проект уже настроен, используйте "Обновление".
-if exist .env (
-    echo [ERROR] Файл .env уже существует. 
-    echo Для чистой установки удалите файл .env и папку data, либо выберите пункт "Полная переустановка".
-    pause & exit /b 1
-)
+if exist .env goto err_env_exists
 
 call :pick_platform
-if errorlevel 1 exit /b 1
 call :regen_lock
 
 echo [INFO] Сборка и запуск контейнеров...
 docker compose down --remove-orphans 2>nul
 docker compose up -d --build
-if errorlevel 1 ( pause & exit /b 1 )
+if errorlevel 1 goto err_build
 
 call :wait_postgres
 
 docker compose exec -T postgres psql -U conturai_user -d conturai_db -c "SELECT 1" >nul 2>&1
-if errorlevel 1 (
-    echo [ERROR] Пароль в .env не совпадает с паролем в pgdata.
-    echo Выберите 3^) Полная переустановка.
-    pause & exit /b 1
-)
+if errorlevel 1 goto err_password
 
 echo [INFO] Скачивание моделей...
-%DOWNLOAD%
+call :download_models
 %MANAGE% init-db
 %MANAGE% reset-admin
 
@@ -189,12 +180,27 @@ echo Frontend: http://localhost:3000
 pause
 exit /b 0
 
+:err_env_exists
+echo [ERROR] Файл .env уже существует. 
+echo Для чистой установки удалите файл .env и папку data, либо выберите пункт 3.
+pause
+exit /b 1
+
+:err_build
+echo [ERROR] Ошибка сборки контейнеров.
+pause
+exit /b 1
+
+:err_password
+echo [ERROR] Пароль в .env не совпадает с паролем в pgdata.
+echo Выберите 3^) Полная переустановка.
+pause
+exit /b 1
+
 REM ---------- Обновление ----------
 :update_install
-if not exist .env (
-    echo [ERROR] Файл .env не найден. Сначала выполните Установку (пункт 1).
-    pause & exit /b 1
-)
+echo.
+if not exist .env goto err_no_env
 
 echo [INFO] Обновление (данные сохраняются)...
 call :regen_lock
@@ -202,7 +208,7 @@ call :regen_lock
 echo [INFO] Пересборка и перезапуск контейнеров...
 docker compose down --remove-orphans 2>nul
 docker compose up -d --build
-if errorlevel 1 ( pause & exit /b 1 )
+if errorlevel 1 goto err_build
 
 call :wait_postgres
 
@@ -210,11 +216,16 @@ echo [INFO] Применение миграций БД...
 %MANAGE% migrate
 
 echo [INFO] Проверка и скачивание моделей...
-%DOWNLOAD%
+call :download_models
 
 echo [OK] Обновление успешно завершено.
 pause
 exit /b 0
+
+:err_no_env
+echo [ERROR] Файл .env не найден. Сначала выполните Установку (пункт 1).
+pause
+exit /b 1
 
 REM ---------- Полная переустановка ----------
 :full_reinstall
@@ -233,11 +244,16 @@ call :regen_lock
 docker compose up -d --build
 call :wait_postgres
 
-%DOWNLOAD%
+call :download_models
 %MANAGE% init-db
 %MANAGE% reset-admin
 echo [OK] Полная переустановка завершена.
 pause
+exit /b 0
+
+REM ---------- Обертка для скачивания ----------
+:download_models
+%DOWLOAD%
 exit /b 0
 
 REM ---------- Меню manage.py ----------
@@ -258,7 +274,7 @@ if "%M_ACT%"=="" set M_ACT=1
 
 if "%M_ACT%"=="1" %MANAGE% init-db
 if "%M_ACT%"=="2" %MANAGE% reset-admin
-if "%M_ACT%"=="3" %DOWNLOAD%
+if "%M_ACT%"=="3" call :download_models
 if "%M_ACT%"=="4" %MANAGE% reembed
 if "%M_ACT%"=="5" %MANAGE% backup
 if "%M_ACT%"=="6" %MANAGE% migrate
