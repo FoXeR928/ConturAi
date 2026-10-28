@@ -82,9 +82,9 @@ function App() {
   // БЛОК 4: ОБРАБОТКА ВХОДА И ВЫХОДА
   // ==========================================================================
 
-  const onLogin = async (login: string, password: string) => {
+  const onLogin = async (login: string, password: string, rememberMe: boolean) => {
     // 1. Получаем токен
-    const data = await authLogin(login, password);
+    const data = await authLogin(login, password, rememberMe);
     setToken(data.access_token);
 
     // 2. Запрашиваем свою роль (эндпоинт /users/me)

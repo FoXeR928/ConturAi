@@ -4,7 +4,7 @@ import { API_BASE, ApiError, clearAuth, parseErrorResponse } from './http';
 // БЛОК 1: АВТОРИЗАЦИЯ (ВХОД В СИСТЕМУ)
 // ==============================================================================
 
-export async function login(username: string, password: string) {
+export async function login(username: string, password: string, rememberMe: boolean = false) {
   // 1. Подготовка данных для отправки.
   // ВАЖНО: Бэкенд использует OAuth2PasswordRequestForm (стандарт FastAPI), 
   // поэтому данные должны передаваться не в JSON, а как application/x-www-form-urlencoded.
@@ -12,6 +12,9 @@ export async function login(username: string, password: string) {
   const form = new URLSearchParams();
   form.append('username', username);
   form.append('password', password);
+
+  // Передаем флаг как form-data, так как эндпоинт ожидает OAuth2PasswordRequestForm
+  form.append('expires_use', rememberMe ? 'true' : 'false');
 
   // 2. Отправка запроса на сервер.
   const res = await fetch(`${API_BASE}/auth/login`, {

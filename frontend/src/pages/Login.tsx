@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react'; // <-- Добавлен useEffect
+import { useState, useEffect } from 'react';
 import { Input } from '../ui/Input';
-import { healthApi } from '../api/health'; // <-- Импорт API версии
+import { healthApi } from '../api/health'; 
+import { ShieldCheck } from 'lucide-react';
 
 // ==============================================================================
 // БЛОК 1: ОПИСАНИЕ ТИПОВ
 // ==============================================================================
 
 interface LoginProps {
-  onLogin: (login: string, password: string) => Promise<void>;
+  onLogin: (login: string, password: string, rememberMe: boolean) => Promise<void>;
 }
 
 // ==============================================================================
@@ -17,6 +18,7 @@ interface LoginProps {
 export function Login({ onLogin }: LoginProps) {
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
@@ -43,7 +45,7 @@ export function Login({ onLogin }: LoginProps) {
     setLoading(true);
     
     try {
-      await onLogin(login, password);
+      await onLogin(login, password, rememberMe);
     } catch (err: any) {
       setError(err.message || 'Не удалось войти в систему');
       setLoading(false);
@@ -105,6 +107,22 @@ export function Login({ onLogin }: LoginProps) {
               required
             />
           </div>
+        </div>
+
+        <div className="mt-4 flex items-center">
+          <label className="flex items-center gap-2 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              disabled={loading}
+              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+            />
+            <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors flex items-center gap-1">
+              <ShieldCheck size={14} className={rememberMe ? 'text-blue-500' : 'text-gray-400'} />
+              Запомнить меня (на 7 дней)
+            </span>
+          </label>
         </div>
 
         <button

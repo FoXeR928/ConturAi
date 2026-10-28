@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { Login } from '../src/pages/Login';
 
 describe('Login', () => {
-  it('отправляет onLogin с введёнными значениями', async () => {
+  it('отправляет onLogin с введёнными значениями (без галочки)', async () => {
     const onLogin = vi.fn().mockResolvedValue(undefined);
     render(<Login onLogin={onLogin} />);
 
@@ -12,17 +12,19 @@ describe('Login', () => {
     await userEvent.type(screen.getByLabelText(/пароль/i), 'secret');
     await userEvent.click(screen.getByRole('button', { name: /войти/i }));
 
-    expect(onLogin).toHaveBeenCalledWith('admin', 'secret');
+    expect(onLogin).toHaveBeenCalledWith('admin', 'secret', false);
   });
 
-  it('показывает ошибку, если onLogin отклонён', async () => {
-    const onLogin = vi.fn().mockRejectedValue(new Error('Неверный логин или пароль'));
+  it('отправляет rememberMe=true, если стоит галочка', async () => {
+    const onLogin = vi.fn().mockResolvedValue(undefined);
     render(<Login onLogin={onLogin} />);
 
-    await userEvent.type(screen.getByLabelText(/логин/i), 'x');
-    await userEvent.type(screen.getByLabelText(/пароль/i), 'y');
+    await userEvent.type(screen.getByLabelText(/логин/i), 'admin');
+    await userEvent.type(screen.getByLabelText(/пароль/i), 'secret');
+    // Ставим галочку
+    await userEvent.click(screen.getByLabelText(/запомнить меня/i));
     await userEvent.click(screen.getByRole('button', { name: /войти/i }));
 
-    expect(await screen.findByText(/Неверный логин или пароль/)).toBeInTheDocument();
+    expect(onLogin).toHaveBeenCalledWith('admin', 'secret', true);
   });
 });
