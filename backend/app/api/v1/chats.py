@@ -72,6 +72,8 @@ async def get_chats(
 @router.get("/messages/get")
 async def get_messages(
     chat_id: UUID,
+    limit: int | None = None,
+    offset: int = 0,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
@@ -84,6 +86,7 @@ async def get_messages(
         "result": True,
         "chat_name": name,
         "messages_history": messages,
+        "total_count": total
         "message": "Сообщения получены",
         "category": "success",
     }

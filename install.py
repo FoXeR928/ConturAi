@@ -13,6 +13,8 @@ from pathlib import Path
 # ВАЖНО: Папка проекта монтируется в контейнер установщика по ЭТОМУ ЖЕ пути, 
 # чтобы демон Docker на хосте мог найти файлы (docker-compose.yml, .env и т.д.).
 PROJECT_ROOT = Path(__file__).parent.resolve()
+# Используем хостовый путь, если он передан (для Windows)
+HOST_PROJECT_ROOT = Path(os.environ.get("HOST_PROJECT_DIR", PROJECT_ROOT)).resolve()
 COMPOSE_FILE = PROJECT_ROOT / "docker-compose.yml"
 
 

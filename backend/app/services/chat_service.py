@@ -73,29 +73,47 @@ async def rename_chat(session: AsyncSession, user: User, chat_id: UUID, name: st
 # ==============================================================================
 
 async def get_messages(
-    session: AsyncSession, user: User, chat_id: UUID
-) -> tuple[str, list[dict]]:
+    session: AsyncSession, 
+    user: User, 
+    chat_id: UUID,
+    limit: int | None = None,
+    offset: int = 0
+) -> tuple[str, list[dict], int]:
     """
-    Загружает историю сообщений чата.
-    Возвращает кортеж: (название чата, список сообщений).
+    Возвращает название чата, список сообщений и общее количество сообщений.
     
-    Важно: если запрашивает админ, он может просматривать даже удаленные чаты 
-    (include_deleted=user.is_admin). Для обычного пользователя удаленный чат вызовет ошибку 404.
+    Если limit задан — возвращает последние N сообщений (пагинация).
+    Если limit = None — возвращает всю историю (обратная совместимость).
     """
     chat = await _get_chat(session, chat_id, include_deleted=user.is_admin)
 
     if chat.user_login != user.login and not user.is_admin:
         raise AppError("Нет доступа", "warning", 403)
 
-    # Соединяем сообщения с таблицей пользователей, чтобы узнать роль отправителя (user/assistant)
-    result = await session.execute(
-        select(Message.id, Message.text, User.login, User.chat_role)
+    # Считаем общее количество сообщений в чате (для фронтенда)
+    count_stmt = select(Message).where(Message.chat_id == chat_id)
+    total_count = len((await session.execute(count_stmt)).scalars().all())
+
+    # Формируем базовый запрос
+    stmt = (
+        select(Message.id, Message.text, User.login, User.chat_role, Message.created_at)
         .join(User, User.login == Message.user_login)
         .where(Message.chat_id == chat_id)
-        .order_by(Message.created_at)
+        .order_by(Message.created_at.desc())
     )
-    messages = [dict(row._mapping) for row in result.all()]
-    return chat.name, messages
+
+    if limit:
+        # Если запрошена пагинация: берем последние сообщения (сортируем по убыванию и отступаем)
+        stmt = stmt.offset(offset).limit(limit)
+        rows = (await session.execute(stmt)).all()
+        # Переворачиваем в хронологический порядок
+        messages = [dict(r._mapping) for r in reversed(rows)]
+    else:
+        # Если limit=None — берем всё
+        rows = (await session.execute(stmt)).all()
+        messages = [dict(r._mapping) for r in reversed(rows)]
+
+    return chat.name, messages, total_count
 
 
 async def create_message(
