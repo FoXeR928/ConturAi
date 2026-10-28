@@ -1,29 +1,32 @@
 #!/usr/bin/env bash
 set -e
 cd "$(dirname "${BASH_SOURCE[0]}")"
-PROJECT_DIR="$(pwd)"
 
+echo "=================================================="
+echo "  ConturAI - Установщик (WSL/Linux)"
+echo "=================================================="
+
+# 1. Проверка Docker
 if ! command -v docker >/dev/null 2>&1; then
-    echo "=================================================="
-    echo "  [ERROR] Docker не установлен!"
-    echo "=================================================="
-    echo "Пожалуйста, установите Docker и Docker Compose v2:"
-    echo "https://docs.docker.com/engine/install/"
+    echo "[ERROR] Docker не установлен!"
+    echo "Убедитесь, что Docker Desktop запущен и включена интеграция с WSL 2."
+    echo "https://docs.docker.com/desktop/wsl/"
     exit 1
 fi
 
 if ! docker info >/dev/null 2>&1; then
-    echo "[ERROR] Docker установлен, но не запущен. Запустите службу Docker и повторите."
+    echo "[ERROR] Docker не запущен. Запустите Docker Desktop и повторите."
     exit 1
 fi
 
-echo "[INFO] Подготовка установщика (сборка образа)..."
-docker build -t conturai-installer -f Dockerfile.installer .
+# 2. Проверка Python (нужен для install.py)
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "[ERROR] Python 3 не найден в WSL."
+    echo "Установите его командой: sudo apt update && sudo apt install python3"
+    exit 1
+fi
 
-echo "[INFO] Запуск установщика ConturAI..."
-docker run --rm -it \
-    -v "${PROJECT_DIR}:/app" \
-    -v "/var/run/docker.sock:/var/run/docker.sock" \
-    -w /app \
-    -e HOST_PROJECT_DIR="${PROJECT_DIR}" \
-    conturai-installer python install.py
+# 3. Запуск установщика
+echo "[INFO] Запуск мастера настройки..."
+# Запускаем install.py напрямую через Python в WSL
+python3 install.py

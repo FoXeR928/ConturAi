@@ -9,18 +9,8 @@ from pathlib import Path
 # БЛОК 1: ИНИЦИАЛИЗАЦИЯ ПУТЕЙ (КРИТИЧЕСКИ ВАЖНО ДЛЯ WINDOWS)
 # ==============================================================================
 
-# Путь внутри контейнера (всегда /app)
 PROJECT_ROOT = Path(__file__).parent.resolve()
-
-# Путь на хосте (например, C:\Users\...). Если переменной нет, используем путь в контейнере.
-HOST_PROJECT_ROOT = Path(os.environ.get("HOST_PROJECT_DIR", str(PROJECT_ROOT))).resolve()
-
-# Файл compose для вызова docker compose (должен быть путем ХОСТА)
-COMPOSE_FILE_HOST = HOST_PROJECT_ROOT / "docker-compose.yml"
-
-# Файл compose для чтения/записи (должен быть путем КОНТЕЙНЕРА)
-COMPOSE_FILE_CONTAINER = PROJECT_ROOT / "docker-compose.yml"
-
+COMPOSE_FILE = PROJECT_ROOT / "docker-compose.yml"
 
 # ==============================================================================
 # БЛОК 2: УТИЛИТЫ
@@ -29,7 +19,6 @@ COMPOSE_FILE_CONTAINER = PROJECT_ROOT / "docker-compose.yml"
 def run_cmd(cmd, check=True):
     print(f"\n[RUN] {' '.join(cmd)}")
     try:
-        # cwd указываем путь контейнера
         subprocess.run(cmd, check=check, cwd=PROJECT_ROOT)
     except subprocess.CalledProcessError as e:
         print(f"[ERROR] Команда завершилась с ошибкой: {e}")
@@ -37,8 +26,7 @@ def run_cmd(cmd, check=True):
     return True
 
 def dc(*args, check=True):
-    # ВАЖНО: используем COMPOSE_FILE_HOST
-    return run_cmd(["docker", "compose", "-f", str(COMPOSE_FILE_HOST)] + list(args), check=check)
+    return run_cmd(["docker", "compose", "-f", str(COMPOSE_FILE)] + list(args), check=check)
 
 def regen_lock():
     print("\n[INFO] Пересборка uv.lock (обновление зависимостей)...")
@@ -113,7 +101,7 @@ def pick_platform():
     
     src = PROJECT_ROOT / f"templates/docker-compose.{mode}.yml"
     if src.exists():
-        shutil.copy(src, COMPOSE_FILE_CONTAINER) # <-- Копируем в контейнерный путь
+        shutil.copy(src, COMPOSE_FILE)
         print(f"[OK] Конфигурация Docker настроена для {mode}")
     else:
         print(f"[ERROR] Не найден шаблон {src}")
