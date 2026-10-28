@@ -16,6 +16,8 @@ echo [INFO] Подготовка установщика (сборка образ
 docker build -t conturai-installer -f Dockerfile.installer .
 
 echo [INFO] Запуск установщика ConturAI...
+
+:: Монтируем текущую папку в /app, а хостовый путь передаем через переменную
 docker run --rm -it ^
     -v "%cd%:/app" ^
     -v "//./pipe/docker_engine://./pipe/docker_engine" ^

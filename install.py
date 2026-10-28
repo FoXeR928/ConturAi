@@ -9,27 +9,23 @@ from pathlib import Path
 # БЛОК 1: ИНИЦИАЛИЗАЦИЯ ПУТЕЙ
 # ==============================================================================
 
-# Получаем абсолютный путь к корню проекта. 
-# ВАЖНО: Папка проекта монтируется в контейнер установщика по ЭТОМУ ЖЕ пути, 
-# чтобы демон Docker на хосте мог найти файлы (docker-compose.yml, .env и т.д.).
-# Получаем хостовый путь из переменной окружения (для Windows)
+# Путь внутри контейнера, куда смонтирована папка проекта (например, /app)
 PROJECT_ROOT = Path(__file__).parent.resolve()
 
-# Читаем путь к папке проекта на хосте из переменной окружения (передаётся из .bat)
-# Если переменная не задана (Linux/macOS), используем PROJECT_ROOT
-OST_PROJECT_ROOT = os.environ.get("HOST_PROJECT_DIR", str(PROJECT_ROOT))
-COMPOSE_FILE_HOST = Path(HOST_PROJECT_ROOT) / "docker-compose.yml"
+# Путь на хосте (например, C:\Users\...), который понимает Docker-демон
+HOST_PROJECT_DIR = os.environ.get("HOST_PROJECT_DIR", str(PROJECT_ROOT))
+
+# Файл compose для записи ВНУТРИ контейнера
 COMPOSE_FILE_CONTAINER = PROJECT_ROOT / "docker-compose.yml"
+
+# Файл compose для передачи ДЕМОНУ DOCKER (на хосте)
+COMPOSE_FILE_HOST = Path(HOST_PROJECT_DIR) / "docker-compose.yml"
 
 # ==============================================================================
 # БЛОК 2: УТИЛИТЫ (ВЫЗОВ КОМАНД И РАБОТА С ФАЙЛАМИ)
 # ==============================================================================
 
 def run_cmd(cmd, check=True):
-    """
-    Обертка для запуска системных команд через subprocess.
-    Выводит выполняемую команду в консоль и работает в директории проекта.
-    """
     print(f"\n[RUN] {' '.join(cmd)}")
     try:
         subprocess.run(cmd, check=check, cwd=PROJECT_ROOT)
@@ -38,28 +34,20 @@ def run_cmd(cmd, check=True):
         return False
     return True
 
-
 def dc(*args, check=True):
     """
     Обертка для Docker Compose.
-    Явно передает флаг `-f` с абсолютным путем к файлу, чтобы демон хоста
-    не запутался в путях (так как мы работаем из контейнера).
+    Передает путь к файлу, который видит демон Docker на хосте.
     """
     return run_cmd(["docker", "compose", "-f", str(COMPOSE_FILE_HOST)] + list(args), check=check)
 
 def regen_lock():
-    """
-    Пересобирает файл uv.lock перед сборкой контейнеров.
-    Это необходимо, если в pyproject.toml добавили новые зависимости,
-    иначе Dockerfile с флагом --locked упадет с ошибкой.
-    """
     print("\n[INFO] Пересборка uv.lock (обновление зависимостей)...")
     backend_path = PROJECT_ROOT / "backend"
     if not (backend_path / "pyproject.toml").exists():
         print("[WARN] Не найден backend/pyproject.toml, пропускаю.")
         return
 
-    # Запускаем временный контейнер с Python, устанавливаем uv и обновляем лок-файл
     cmd = [
         "docker", "run", "--rm",
         "-v", f"{backend_path}:/app",
@@ -73,12 +61,7 @@ def regen_lock():
     else:
         print("[WARN] Не удалось обновить uv.lock. Сборка может упасть.")
 
-
 def update_env(file_path: Path, updates: dict):
-    """
-    Обновляет или добавляет переменные в файл .env.
-    Читает файл построчно, заменяет существующие ключи и дописывает новые в конец.
-    """
     if not file_path.exists():
         return
     lines = file_path.read_text(encoding="utf-8").splitlines()
@@ -97,13 +80,11 @@ def update_env(file_path: Path, updates: dict):
             new_lines.append(f"{key}={val}")
     file_path.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
 
-
 # ==============================================================================
-# БЛОК 3: ПЕРВИЧНАЯ НАСТРОЙКА (ГЕНЕРАЦИЯ .ENV, ВЫБОР ЖЕЛЕЗА И МОДЕЛИ)
+# БЛОК 3: ПЕРВИЧНАЯ НАСТРОЙКА
 # ==============================================================================
 
 def setup_env():
-    """Создает .env с безопасным случайным паролем, если файла еще нет."""
     env_path = PROJECT_ROOT / ".env"
     example_path = PROJECT_ROOT / ".env.example"
     
@@ -119,9 +100,7 @@ def setup_env():
     env_path.write_text(content, encoding="utf-8")
     return True
 
-
 def pick_platform():
-    """Спрашивает у пользователя тип видеокарты и настраивает docker-compose.yml и .env."""
     print("\nВыберите платформу:")
     print("  1) NVIDIA (CUDA)")
     print("  2) AMD (ROCm)")
@@ -132,15 +111,14 @@ def pick_platform():
     if choice == "2": mode = "amd"
     if choice == "3": mode = "cpu"
     
-    # Копируем нужный шаблон compose-файла
     src = PROJECT_ROOT / f"templates/docker-compose.{mode}.yml"
     if src.exists():
+        # Копируем ВНУТРИ контейнера (в /app)
         shutil.copy(src, COMPOSE_FILE_CONTAINER)
         print(f"[OK] Конфигурация Docker настроена для {mode}")
     else:
         print(f"[ERROR] Не найден шаблон {src}")
     
-    # Обновляем переменные сборки PyTorch и vLLM в .env
     env_path = PROJECT_ROOT / ".env"
     if mode == "nvidia":
         update_env(env_path, {"PYTORCH_INDEX": "https://download.pytorch.org/whl/cu121", "VLLM_IMAGE": "vllm/vllm-openai:latest"})
@@ -149,9 +127,7 @@ def pick_platform():
     else:
         update_env(env_path, {"PYTORCH_INDEX": "https://download.pytorch.org/whl/cpu", "VLLM_IMAGE": "vllm/vllm-openai-cpu:latest"})
 
-
 def pick_model():
-    """Позволяет выбрать LLM из списка или ввести свою модель с HuggingFace."""
     print("\nВыберите модель ИИ:")
     print("  1) Qwen2.5-0.5B (CPU / слабый ПК)")
     print("  2) Qwen2.5-1.5B (8-12 ГБ VRAM)")
@@ -178,8 +154,6 @@ def pick_model():
         }
         m_name, m_file, max_len = models.get(choice, models["2"])
     
-    # Записываем выбранную модель в .env. 
-    # Обязательно добавляем реранкер и эмбеддер, чтобы они скачались при установке.
     update_env(PROJECT_ROOT / ".env", {
         "VLLM_MODEL_PATH": f"/models/{m_file}",
         "VLLM_MAX_MODEL_LEN": max_len,
@@ -187,13 +161,11 @@ def pick_model():
     })
     print(f"[OK] Выбрана модель: {m_file} (контекст: {max_len})")
 
-
 # ==============================================================================
-# БЛОК 4: БИЗНЕС-ЛОГИКА (УСТАНОВКА, ОБНОВЛЕНИЕ, ПЕРЕУСТАНОВКА)
+# БЛОК 4: БИЗНЕС-ЛОГИКА
 # ==============================================================================
 
 def do_install():
-    """Первичная установка системы с нуля."""
     is_new = setup_env()
     if is_new:
         pick_platform()
@@ -216,15 +188,12 @@ def do_install():
         
     print("\n[SUCCESS] Установка завершена! Откройте http://localhost:3000")
 
-
 def do_update():
-    """Обновление сервера и базы данных с сохранением всех данных."""
     if not (PROJECT_ROOT / ".env").exists():
         print("[ERROR] Файл .env не найден. Сначала выполните Установку.")
         return
 
     print("\n[INFO] Обновление сервера и базы данных (данные сохраняются)...")
-    
     regen_lock()
     
     print("[INFO] Пересборка контейнеров...")
@@ -239,9 +208,7 @@ def do_update():
     
     print("\n[SUCCESS] Обновление завершено! Сервер перезапущен с новыми настройками.")
 
-
 def do_full_reinstall():
-    """Полное удаление данных, БД и .env с последующей чистой установкой."""
     print("\n[WARN] ВНИМАНИЕ! Это удалит все данные, БД и .env!")
     confirm = input("Продолжить? (y/N): ").strip().lower()
     if confirm != "y":
@@ -256,13 +223,11 @@ def do_full_reinstall():
         
     do_install()
 
-
 # ==============================================================================
-# БЛОК 5: ИНТЕРАКТИВНЫЕ МЕНЮ (КОНТЕЙНЕРЫ И КОМАНДЫ MANAGE.PY)
+# БЛОК 5: ИНТЕРАКТИВНЫЕ МЕНЮ
 # ==============================================================================
 
 def menu_containers():
-    """Меню для управления контейнерами (запуск, остановка, логи)."""
     while True:
         print("\n--- Управление контейнерами ---")
         print("  1) Запустить (up -d)")
@@ -286,9 +251,7 @@ def menu_containers():
             dc("logs", "-f", check=False)
         elif c == "0": return
 
-
 def menu_manage():
-    """Меню для вызова команд CLI (manage.py) внутри работающего контейнера."""
     while True:
         print("\n--- Команды manage.py ---")
         print("  1) init-db (Создать таблицы)")
@@ -307,19 +270,16 @@ def menu_manage():
         elif c == "3": dc(*(cmd_prefix + ["migrate"]))
         elif c == "4": 
             print("[INFO] Запуск скачивания (через отдельный контейнер)...")
-            # Запускаем скачивание моделей в отдельном контейнере, чтобы не блокировать основной бэкенд
             dc("run", "--rm", "--no-deps", "-e", "HF_HUB_OFFLINE=0", "-e", "TRANSFORMERS_OFFLINE=0", "-e", "HF_DATASETS_OFFLINE=0", "backend", "python", "scripts/manage.py", "download-models")
         elif c == "5": dc(*(cmd_prefix + ["reembed"]))
         elif c == "6": dc(*(cmd_prefix + ["backup"]))
         elif c == "0": return
 
-
 # ==============================================================================
-# БЛОК 6: ГЛАВНОЕ МЕНЮ (ТОЧКА ВХОДА)
+# БЛОК 6: ГЛАВНОЕ МЕНЮ
 # ==============================================================================
 
 def main():
-    """Главный цикл программы, отображающий основное меню."""
     print("==================================================")
     print("  ConturAI - Установщик и Менеджер")
     print("==================================================")
@@ -354,7 +314,6 @@ def main():
         except KeyboardInterrupt:
             print("\n[ERROR] Выход по Ctrl+C.")
             break
-
 
 if __name__ == "__main__":
     main()

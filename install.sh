@@ -18,12 +18,12 @@ if ! docker info >/dev/null 2>&1; then
 fi
 
 echo "[INFO] Подготовка установщика (сборка образа)..."
-# Собираем образ с Python + Docker CLI
 docker build -t conturai-installer -f Dockerfile.installer .
 
 echo "[INFO] Запуск установщика ConturAI..."
 docker run --rm -it \
-    -v "${PROJECT_DIR}:${PROJECT_DIR}" \
+    -v "${PROJECT_DIR}:/app" \
     -v "/var/run/docker.sock:/var/run/docker.sock" \
-    -w "${PROJECT_DIR}" \
+    -w /app \
+    -e HOST_PROJECT_DIR="${PROJECT_DIR}" \
     conturai-installer python install.py
