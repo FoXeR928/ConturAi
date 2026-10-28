@@ -73,11 +73,11 @@ echo [INFO] Запуск установщика ConturAI...
 echo.
 
 docker run --rm -it ^
-    -v "%PROJECT_DIR%:/app" ^
+    -v "%cd%:/app" ^
     -v "//./pipe/docker_engine://./pipe/docker_engine" ^
     -w /app ^
-    -e HOST_PROJECT_DIR="%PROJECT_DIR%" ^
-    conturai-installer python install.py
+    -e HOST_PROJECT_DIR="%cd%" ^
+    python:3.12-slim sh -c "apt-get update && apt-get install -y docker.io docker-compose && python install.py"
 
 if errorlevel 1 goto err_install
 goto done
