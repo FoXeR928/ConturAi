@@ -1,16 +1,21 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_admin_user, get_current_user
+from app.core.exceptions import AppError  # <-- ДОБАВЛЕН ИМПОРТ
 from app.db.models import User
 from app.db.session import get_session
-from app.schemas import ChatCreate, MessageIn
-from app.services import chat_service
+from app.schemas import ChatCreate, MessageIn, ChatRename
+from app.services import chat_service, download_service
 
 router = APIRouter()
 
+# ==============================================================================
+# БЛОК 1: УПРАВЛЕНИЕ ЧАТАМИ (СОЗДАНИЕ, ПЕРЕИМЕНОВАНИЕ, СПИСОК)
+# ==============================================================================
 
 @router.post("/create")
 async def create_chat(
@@ -26,6 +31,15 @@ async def create_chat(
         "category": "success",
     }
 
+@router.patch("/rename")
+async def rename_chat(
+    chat_id: UUID,
+    payload: ChatRename,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    await chat_service.rename_chat(session, user, chat_id, payload.name)
+    return {"result": True, "message": "Чат переименован"}
 
 @router.get("/get")
 async def get_chats(
@@ -40,21 +54,30 @@ async def get_chats(
     }
 
 
+# ==============================================================================
+# БЛОК 2: РАБОТА С СООБЩЕНИЯМИ ВНУТРИ ЧАТА
+# ==============================================================================
+
 @router.get("/messages/get")
 async def get_messages(
     chat_id: UUID,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
+    limit: int | None = None,
+    offset: int = 0,
 ):
-    name, messages = await chat_service.get_messages(session, user, chat_id)
+    name, messages, total = await chat_service.get_messages(
+        session, user, chat_id, limit=limit, offset=offset
+    )
+    
     return {
         "result": True,
         "chat_name": name,
         "messages_history": messages,
+        "total": total,
         "message": "Сообщения получены",
         "category": "success",
     }
-
 
 @router.post("/messages/create")
 async def create_message(
@@ -69,7 +92,6 @@ async def create_message(
         "message": "Сообщение создано",
         "category": "success",
     }
-
 
 @router.delete("/messages/delete")
 async def delete_message(
@@ -86,6 +108,10 @@ async def delete_message(
     }
 
 
+# ==============================================================================
+# БЛОК 3: КОРЗИНА (МЯГКОЕ УДАЛЕНИЕ И ВОССТАНОВЛЕНИЕ)
+# ==============================================================================
+
 @router.patch("/delete")
 async def delete_chat(
     chat_id: UUID,
@@ -94,7 +120,6 @@ async def delete_chat(
 ):
     await chat_service.soft_delete_chat(session, user, chat_id)
     return {"result": True, "message": "Чат удален", "category": "success"}
-
 
 @router.get("/delete/irrevocably/get")
 async def get_deleted(
@@ -108,6 +133,19 @@ async def get_deleted(
         "category": "success",
     }
 
+@router.patch("/recovery/list")
+async def recovery_list(
+    chats: list[UUID],
+    _: User = Depends(get_admin_user),
+    session: AsyncSession = Depends(get_session),
+):
+    await chat_service.restore_chats(session, chats)
+    return {"result": True, "message": "Чаты восстановлены", "category": "success"}
+
+
+# ==============================================================================
+# БЛОК 4: БЕЗВОЗВРАТНОЕ УДАЛЕНИЕ (АДМИНИСТРАТИВНЫЕ ОПЕРАЦИИ)
+# ==============================================================================
 
 @router.delete("/delete/irrevocably/list")
 async def purge_deleted(
@@ -122,7 +160,6 @@ async def purge_deleted(
         "category": "success",
     }
 
-
 @router.delete("/delete/irrevocably/all")
 async def purge_all_deleted(
     _: User = Depends(get_admin_user),
@@ -132,11 +169,32 @@ async def purge_all_deleted(
     return {"result": True, "message": "Чаты удалены", "category": "success"}
 
 
-@router.patch("/recovery/list")
-async def recovery_list(
-    chats: list[UUID],
-    _: User = Depends(get_admin_user),
+# ==============================================================================
+# БЛОК 5: ЭКСПОРТ (СКАЧИВАНИЕ ИСТОРИИ ЧАТА)
+# ==============================================================================
+
+@router.get("/export/{chat_id}")
+async def export_chat(
+    chat_id: UUID,
+    user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    await chat_service.restore_chats(session, chats)
-    return {"result": True, "message": "Чаты восстановлены", "category": "success"}
+    # Проверяем доступ
+    if not await download_service.check_access(session, user, chat_id=chat_id):
+        raise AppError("Нет доступа. Запросите разрешение у администратора.", "warning", 403)
+
+    # Распаковываем ТРИ значения (total нам здесь не нужен)
+    name, messages, _ = await chat_service.get_messages(session, user, chat_id)
+    
+    lines = [f"# {name}\n"]
+    for msg in messages:
+        role = "Пользователь" if msg["chat_role"] == "user" else "Ассистент"
+        lines.append(f"**{role}:**\n{msg['text']}\n")
+    
+    md_content = "\n".join(lines)
+    
+    return StreamingResponse(
+        iter([md_content]),
+        media_type="text/markdown",
+        headers={"Content-Disposition": f"attachment; filename=chat_{chat_id}.md"}
+    )

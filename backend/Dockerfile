@@ -10,11 +10,12 @@ ENV PYTHONUNBUFFERED=1 \
     HF_HUB_OFFLINE=1 \
     TRANSFORMERS_OFFLINE=1 \
     HF_DATASETS_OFFLINE=1 \
-    UV_HTTP_TIMEOUT=900 \
-    UV_CONCURRENT_DOWNLOADS=4
+    UV_HTTP_TIMEOUT=1800 \
+    UV_CONCURRENT_DOWNLOADS=2 \
+    TIKTOKEN_CACHE_DIR=/app/.tiktoken_cache
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    tesseract-ocr tesseract-ocr-rus poppler-utils curl \
+    tesseract-ocr tesseract-ocr-rus poppler-utils curl postgresql-client git \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=ghcr.io/astral-sh/uv:0.5.11 /uv /uvx /usr/local/bin/
@@ -23,14 +24,14 @@ WORKDIR /app
 
 COPY backend/pyproject.toml backend/uv.lock ./
 
-# Устанавливаем строго по lock. Никаких тестов и лишних пакетов.
-RUN uv sync --locked --no-install-project --no-dev
+# Устанавливаем строго по lock
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-install-project --no-dev
 
-# Копируем ТОЛЬКО рабочий код
 COPY backend/app ./app
 COPY backend/scripts ./scripts
 
-RUN mkdir -p /app/data/logs /app/data/secret
+RUN mkdir -p /app/data/logs /app/data/secret /app/.tiktoken_cache
 
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH="/app"

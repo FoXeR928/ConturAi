@@ -2,12 +2,42 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
-import './index.css';
+import './index.css'; // <-- Подключаем глобальные стили Tailwind
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+// ==============================================================================
+// БЛОК 1: ИНИЦИАЛИЗАЦИЯ КОРНЕВОГО ЭЛЕМЕНТА
+// ==============================================================================
+
+// Находим DOM-элемент с id="root" (он находится в файле index.html).
+// Знак "!" в конце (non-null assertion) говорит TypeScript: 
+// "Я гарантирую, что этот элемент существует, не ругайся на возможный null".
+const rootElement = document.getElementById('root')!;
+
+// Создаем корень React-приложения для рендера в React 18+
+const root = ReactDOM.createRoot(rootElement);
+
+// ==============================================================================
+// БЛОК 2: РЕНДЕР ПРИЛОЖЕНИЯ
+// ==============================================================================
+
+root.render(
+  // <React.StrictMode> — это специальный компонент-обертка для режима разработки.
+  // Он делает две вещи:
+  // 1. Намеренно вызывает некоторые функции (например, useEffect) ДВАЖДЫ, 
+  //    чтобы помочь разработчику найти баги (побочные эффекты).
+  // 2. Предупреждает об устаревших API React.
+  // В production-сборке StrictMode отключается и не влияет на производительность.
   <React.StrictMode>
+    
+    {/* 
+      <BrowserRouter> — обертка для навигации (react-router-dom).
+      Она дает доступ к истории браузера и URL-адресу.
+      Мы оборачиваем в неё <App />, чтобы все компоненты внутри 
+      могли использовать хуки useNavigate, useLocation и компоненты <Link>.
+    */}
     <BrowserRouter>
       <App />
     </BrowserRouter>
+    
   </React.StrictMode>
 );

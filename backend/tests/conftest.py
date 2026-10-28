@@ -12,14 +12,14 @@ from app.db.models import User
 def mock_user():
     return User(
         id=uuid.uuid4(), login="test_user", user_name="Тест", 
-        is_admin=False, disabled=False
+        role="user", disabled=False
     )
 
 @pytest.fixture
 def mock_admin():
     return User(
         id=uuid.uuid4(), login="admin", user_name="Админ", 
-        is_admin=True, disabled=False
+        role="admin", disabled=False
     )
 
 @pytest.fixture
