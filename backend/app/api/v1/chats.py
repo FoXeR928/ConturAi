@@ -5,10 +5,11 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_admin_user, get_current_user
+from app.core.exceptions import AppError  # <-- ДОБАВЛЕН ИМПОРТ
 from app.db.models import User
 from app.db.session import get_session
 from app.schemas import ChatCreate, MessageIn, ChatRename
-from app.services import chat_service
+from app.services import chat_service, download_service
 
 router = APIRouter()
 
@@ -22,10 +23,6 @@ async def create_chat(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """
-    Создание нового пустого чата.
-    Привязывается к текущему авторизованному пользователю.
-    """
     chat_id = await chat_service.create_chat(session, user, payload.name)
     return {
         "result": True,
@@ -41,10 +38,6 @@ async def rename_chat(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """
-    Переименование существующего чата.
-    Проверяет, что чат принадлежит этому пользователю (или он админ).
-    """
     await chat_service.rename_chat(session, user, chat_id, payload.name)
     return {"result": True, "message": "Чат переименован"}
 
@@ -53,10 +46,6 @@ async def get_chats(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """
-    Получение списка всех активных (не удаленных) чатов пользователя.
-    Используется для отрисовки боковой панели (сайдбара).
-    """
     return {
         "result": True,
         "chats": await chat_service.list_chats(session, user),
@@ -77,11 +66,6 @@ async def get_messages(
     limit: int | None = None,
     offset: int = 0,
 ):
-    """
-    Загрузка истории сообщений для конкретного чата.
-    Поддерживает пагинацию (limit, offset).
-    """
-    # Распаковываем ТРИ значения, которые теперь возвращает функция
     name, messages, total = await chat_service.get_messages(
         session, user, chat_id, limit=limit, offset=offset
     )
@@ -102,10 +86,6 @@ async def create_message(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """
-    Создание обычного текстового сообщения (без вызова ИИ).
-    Обычно используется для системных сообщений или тестирования.
-    """
     await chat_service.create_message(session, user, chat_id, payload.text)
     return {
         "result": True,
@@ -120,10 +100,6 @@ async def delete_message(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """
-    Удаление конкретного сообщения из чата.
-    Проверяет права доступа к чату перед удалением.
-    """
     await chat_service.delete_message(session, user, chat_id, message_id)
     return {
         "result": True,
@@ -142,10 +118,6 @@ async def delete_chat(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """
-    Мягкое удаление чата (перемещение в корзину).
-    В БД просто ставится флаг is_deleted = True. Сообщения не удаляются.
-    """
     await chat_service.soft_delete_chat(session, user, chat_id)
     return {"result": True, "message": "Чат удален", "category": "success"}
 
@@ -154,10 +126,6 @@ async def get_deleted(
     _: User = Depends(get_admin_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """
-    Просмотр корзины: список всех мягко удаленных чатов.
-    Доступно только администратору.
-    """
     return {
         "result": True,
         "chats": await chat_service.list_deleted_chats(session),
@@ -171,11 +139,6 @@ async def recovery_list(
     _: User = Depends(get_admin_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """
-    Восстановление чатов из корзины.
-    Принимает массив UUID чатов. Снимает флаг is_deleted = False.
-    Доступно только администратору.
-    """
     await chat_service.restore_chats(session, chats)
     return {"result": True, "message": "Чаты восстановлены", "category": "success"}
 
@@ -190,10 +153,6 @@ async def purge_deleted(
     _: User = Depends(get_admin_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """
-    Безвозвратное удаление конкретных чатов из корзины.
-    Физически удаляет записи из БД (каскадно удалятся и сообщения).
-    """
     await chat_service.purge_deleted(session, chats)
     return {
         "result": True,
@@ -206,10 +165,6 @@ async def purge_all_deleted(
     _: User = Depends(get_admin_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """
-    Полная очистка корзины (удаление всех мягко удаленных чатов).
-    Передает None в сервис, что означает "удалить всё, где is_deleted = True".
-    """
     await chat_service.purge_deleted(session, None)
     return {"result": True, "message": "Чаты удалены", "category": "success"}
 
@@ -226,9 +181,9 @@ async def export_chat(
 ):
     # Проверяем доступ
     if not await download_service.check_access(session, user, chat_id=chat_id):
-        raise AppError("Нет доступа", "warning", 403)
+        raise AppError("Нет доступа. Запросите разрешение у администратора.", "warning", 403)
 
-    # Распаковываем ТРИ значения (total нам здесь не нужен, поэтому ставим _)
+    # Распаковываем ТРИ значения (total нам здесь не нужен)
     name, messages, _ = await chat_service.get_messages(session, user, chat_id)
     
     lines = [f"# {name}\n"]
