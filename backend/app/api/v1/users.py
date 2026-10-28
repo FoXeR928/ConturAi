@@ -134,6 +134,14 @@ async def change_status(
     action = "заблокирован" if payload.disabled else "разблокирован"
     return {"result": True, "message": f"Пользователь {action}", "category": "success"}
 
+@router.patch("/change/name")
+async def change_name(
+    payload: UpdateUserName,
+    actor: User = Depends(get_admin_user),
+    session: AsyncSession = Depends(get_session),
+):
+    await user_service.update_user_name(session, actor, payload.login, payload.user_name)
+    return {"result": True, "message": "Имя пользователя изменено", "category": "success"}
 
 # ==============================================================================
 # БЛОК 6: УДАЛЕНИЕ ПОЛЬЗОВАТЕЛЕЙ (МЯГКОЕ И БЕЗВОЗВРАТНОЕ)

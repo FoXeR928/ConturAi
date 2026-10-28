@@ -95,6 +95,11 @@ export const usersApi = {
       body: JSON.stringify({ login, role }),
     }),
 
+  updateUserName: (login: string, user_name: string) =>
+  request('/users/change/name', {
+    method: 'PATCH',
+    body: JSON.stringify({ login, user_name }),
+  }),
 
 // ==============================================================================
 // БЛОК 5: УДАЛЕНИЕ ПОЛЬЗОВАТЕЛЕЙ (АДМИН)

@@ -22,6 +22,9 @@ export function UsersPanel() {
   const [createLoading, setCreateLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null); // Хранит логин юзера, с которым сейчас идет действие
   
+  const [editingUser, setEditingUser] = useState<UserItem | null>(null);
+const [editForm, setEditForm] = useState({ user_name: '', password: '' });
+
   const { toast } = useToast();
 
   // ==========================================================================
@@ -125,6 +128,33 @@ export function UsersPanel() {
     }
   };
 
+  const handleEditClick = (u: UserItem) => {
+  setEditingUser(u);
+  setEditForm({ user_name: u.user_name || '', password: '' });
+};
+
+const saveProfile = async () => {
+  if (!editingUser) return;
+  setActionLoading(editingUser.login);
+  try {
+    // Меняем имя, если оно изменилось
+    if (editForm.user_name !== editingUser.user_name) {
+      await usersApi.updateUserName(editingUser.login, editForm.user_name);
+    }
+    // Меняем пароль, если он введен
+    if (editForm.password.trim()) {
+      await usersApi.updatePassword(editingUser.login, editForm.password);
+    }
+    toast('Данные пользователя обновлены', 'success');
+    setEditingUser(null);
+    await load();
+  } catch (e: any) {
+    toast(e.message, 'error');
+  } finally {
+    setActionLoading(null);
+  }
+};
+
   // ==========================================================================
   // БЛОК 4: РЕНДЕР ИНТЕРФЕЙСА
   // ==========================================================================
@@ -214,10 +244,10 @@ export function UsersPanel() {
                         </span>
                       ) : !isDeleted ? (
                         <>
-                          <button 
-                            className="text-yellow-600 hover:text-yellow-800 hover:underline text-xs font-medium" 
-                            onClick={() => toggleStatus(u)}
-                          >
+                          <button onClick={() => handleEditClick(u)} className="text-blue-600 hover:underline text-xs font-medium">
+                            Изменить
+                          </button>
+                          <button className="text-yellow-600 hover:underline text-xs font-medium" onClick={() => toggleStatus(u)}>
                             {u.disabled ? 'Разблокировать' : 'Заблокировать'}
                           </button>
                           <button 

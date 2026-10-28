@@ -72,21 +72,25 @@ async def get_chats(
 @router.get("/messages/get")
 async def get_messages(
     chat_id: UUID,
-    limit: int | None = None,
-    offset: int = 0,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
+    limit: int | None = None,
+    offset: int = 0,
 ):
     """
     Загрузка истории сообщений для конкретного чата.
-    Возвращает название чата и массив сообщений (с ролями 'user' и 'assistant').
+    Поддерживает пагинацию (limit, offset).
     """
-    name, messages = await chat_service.get_messages(session, user, chat_id)
+    # Распаковываем ТРИ значения, которые теперь возвращает функция
+    name, messages, total = await chat_service.get_messages(
+        session, user, chat_id, limit=limit, offset=offset
+    )
+    
     return {
         "result": True,
         "chat_name": name,
         "messages_history": messages,
-        "total_count": total
+        "total": total,
         "message": "Сообщения получены",
         "category": "success",
     }
@@ -220,21 +224,12 @@ async def export_chat(
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """
-    Экспорт чата в формате Markdown (.md).
-    Проверяет права: админы скачивают свободно, остальные — только с разрешения.
-    """
-    # 1. Проверяем доступ (админ проходит сразу, остальные ищут одобренную заявку)
-    has_access = await download_service.check_access(session, user, chat_id=chat_id)
-    if not has_access:
-        raise AppError(
-            "Скачивание запрещено. Запросите доступ у администратора.",
-            "warning",
-            403
-        )
+    # Проверяем доступ
+    if not await download_service.check_access(session, user, chat_id=chat_id):
+        raise AppError("Нет доступа", "warning", 403)
 
-    # 2. Генерируем Markdown
-    name, messages = await chat_service.get_messages(session, user, chat_id)
+    # Распаковываем ТРИ значения (total нам здесь не нужен, поэтому ставим _)
+    name, messages, _ = await chat_service.get_messages(session, user, chat_id)
     
     lines = [f"# {name}\n"]
     for msg in messages:
@@ -246,7 +241,5 @@ async def export_chat(
     return StreamingResponse(
         iter([md_content]),
         media_type="text/markdown",
-        headers={
-            "Content-Disposition": f"attachment; filename=chat_{chat_id}.md"
-        }
+        headers={"Content-Disposition": f"attachment; filename=chat_{chat_id}.md"}
     )

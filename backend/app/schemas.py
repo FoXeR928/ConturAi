@@ -70,6 +70,10 @@ class UpdateStatus(BaseModel):
     login: str
     disabled: bool
 
+class UpdateUserName(BaseModel):
+    login: str
+    user_name: str
+
 
 # ==============================================================================
 # БЛОК 4: НАСТРОЙКИ (ПРОМПТЫ И ПАРАМЕТРЫ LLM)

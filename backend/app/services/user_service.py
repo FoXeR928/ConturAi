@@ -187,6 +187,20 @@ async def update_user_status(
     await session.commit()
 
 
+async def update_user_name(
+    session: AsyncSession, actor: User, login: str, new_name: str
+) -> None:
+    if actor.login != login and not actor.is_admin:
+        raise AppError("Нет доступа", "warning", 403)
+        
+    user = (await session.execute(select(User).where(User.login == login))).scalar_one_or_none()
+    if not user:
+        raise AppError("Не найден пользователь", "warning", 404)
+        
+    user.user_name = new_name
+    await session.commit()
+
+
 # ==============================================================================
 # БЛОК 6: УДАЛЕНИЕ (МЯГКОЕ И БЕЗВОЗВРАТНОЕ)
 # ==============================================================================
