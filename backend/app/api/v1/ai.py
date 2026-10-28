@@ -51,6 +51,7 @@ async def create_ai_message(
     return {
         "result": True,
         "answer": answer,
+        "sources": sources,
         "message": "Ответ создан",
         "category": "success",
     }

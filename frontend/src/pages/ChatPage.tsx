@@ -45,7 +45,6 @@ export function ChatPage({ userName, onLogout }: { userName: string; onLogout: (
     setTotalMessages(0);
     
     try {
-      // Грузим последние 50 сообщений (offset=0, limit=50)
       const data = await chatsApi.getMessages(chatId, PAGE_SIZE, 0);
       if (data.result) {
         setMessages(data.messages_history || []);
@@ -57,19 +56,16 @@ export function ChatPage({ userName, onLogout }: { userName: string; onLogout: (
     }
   };
 
-  // Подгрузка старых сообщений (вызывается из ChatWindow)
   const loadMoreMessages = async () => {
     if (!activeChat || loadingMore) return;
     
-    // Вычисляем, сколько уже загружено
     const currentOffset = messages.length;
-    if (currentOffset >= totalMessages) return; // Все загружено
+    if (currentOffset >= totalMessages) return;
     
     setLoadingMore(true);
     try {
       const data = await chatsApi.getMessages(activeChat, PAGE_SIZE, currentOffset);
       if (data.result && data.messages_history.length > 0) {
-        // Добавляем старые сообщения в НАЧАЛО списка
         setMessages(prev => [...data.messages_history, ...prev]);
       }
     } catch (e: any) {
@@ -100,15 +96,31 @@ export function ChatPage({ userName, onLogout }: { userName: string; onLogout: (
   const sendMessage = async (text: string, tags: string[], useStream: boolean) => {
     if (!activeChat) return;
     
-    // Оптимистично добавляем сообщение пользователя
+    // Добавляем сообщение пользователя
     setMessages((prev) => [...prev, { id: Date.now().toString(), chat_role: 'user', text }]);
     setLoading(true);
 
     if (useStream) {
+      // Добавляем пустое сообщение ассистента (для стриминга)
       setMessages((prev) => [...prev, { id: 'stream', chat_role: 'assistant', text: '' }]);
+      
       try {
         await aiApi.askAiStream(
-          activeChat, text, tags,
+          activeChat, 
+          text, 
+          tags,
+          // 1. Коллбэк для сохранения источников
+          (sources) => {
+            setMessages(prev => {
+              const newMessages = [...prev];
+              const lastIdx = newMessages.length - 1;
+              if (newMessages[lastIdx].chat_role === 'assistant') {
+                newMessages[lastIdx] = { ...newMessages[lastIdx], sources };
+              }
+              return newMessages;
+            });
+          },
+          // 2. Коллбэк для текста
           (chunk) => {
             setMessages((prev) => {
               const newMessages = [...prev];
@@ -119,6 +131,7 @@ export function ChatPage({ userName, onLogout }: { userName: string; onLogout: (
               return newMessages;
             });
           },
+          // 3. Коллбэк для ошибок
           (error) => {
             setMessages((prev) => {
               const newMessages = [...prev];
@@ -137,7 +150,13 @@ export function ChatPage({ userName, onLogout }: { userName: string; onLogout: (
       try {
         const res = await aiApi.askAi(activeChat, text, tags);
         if (res.result) {
-          setMessages((prev) => [...prev, { id: Date.now().toString(), chat_role: 'assistant', text: res.answer }]);
+          // Сохраняем и текст, и источники
+          setMessages((prev) => [...prev, { 
+            id: Date.now().toString(), 
+            chat_role: 'assistant', 
+            text: res.answer,
+            sources: res.sources 
+          }]);
         } else {
           setMessages((prev) => [...prev, { id: Date.now().toString(), chat_role: 'assistant', text: res.message || 'Ошибка' }]);
         }
