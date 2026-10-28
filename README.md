@@ -38,6 +38,7 @@
 - **LLM:** vLLM (NVIDIA / AMD / CPU).
 - **Embeddings & Reranker:** SentenceTransformers (`multilingual-e5-large`, `bge-reranker-v2-m3`).
 - **Инфраструктура:** Docker, Docker Compose.
+- **Установщик:** Go (кроссплатформенный, один файл).
 
 ## Архитектура
 
@@ -49,7 +50,6 @@
 ## Требования
 
 - **Docker** (версия 24+) и **Docker Compose** (v2).
-- **Python 3.12+** (опционально, только для запуска установщика и тестов).
 - Оборудование:
   - **NVIDIA GPU** (>= 8 ГБ VRAM для 1.5B модели).
   - **AMD GPU** с установленным ROCm 6.1+ (>= 16 ГБ VRAM для 3B модели).
@@ -62,21 +62,18 @@
 ```bash
 git clone https://github.com/FoXeR928/ConturAi.git
 cd ConturAi
+```
 
 ### 2. Запуск установки
 
-**Linux / macOS:**
-```bash
-chmod +x install.sh
-./install.sh
-```
+В проекте используется **новый универсальный установщик** (написан на Go). Он не требует установки Python, Node.js или других зависимостей на ваш компьютер (кроме Docker). 
 
-**Windows:**
-```cmd
-install.bat
-```
+Скачайте готовый файл для вашей ОС из папки `bin/` (или из раздела **Releases** на GitHub):
 
-*(Скрипты установки автоматически проверяют наличие Docker, собирают `uv.lock`, поднимают контейнеры и настраивают базу данных).*
+- **Windows:** запустите `install.exe`
+- **Linux / macOS:** запустите `./install-linux`
+
+*(Установщик автоматически проверит наличие Docker, соберет `uv.lock`, поднимет контейнеры и настроит базу данных).*
 
 ### 3. Интерактивная настройка
 
@@ -205,7 +202,7 @@ docker compose up -d --build backend
 
 ```bash
 docker compose down -v
-./install.sh
+./install-linux  # или install.exe на Windows
 ```
 
 **Connection error в чате**
