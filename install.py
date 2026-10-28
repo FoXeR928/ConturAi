@@ -6,28 +6,30 @@ import time
 from pathlib import Path
 
 # ==============================================================================
-# БЛОК 1: ИНИЦИАЛИЗАЦИЯ ПУТЕЙ
+# БЛОК 1: ИНИЦИАЛИЗАЦИЯ ПУТЕЙ (КРИТИЧЕСКИ ВАЖНО ДЛЯ WINDOWS)
 # ==============================================================================
 
-# Путь внутри контейнера, куда смонтирована папка проекта (например, /app)
+# Путь внутри контейнера (всегда /app)
 PROJECT_ROOT = Path(__file__).parent.resolve()
 
-# Путь на хосте (например, C:\Users\...), который понимает Docker-демон
-HOST_PROJECT_DIR = os.environ.get("HOST_PROJECT_DIR", str(PROJECT_ROOT))
+# Путь на хосте (например, C:\Users\...). Если переменной нет, используем путь в контейнере.
+HOST_PROJECT_ROOT = Path(os.environ.get("HOST_PROJECT_DIR", str(PROJECT_ROOT))).resolve()
 
-# Файл compose для записи ВНУТРИ контейнера
+# Файл compose для вызова docker compose (должен быть путем ХОСТА)
+COMPOSE_FILE_HOST = HOST_PROJECT_ROOT / "docker-compose.yml"
+
+# Файл compose для чтения/записи (должен быть путем КОНТЕЙНЕРА)
 COMPOSE_FILE_CONTAINER = PROJECT_ROOT / "docker-compose.yml"
 
-# Файл compose для передачи ДЕМОНУ DOCKER (на хосте)
-COMPOSE_FILE_HOST = Path(HOST_PROJECT_DIR) / "docker-compose.yml"
 
 # ==============================================================================
-# БЛОК 2: УТИЛИТЫ (ВЫЗОВ КОМАНД И РАБОТА С ФАЙЛАМИ)
+# БЛОК 2: УТИЛИТЫ
 # ==============================================================================
 
 def run_cmd(cmd, check=True):
     print(f"\n[RUN] {' '.join(cmd)}")
     try:
+        # cwd указываем путь контейнера
         subprocess.run(cmd, check=check, cwd=PROJECT_ROOT)
     except subprocess.CalledProcessError as e:
         print(f"[ERROR] Команда завершилась с ошибкой: {e}")
@@ -35,10 +37,7 @@ def run_cmd(cmd, check=True):
     return True
 
 def dc(*args, check=True):
-    """
-    Обертка для Docker Compose.
-    Передает путь к файлу, который видит демон Docker на хосте.
-    """
+    # ВАЖНО: используем COMPOSE_FILE_HOST
     return run_cmd(["docker", "compose", "-f", str(COMPOSE_FILE_HOST)] + list(args), check=check)
 
 def regen_lock():
@@ -80,8 +79,9 @@ def update_env(file_path: Path, updates: dict):
             new_lines.append(f"{key}={val}")
     file_path.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
 
+
 # ==============================================================================
-# БЛОК 3: ПЕРВИЧНАЯ НАСТРОЙКА
+# БЛОК 3: УСТАНОВКА И НАСТРОЙКА
 # ==============================================================================
 
 def setup_env():
@@ -113,8 +113,7 @@ def pick_platform():
     
     src = PROJECT_ROOT / f"templates/docker-compose.{mode}.yml"
     if src.exists():
-        # Копируем ВНУТРИ контейнера (в /app)
-        shutil.copy(src, COMPOSE_FILE_CONTAINER)
+        shutil.copy(src, COMPOSE_FILE_CONTAINER) # <-- Копируем в контейнерный путь
         print(f"[OK] Конфигурация Docker настроена для {mode}")
     else:
         print(f"[ERROR] Не найден шаблон {src}")
@@ -161,6 +160,7 @@ def pick_model():
     })
     print(f"[OK] Выбрана модель: {m_file} (контекст: {max_len})")
 
+
 # ==============================================================================
 # БЛОК 4: БИЗНЕС-ЛОГИКА
 # ==============================================================================
@@ -182,7 +182,6 @@ def do_install():
     
     print("\n[INFO] Инициализация схемы БД...")
     dc("exec", "-T", "backend", "python", "scripts/manage.py", "init-db", check=False)
-    
     print("\n[INFO] Создание администратора...")
     dc("exec", "-T", "backend", "python", "scripts/manage.py", "reset-admin", check=False)
         
@@ -194,6 +193,7 @@ def do_update():
         return
 
     print("\n[INFO] Обновление сервера и базы данных (данные сохраняются)...")
+    
     regen_lock()
     
     print("[INFO] Пересборка контейнеров...")
@@ -223,8 +223,9 @@ def do_full_reinstall():
         
     do_install()
 
+
 # ==============================================================================
-# БЛОК 5: ИНТЕРАКТИВНЫЕ МЕНЮ
+# БЛОК 5: МЕНЮ
 # ==============================================================================
 
 def menu_containers():
@@ -238,7 +239,6 @@ def menu_containers():
         print("  6) Логи (logs -f)")
         print("  0) Назад")
         c = input("Номер [0]: ").strip() or "0"
-        
         if c == "1": dc("up", "-d")
         elif c == "2": dc("stop")
         elif c == "3": dc("restart")
@@ -264,7 +264,6 @@ def menu_manage():
         c = input("Номер [0]: ").strip() or "0"
         
         cmd_prefix = ["exec", "-T", "backend", "python", "scripts/manage.py"]
-        
         if c == "1": dc(*(cmd_prefix + ["init-db"]))
         elif c == "2": dc(*(cmd_prefix + ["reset-admin"]))
         elif c == "3": dc(*(cmd_prefix + ["migrate"]))
@@ -274,10 +273,6 @@ def menu_manage():
         elif c == "5": dc(*(cmd_prefix + ["reembed"]))
         elif c == "6": dc(*(cmd_prefix + ["backup"]))
         elif c == "0": return
-
-# ==============================================================================
-# БЛОК 6: ГЛАВНОЕ МЕНЮ
-# ==============================================================================
 
 def main():
     print("==================================================")
