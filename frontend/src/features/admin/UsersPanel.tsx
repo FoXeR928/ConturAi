@@ -4,7 +4,7 @@ import { Input } from '../../ui/Input';
 import { Modal } from '../../components/Modal';
 import { usersApi, UserItem, UserRole } from '../../api/users';
 import { useToast } from '../../components/ToastContext';
-import { RefreshCw, UserPlus, ShieldAlert, CheckCircle, XCircle } from 'lucide-react';
+import { RefreshCw, UserPlus, ShieldAlert, CheckCircle, XCircle, Edit2 } from 'lucide-react';
 
 // ==============================================================================
 // БЛОК 1: КОМПОНЕНТ И СОСТОЯНИЯ
@@ -20,10 +20,12 @@ export function UsersPanel() {
   
   // Состояния загрузки
   const [createLoading, setCreateLoading] = useState(false);
-  const [actionLoading, setActionLoading] = useState<string | null>(null); // Хранит логин юзера, с которым сейчас идет действие
-  
+  const [actionLoading, setActionLoading] = useState<string | null>(null); 
+
+  // Состояния для редактирования
   const [editingUser, setEditingUser] = useState<UserItem | null>(null);
-const [editForm, setEditForm] = useState({ user_name: '', password: '' });
+  const [editForm, setEditForm] = useState({ user_name: '', password: '' });
+  const [editLoading, setEditLoading] = useState(false);
 
   const { toast } = useToast();
 
@@ -45,7 +47,7 @@ const [editForm, setEditForm] = useState({ user_name: '', password: '' });
   }, [showDeleted]);
 
   // ==========================================================================
-  // БЛОК 3: ДЕЙСТВИЯ С ПОЛЬЗОВАТЕЛЯМИ
+  // БЛОК 3: ДЕЙСТВИЯ
   // ==========================================================================
 
   const create = async () => {
@@ -59,11 +61,10 @@ const [editForm, setEditForm] = useState({ user_name: '', password: '' });
       await usersApi.createUser(form.login, form.user_name, form.password, form.role);
       toast('Пользователь успешно создан', 'success');
       
-      // Очищаем форму и закрываем модалку
       setShowCreate(false);
       setForm({ login: '', user_name: '', password: '', role: 'user' });
       
-      await load(); // Обновляем список
+      await load();
     } catch (e: any) {
       toast(e.message, 'error');
     } finally {
@@ -92,7 +93,7 @@ const [editForm, setEditForm] = useState({ user_name: '', password: '' });
       await load();
     } catch (e: any) {
       toast(e.message, 'error');
-      await load(); // Откатываем селект обратно, если сервер вернул ошибку (например, последний админ)
+      await load(); 
     } finally {
       setActionLoading(null);
     }
@@ -128,35 +129,39 @@ const [editForm, setEditForm] = useState({ user_name: '', password: '' });
     }
   };
 
-  const handleEditClick = (u: UserItem) => {
-  setEditingUser(u);
-  setEditForm({ user_name: u.user_name || '', password: '' });
-};
+  // ==========================================================================
+  // ЛОГИКА РЕДАКТИРОВАНИЯ
+  // ==========================================================================
 
-const saveProfile = async () => {
-  if (!editingUser) return;
-  setActionLoading(editingUser.login);
-  try {
-    // Меняем имя, если оно изменилось
-    if (editForm.user_name !== editingUser.user_name) {
-      await usersApi.updateUserName(editingUser.login, editForm.user_name);
+  const handleEditClick = (u: UserItem) => {
+    setEditingUser(u);
+    setEditForm({ user_name: u.user_name || '', password: '' });
+  };
+
+  const saveProfile = async () => {
+    if (!editingUser) return;
+    setEditLoading(true);
+    try {
+      // Меняем имя, если оно изменилось
+      if (editForm.user_name !== editingUser.user_name) {
+        await usersApi.updateUserName(editingUser.login, editForm.user_name);
+      }
+      // Меняем пароль, если он введен
+      if (editForm.password.trim()) {
+        await usersApi.updatePassword(editingUser.login, editForm.password);
+      }
+      toast('Данные пользователя обновлены', 'success');
+      setEditingUser(null);
+      await load();
+    } catch (e: any) {
+      toast(e.message, 'error');
+    } finally {
+      setEditLoading(false);
     }
-    // Меняем пароль, если он введен
-    if (editForm.password.trim()) {
-      await usersApi.updatePassword(editingUser.login, editForm.password);
-    }
-    toast('Данные пользователя обновлены', 'success');
-    setEditingUser(null);
-    await load();
-  } catch (e: any) {
-    toast(e.message, 'error');
-  } finally {
-    setActionLoading(null);
-  }
-};
+  };
 
   // ==========================================================================
-  // БЛОК 4: РЕНДЕР ИНТЕРФЕЙСА
+  // БЛОК 4: РЕНДЕР
   // ==========================================================================
 
   return (
@@ -184,7 +189,7 @@ const saveProfile = async () => {
         </div>
       </div>
 
-      {/* Таблица с горизонтальным скроллом для мобильных */}
+      {/* Таблица */}
       <div className="bg-white rounded-lg shadow overflow-hidden border border-gray-100">
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[700px]">
@@ -205,10 +210,8 @@ const saveProfile = async () => {
                 return (
                   <tr key={u.login} className={`border-t transition-colors ${isDeleted ? 'bg-gray-50 opacity-75' : 'hover:bg-gray-50'}`}>
                     <td className="p-3 font-mono text-xs font-semibold text-gray-700">{u.login}</td>
-                    
                     <td className="p-3 text-gray-800">{u.user_name || '—'}</td>
                     
-                    {/* Выбор роли */}
                     <td className="p-3">
                       <select
                         value={u.role || 'user'}
@@ -226,7 +229,6 @@ const saveProfile = async () => {
                       </select>
                     </td>
                     
-                    {/* Статус */}
                     <td className="p-3">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1 ${
                         u.disabled ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
@@ -236,7 +238,6 @@ const saveProfile = async () => {
                       </span>
                     </td>
                     
-                    {/* Действия */}
                     <td className="p-3 space-x-3">
                       {isBusy ? (
                         <span className="text-gray-400 text-xs inline-flex items-center gap-1">
@@ -250,18 +251,12 @@ const saveProfile = async () => {
                           <button className="text-yellow-600 hover:underline text-xs font-medium" onClick={() => toggleStatus(u)}>
                             {u.disabled ? 'Разблокировать' : 'Заблокировать'}
                           </button>
-                          <button 
-                            className="text-red-600 hover:text-red-800 hover:underline text-xs font-medium" 
-                            onClick={() => remove(u)}
-                          >
+                          <button className="text-red-600 hover:text-red-800 hover:underline text-xs font-medium" onClick={() => remove(u)}>
                             Удалить
                           </button>
                         </>
                       ) : (
-                        <button 
-                          className="text-red-700 bg-red-50 px-2 py-1 rounded hover:bg-red-100 font-bold text-xs inline-flex items-center gap-1 transition-colors" 
-                          onClick={() => purge(u)}
-                        >
+                        <button className="text-red-700 bg-red-50 px-2 py-1 rounded hover:bg-red-100 font-bold text-xs inline-flex items-center gap-1 transition-colors" onClick={() => purge(u)}>
                           <ShieldAlert size={14} /> Удалить навсегда
                         </button>
                       )}
@@ -288,62 +283,77 @@ const saveProfile = async () => {
       {showCreate && (
         <Modal title="Создать пользователя" onClose={() => !createLoading && setShowCreate(false)}>
           <div className="space-y-4">
-            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Логин *</label>
-              <Input
-                placeholder="Например: ivanov"
-                value={form.login}
-                onChange={(e) => setForm({ ...form, login: e.target.value })}
-                disabled={createLoading}
-                isInvalid={form.login.length > 0 && form.login.length < 3}
-              />
+              <Input placeholder="Например: ivanov" value={form.login} onChange={(e) => setForm({ ...form, login: e.target.value })} disabled={createLoading} />
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Отображаемое имя</label>
-              <Input
-                placeholder="Например: Иванов И.И."
-                value={form.user_name}
-                onChange={(e) => setForm({ ...form, user_name: e.target.value })}
-                disabled={createLoading}
-                isInvalid={form.login.length > 0 && form.login.length < 3}
-              />
+              <Input placeholder="Например: Иванов И.И." value={form.user_name} onChange={(e) => setForm({ ...form, user_name: e.target.value })} disabled={createLoading} />
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Пароль *</label>
-              <Input
-                type="password"
-                placeholder="Минимум 8 символов"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                disabled={createLoading}
-                isInvalid={form.login.length > 0 && form.login.length < 3}
-              />
+              <Input type="password" placeholder="Минимум 8 символов" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} disabled={createLoading} />
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Роль в системе</label>
-              <select
-                className="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                value={form.role}
-                onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })}
-                disabled={createLoading}
-              >
+              <select className="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })} disabled={createLoading}>
                 <option value="user">Пользователь (user) — только чаты</option>
                 <option value="editor">Редактор (editor) — загрузка документов</option>
                 <option value="admin">Администратор (admin) — полный доступ</option>
               </select>
             </div>
-
             <div className="pt-2">
-              <Button 
-                onClick={create} 
-                disabled={createLoading || !form.login.trim() || !form.password.trim()} 
-                className="w-full flex justify-center"
-              >
+              <Button onClick={create} disabled={createLoading || !form.login.trim() || !form.password.trim()} className="w-full flex justify-center">
                 {createLoading ? <RefreshCw size={18} className="animate-spin" /> : 'Создать пользователя'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ======================================================================
+          МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ (НОВОЕ)
+          ====================================================================== */}
+      {editingUser && (
+        <Modal title={`Редактировать: ${editingUser.login}`} onClose={() => !editLoading && setEditingUser(null)}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Отображаемое имя</label>
+              <Input
+                value={editForm.user_name}
+                onChange={(e) => setEditForm({ ...editForm, user_name: e.target.value })}
+                placeholder="Например: Иванов И.И."
+                disabled={editLoading}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Новый пароль</label>
+              <Input
+                type="password"
+                value={editForm.password}
+                onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                placeholder="Оставьте пустым, чтобы не менять"
+                disabled={editLoading}
+              />
+            </div>
+
+            <div className="pt-2 flex gap-2">
+              <Button 
+                onClick={saveProfile} 
+                disabled={editLoading} 
+                className="flex-1 flex justify-center bg-blue-600 hover:bg-blue-700"
+              >
+                {editLoading ? <RefreshCw size={18} className="animate-spin" /> : 'Сохранить'}
+              </Button>
+              <Button 
+                onClick={() => setEditingUser(null)} 
+                disabled={editLoading} 
+                variant="secondary"
+                className="flex-1 justify-center"
+              >
+                Отмена
               </Button>
             </div>
           </div>

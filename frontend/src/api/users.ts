@@ -95,11 +95,27 @@ export const usersApi = {
       body: JSON.stringify({ login, role }),
     }),
 
+  /**
+   * Изменить отображаемое имя пользователя.
+   */
   updateUserName: (login: string, user_name: string) =>
-  request('/users/change/name', {
-    method: 'PATCH',
-    body: JSON.stringify({ login, user_name }),
-  }),
+    request('/users/change/name', {
+      method: 'PATCH',
+      body: JSON.stringify({ login, user_name }),
+    }),
+
+  /**
+   * Сменить пароль пользователя.
+   * 
+   * @param login - Логин пользователя.
+   * @param password - Новый пароль.
+   */
+  updatePassword: (login: string, password: string) =>
+    request('/users/change/password', {
+      method: 'PATCH',
+      body: JSON.stringify({ login, password }),
+    }),
+
 
 // ==============================================================================
 // БЛОК 5: УДАЛЕНИЕ ПОЛЬЗОВАТЕЛЕЙ (АДМИН)
