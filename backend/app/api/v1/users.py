@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_admin_user, get_current_user
 from app.db.models import User
 from app.db.session import get_session
-from app.schemas import RegistrationUser, UpdatePassword, UpdateRole, UpdateStatus
+from app.schemas import RegistrationUser, UpdatePassword, UpdateRole, UpdateStatus, UpdateUserName
 from app.services import user_service
 
 router = APIRouter()

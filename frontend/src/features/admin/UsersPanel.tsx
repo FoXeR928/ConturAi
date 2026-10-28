@@ -4,7 +4,7 @@ import { Input } from '../../ui/Input';
 import { Modal } from '../../components/Modal';
 import { usersApi, UserItem, UserRole } from '../../api/users';
 import { useToast } from '../../components/ToastContext';
-import { RefreshCw, UserPlus, ShieldAlert, CheckCircle, XCircle, Edit2 } from 'lucide-react';
+import { RefreshCw, UserPlus, ShieldAlert, CheckCircle, XCircle } from 'lucide-react';
 
 // ==============================================================================
 // БЛОК 1: КОМПОНЕНТ И СОСТОЯНИЯ
