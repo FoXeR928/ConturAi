@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'
+import { Puzzle } from 'lucide-react';;
 import { Layout } from '../components/Layout';
 import { Header } from '../components/Header';
 import { healthApi } from '../api/health';
@@ -15,6 +16,7 @@ import { SystemStatsPanel } from '../features/admin/SystemStatsPanel';
 import { DownloadRequestsPanel } from '../features/admin/DownloadRequestsPanel';
 import { AuditPanel } from '../features/admin/AuditPanel';
 import { TagsPanel } from '../features/admin/TagsPanel';
+import { PluginsPanel } from '../features/admin/PluginsPanel';
 
 // Импорт иконок для меню
 import { 
@@ -28,7 +30,7 @@ import {
 
 type Tab = 
   | 'users' | 'prompts' | 'llm' | 'docs' | 'chats' | 'tags' 
-  | 'system' | 'downloads' | 'audit' | 'few-shots' | 'database';
+  | 'system' | 'downloads' | 'audit' | 'few-shots' | 'database' | 'plugins';
 
 // Конфигурация меню: связываем ID вкладки, читаемое название и иконку
 const TABS: { id: Tab; label: string; icon: any }[] = [
@@ -43,6 +45,7 @@ const TABS: { id: Tab; label: string; icon: any }[] = [
   { id: 'downloads', label: 'Запросы на скачивание', icon: Download },
   { id: 'audit', label: 'Журнал событий', icon: ClipboardList },
   { id: 'system', label: 'Мониторинг', icon: Activity },
+  { id: 'plugins', label: 'Плагины', icon: Puzzle },
 ];
 
 // ==============================================================================
@@ -132,6 +135,7 @@ export function AdminPage({ userName, onLogout }: { userName?: string; onLogout:
           {tab === 'downloads' && <DownloadRequestsPanel />}
           {tab === 'audit' && <AuditPanel />}
           {tab === 'system' && <SystemStatsPanel />}
+          {tab === 'plugins' && <PluginsPanel />}
         </div>
       </div>
     </Layout>

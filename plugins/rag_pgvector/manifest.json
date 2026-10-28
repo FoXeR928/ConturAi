@@ -1,0 +1,8 @@
+{
+  "id": "rag_pgvector",
+  "name": "RAG (PostgreSQL + pgvector)",
+  "version": "1.0.0",
+  "author": "FoXeR928",
+  "type": "rag_provider",
+  "icon": "Database"
+}

@@ -1,0 +1,8 @@
+{
+  "id": "docs_parser",
+  "name": "Офисные документы",
+  "version": "1.0.0",
+  "author": "FoXeR928",
+  "type": "parser",
+  "icon": "FileText"
+}

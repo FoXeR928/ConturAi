@@ -1,0 +1,5 @@
+langchain-text-splitters
+pymorphy3
+sentence-transformers
+pgvector
+sqlalchemy

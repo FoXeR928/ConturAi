@@ -18,7 +18,8 @@ from app.api.v1 import (
     downloads,   # Запросы на скачивание файлов (права доступа)
     audit,       # Журнал действий пользователей (логи)
     few_shots,   # Примеры "вопрос-ответ" для обучения промптов
-    tags         # Справочник тегов для фильтрации
+    tags,         # Справочник тегов для фильтрации
+    plugins
 )
 
 # ==============================================================================
@@ -72,3 +73,5 @@ api_router.include_router(audit.router, prefix="/audit", tags=["Audit"])
 
 # 12. Справочник тегов. Путь /tags/...
 api_router.include_router(tags.router, prefix="/tags", tags=["Tags"])
+
+api_router.include_router(plugins.router, prefix="/plugins", tags=["Plugins"])

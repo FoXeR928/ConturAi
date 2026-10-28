@@ -1,0 +1,8 @@
+{
+  "id": "pdf_ocr_parser",
+  "name": "PDF/OCR Парсер (Sidecar)",
+  "version": "1.0.0",
+  "author": "FoXeR928",
+  "type": "sidecar_parser",
+  "icon": "FileText"
+}
