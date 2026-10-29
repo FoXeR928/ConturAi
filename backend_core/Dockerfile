@@ -8,7 +8,6 @@ ENV PYTHONUNBUFFERED=1 \
     UV_HTTP_TIMEOUT=300 \
     UV_CONCURRENT_DOWNLOADS=4
 
-# Оставляем только curl для healthcheck (если он нужен)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
@@ -17,16 +16,15 @@ COPY --from=ghcr.io/astral-sh/uv:0.5.11 /uv /uvx /usr/local/bin/
 
 WORKDIR /app
 
-COPY backend/pyproject.toml backend/uv.lock ./
+# Копируем файлы из backend_core (контекст сборки)
+COPY pyproject.toml uv.lock ./
 
-# Устанавливаем строго по lock (теперь это займет секунды, а не минуты)
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-install-project --no-dev
 
-COPY backend/app ./app
-COPY backend/scripts ./scripts
+COPY app ./app
+COPY scripts ./scripts
 
-# Папки для логов и секретов
 RUN mkdir -p /app/data/logs /app/data/secret /app/plugins
 
 ENV PATH="/app/.venv/bin:$PATH"

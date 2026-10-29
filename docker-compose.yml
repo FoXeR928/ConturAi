@@ -21,8 +21,8 @@ services:
 
   backend:
     build:
-      context: .
-      dockerfile: backend/Dockerfile
+      context: ./backend_core    # <-- Теперь контекст это папка ядра
+      dockerfile: Dockerfile
     container_name: conturai_backend
     env_file: .env
     environment:
@@ -41,23 +41,10 @@ services:
       start_period: 10s
     volumes:
       - app_data:/app/data
-      - ./plugins:/app/plugins      # Папка для будущих плагинов
-      - /var/run/docker.sock:/var/run/docker.sock # Чтобы плагины могли управлять контейнерами (например, vLLM)
-    restart: unless-stopped
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: conturai_frontend
-    ports:
-      - "3000:80"
-    depends_on:
-      backend:
-        condition: service_healthy
+      - ./plugins:/app/plugins      # Папка для плагинов
+      - /var/run/docker.sock:/var/run/docker.sock # Для будущих плагинов (vLLM)
     restart: unless-stopped
 
 volumes:
   pgdata:
   app_data:
-  
