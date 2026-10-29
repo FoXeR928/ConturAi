@@ -51,44 +51,47 @@ func findProjectRoot() string {
 	}
 	dir := filepath.Dir(exePath)
 
-	// 1. Если exe лежит в корне (там есть папка templates)
 	if _, err := os.Stat(filepath.Join(dir, "templates")); err == nil {
 		return dir
 	}
-
-	// 2. Если exe лежит в папке bin (поднимаемся на уровень выше)
 	parentDir := filepath.Dir(dir)
 	if _, err := os.Stat(filepath.Join(parentDir, "templates")); err == nil {
 		return parentDir
 	}
-
-	// 3. Если запустили из терминала (go run) или exe в неизвестном месте
 	currentDir, _ := os.Getwd()
 	if _, err := os.Stat(filepath.Join(currentDir, "templates")); err == nil {
 		return currentDir
 	}
-
 	return dir
 }
 
-// Генерация uv.lock, если его нет
+// Проверка структуры проекта перед установкой
+func checkProjectStructure(projectDir string) {
+	// Проверяем бэкенд
+	if _, err := os.Stat(filepath.Join(projectDir, "backend_core", "pyproject.toml")); os.IsNotExist(err) {
+		fmt.Println("\n[ERROR] Не найдена папка 'backend_core' или файл 'pyproject.toml' внутри неё!")
+		os.Exit(1)
+	}
+	
+	// Проверяем фронтенд (ИЗМЕНЕНО: папка frontend)
+	if _, err := os.Stat(filepath.Join(projectDir, "frontend", "package.json")); os.IsNotExist(err) {
+		fmt.Println("\n[ERROR] Не найдена папка 'frontend' или файл 'package.json' внутри неё!")
+		fmt.Println("Убедитесь, что исходный код фронтенда лежит в папке 'frontend'.")
+		os.Exit(1)
+	}
+}
+
 func ensureLockFile(projectDir string) {
 	backendDir := filepath.Join(projectDir, "backend_core")
 	lockFile := filepath.Join(backendDir, "uv.lock")
 	pyprojectFile := filepath.Join(backendDir, "pyproject.toml")
 
-	// Если лок-файл есть, ничего не делаем
 	if _, err := os.Stat(lockFile); err == nil {
 		return
 	}
-
-	// Проверяем, существует ли pyproject.toml
+	
 	if _, err := os.Stat(pyprojectFile); os.IsNotExist(err) {
-		fmt.Println("\n[ERROR] Не найден файл pyproject.toml!")
-		fmt.Printf("Установщик искал его по пути: %s\n", pyprojectFile)
-		fmt.Println("Проверьте, что папка 'backend_core' находится в корне проекта и содержит файл 'pyproject.toml'.")
-		fmt.Println("Также убедитесь, что вы запускаете установщик из папки 'bin/' или из корня проекта.")
-		os.Exit(1)
+		return
 	}
 
 	fmt.Println("\n[WARN] Файл uv.lock не найден. Генерируем автоматически...")
@@ -109,12 +112,10 @@ func ensureLockFile(projectDir string) {
 	fmt.Println("[OK] uv.lock успешно создан.")
 }
 
-// Копирование шаблона docker-compose
 func setupCompose(projectDir string) {
 	composePath := filepath.Join(projectDir, "docker-compose.yml")
 	templatePath := filepath.Join(projectDir, "templates", "docker-compose.yml")
 
-	// Если конфиг уже есть, не перезаписываем (чтобы не сломать настройки)
 	if _, err := os.Stat(composePath); err == nil {
 		fmt.Println("[INFO] Файл docker-compose.yml уже существует.")
 		return
@@ -144,7 +145,6 @@ func setupCompose(projectDir string) {
 	fmt.Println("[OK] docker-compose.yml создан.")
 }
 
-// Создание .env из шаблона
 func setupEnv(projectDir string) {
 	envPath := filepath.Join(projectDir, ".env")
 	examplePath := filepath.Join(projectDir, "templates", ".env.example")
@@ -160,7 +160,6 @@ func setupEnv(projectDir string) {
 	content, err := os.ReadFile(examplePath)
 	if err != nil {
 		fmt.Printf("\n[ERROR] Не найден шаблон: %s\n", examplePath)
-		fmt.Println("Убедитесь, что папка templates содержит файл .env.example.")
 		os.Exit(1)
 	}
 
@@ -182,12 +181,15 @@ func main() {
 	projectDir := findProjectRoot()
 	fmt.Printf("[INFO] Рабочая директория: %s\n", projectDir)
 
+	checkProjectStructure(projectDir)
+
 	ensureLockFile(projectDir)
 	setupEnv(projectDir)
 	setupCompose(projectDir)
 
 	// 1. Собираем образы
-	fmt.Println("\n[INFO] Сборка Docker-образов (это может занять время)...")
+	fmt.Println("\n[INFO] Сборка Docker-образов (Бэкенд + Фронтенд)...")
+	fmt.Println("[INFO] Первая сборка может занять несколько минут...")
 	if !dc(projectDir, "build") {
 		os.Exit(1)
 	}
@@ -199,20 +201,21 @@ func main() {
 	fmt.Println("[INFO] Ожидание запуска базы данных (10 секунд)...")
 	time.Sleep(10 * time.Second)
 
-	// 3. Инициализируем БД через одноразовый контейнер (он не запустит FastAPI)
+	// 3. Инициализируем БД
 	fmt.Println("\n[INFO] Создание таблиц и администратора...")
 	runCmd(projectDir, "docker", "compose", "run", "--rm", "backend", "python", "scripts/manage.py", "init-db")
 	runCmd(projectDir, "docker", "compose", "run", "--rm", "backend", "python", "scripts/manage.py", "reset-admin")
 
-	// 4. Запускаем сам бэкенд
-	fmt.Println("\n[INFO] Запуск Бэкенда...")
+	// 4. Запускаем всё остальное
+	fmt.Println("\n[INFO] Запуск Бэкенда и Фронтенда...")
 	if !dc(projectDir, "up", "-d") {
 		os.Exit(1)
 	}
 
 	fmt.Println("\n==================================================")
 	fmt.Println("  УСТАНОВКА ЗАВЕРШЕНА!")
-	fmt.Println("  API и Swagger доступны: http://localhost:8000/docs")
+	fmt.Println("  Веб-интерфейс: http://localhost:3000")
+	fmt.Println("  Swagger API:   http://localhost:8000/docs")
 	fmt.Println("==================================================")
 	
 	reader := bufio.NewReader(os.Stdin)

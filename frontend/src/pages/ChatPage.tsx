@@ -4,15 +4,17 @@ import { chatsApi, Chat } from '../api/chats';
 import { usePlugins } from '../plugins/PluginContext';
 import { PluginRenderer } from '../plugins/PluginRenderer';
 import { getToken } from '../api/http';
+import { Button } from '../ui/Button';
+import { ChatWindow } from '../features/chat/ChatWindow'; // <-- Импорт
 
 export function ChatPage({ onLogout }: { onLogout: () => void }) {
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChat, setActiveChat] = useState<string | null>(null);
   const { plugins } = usePlugins();
 
-  useEffect(() => {
-    chatsApi.getChats().then(data => setChats(data.chats || []));
-  }, []);
+  const loadChats = () => chatsApi.getChats().then(data => setChats(data.chats || []));
+
+  useEffect(() => { loadChats(); }, []);
 
   return (
     <Layout
@@ -23,7 +25,7 @@ export function ChatPage({ onLogout }: { onLogout: () => void }) {
             const name = prompt("Имя чата:");
             if (name) {
               const res = await chatsApi.createChat(name);
-              chatsApi.getChats().then(d => setChats(d.chats));
+              loadChats();
               setActiveChat(res.chat_id);
             }
           }} className="mb-4">Новый чат</Button>
@@ -39,31 +41,21 @@ export function ChatPage({ onLogout }: { onLogout: () => void }) {
         </div>
       }
       header={
-        <div className="h-14 flex items-center justify-between px-6 bg-white border-b border-gray-200">
+        <div className="h-14 flex items-center justify-between px-6 bg-white border-b border-gray-200 shrink-0">
           <span className="font-medium">Чат</span>
           <div className="flex gap-2">
-            {/* СЛОТ ДЛЯ КНОПОК ПЛАГИНОВ В ШАПКЕ ЧАТА */}
             {plugins.filter(p => p.frontend_chat_button).map(p => (
-              <PluginRenderer 
-                key={p.id} 
-                url={p.frontend_chat_button!} 
-                props={{ chatId: activeChat, token: getToken() }} 
-              />
+              <PluginRenderer key={p.id} url={p.frontend_chat_button!} props={{ chatId: activeChat, token: getToken() }} />
             ))}
           </div>
         </div>
       }
     >
       {activeChat ? (
-        <div className="flex h-full items-center justify-center text-gray-500 bg-gray-50/50">
-          <div className="text-center">
-            <p className="text-lg">Чат выбран: {activeChat}</p>
-            <p className="text-sm mt-1">Здесь будет окно сообщений (ChatWindow).</p>
-          </div>
-        </div>
+        <ChatWindow chatId={activeChat} /> // <-- Используем компонент
       ) : (
         <div className="flex h-full items-center justify-center text-gray-400">
-          Выберите чат
+          Выберите чат или создайте новый
         </div>
       )}
     </Layout>
