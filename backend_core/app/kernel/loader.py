@@ -51,9 +51,14 @@ class PluginLoader:
 
     async def load_all(self):
         from app.services import plugin_service
+        from sqlalchemy.exc import ProgrammingError
 
-        async with async_session_factory() as session:
-            enabled_ids = await plugin_service.get_enabled_plugin_ids(session)
+        try:
+            async with async_session_factory() as session:
+                enabled_ids = await plugin_service.get_enabled_plugin_ids(session)
+        except Exception as e:
+            logger.warning(f"Не удалось прочитать таблицу плагинов (возможно, БД не инициализирована): {e}")
+            enabled_ids = set()
 
         logger.info(f"Активные плагины из БД: {enabled_ids}")
 

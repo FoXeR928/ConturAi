@@ -186,18 +186,29 @@ func main() {
 	setupEnv(projectDir)
 	setupCompose(projectDir)
 
-	fmt.Println("\n[INFO] Сборка и запуск Бэкенда и Базы Данных...")
-	dc(projectDir, "down", "--remove-orphans")
-	if !dc(projectDir, "up", "-d", "--build") {
+	// 1. Собираем образы
+	fmt.Println("\n[INFO] Сборка Docker-образов (это может занять время)...")
+	if !dc(projectDir, "build") {
 		os.Exit(1)
 	}
 
-	fmt.Println("\n[INFO] Ожидание запуска базы данных (10 секунд)...")
+	// 2. Запускаем ТОЛЬКО базу данных
+	fmt.Println("\n[INFO] Запуск Базы Данных...")
+	dc(projectDir, "up", "-d", "postgres")
+
+	fmt.Println("[INFO] Ожидание запуска базы данных (10 секунд)...")
 	time.Sleep(10 * time.Second)
 
+	// 3. Инициализируем БД через одноразовый контейнер (он не запустит FastAPI)
 	fmt.Println("\n[INFO] Создание таблиц и администратора...")
-	runCmd(projectDir, "docker", "compose", "exec", "-T", "backend", "python", "scripts/manage.py", "init-db")
-	runCmd(projectDir, "docker", "compose", "exec", "-T", "backend", "python", "scripts/manage.py", "reset-admin")
+	runCmd(projectDir, "docker", "compose", "run", "--rm", "backend", "python", "scripts/manage.py", "init-db")
+	runCmd(projectDir, "docker", "compose", "run", "--rm", "backend", "python", "scripts/manage.py", "reset-admin")
+
+	// 4. Запускаем сам бэкенд
+	fmt.Println("\n[INFO] Запуск Бэкенда...")
+	if !dc(projectDir, "up", "-d") {
+		os.Exit(1)
+	}
 
 	fmt.Println("\n==================================================")
 	fmt.Println("  УСТАНОВКА ЗАВЕРШЕНА!")

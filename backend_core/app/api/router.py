@@ -4,7 +4,7 @@ from fastapi import APIRouter
 # БЛОК 1: ИМПОРТ БАЗОВЫХ МОДУЛЕЙ ЯДРА
 # ==============================================================================
 
-from app.api.v1 import (
+from app.api.routers import (
     auth,        # Логин и логаут
     chats,       # Создание чатов, история сообщений, корзина
     health,      # Проверка статуса системы (healthcheck)
