@@ -41,6 +41,7 @@ services:
       start_period: 10s
     volumes:
       - app_data:/app/data
+      - models:/models
       - ./plugins:/app/plugins
       - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
@@ -61,3 +62,4 @@ services:
 volumes:
   pgdata:
   app_data:
+  models:
