@@ -15,23 +15,30 @@ export function ChatWindow({ chatId }: { chatId: string }) {
   };
 
   useEffect(() => { load(); }, [chatId]);
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  
+  useEffect(() => { 
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); 
+  }, [messages]);
 
   const handleSend = async () => {
     if (!input.trim()) return;
     const text = input;
     setInput('');
     
-    // Оптимистичное обновление
-    setMessages(prev => [...prev, { id: Date.now().toString(), chat_role: 'user', text, created_at: new Date().toISOString() }]);
+    // Оптимистичное обновление (сразу показываем сообщение)
+    setMessages(prev => [...prev, { 
+      id: Date.now().toString(), 
+      chat_role: 'user', 
+      text, 
+      created_at: new Date().toISOString() 
+    }]);
     
-    // Отправляем на бэкенд (пока без ответа ИИ)
-    await fetch(`/api/chats/messages/create?chat_id=${chatId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
-      body: JSON.stringify({ text })
-    });
-    load();
+    try {
+      await chatsApi.createMessage(chatId, text);
+      load(); // Перезагружаем историю, чтобы получить реальные ID из БД
+    } catch (err) {
+      console.error("Ошибка отправки", err);
+    }
   };
 
   return (
@@ -40,7 +47,7 @@ export function ChatWindow({ chatId }: { chatId: string }) {
         {messages.map((msg, i) => {
           const isUser = msg.chat_role === 'user';
           return (
-            <div key={i} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+            <div key={msg.id || i} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[80%] p-4 rounded-2xl ${
                 isUser ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white border text-gray-800 rounded-bl-none'
               }`}>
@@ -54,7 +61,12 @@ export function ChatWindow({ chatId }: { chatId: string }) {
       
       <div className="p-4 bg-white border-t">
         <div className="flex gap-3 max-w-4xl mx-auto">
-          <Input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSend()} placeholder="Введите сообщение..." />
+          <Input 
+            value={input} 
+            onChange={e => setInput(e.target.value)} 
+            onKeyDown={e => e.key === 'Enter' && handleSend()} 
+            placeholder="Введите сообщение..." 
+          />
           <Button onClick={handleSend}><Send size={18} /></Button>
         </div>
       </div>

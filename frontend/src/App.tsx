@@ -28,6 +28,13 @@ export default function App() {
       .finally(() => setInit(false));
   }, [token]);
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('me');
+    setToken(null);
+    setUser(null);
+  };
+
   if (init) {
     return <div className="h-screen flex items-center justify-center bg-gray-50">Загрузка...</div>;
   }
@@ -46,7 +53,7 @@ export default function App() {
                   <ChatPage 
                     userName={user.user_name || user.login} 
                     isAdmin={user.role === 'admin' || user.role === 'editor'} 
-                    onLogout={() => { localStorage.clear(); setToken(null); setUser(null); }} 
+                    onLogout={handleLogout} 
                   />
                 } 
               />
@@ -56,7 +63,7 @@ export default function App() {
                   element={
                     <AdminPage 
                       userName={user.user_name || user.login}
-                      onLogout={() => { localStorage.clear(); setToken(null); setUser(null); }} 
+                      onLogout={handleLogout} 
                     />
                   } 
                 />
