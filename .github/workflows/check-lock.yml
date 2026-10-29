@@ -1,0 +1,25 @@
+name: Check uv.lock
+
+on:
+  pull_request:
+    paths:
+      - 'backend_core/pyproject.toml'
+      - 'backend_core/uv.lock'
+
+jobs:
+  check-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v2
+        with:
+          version: "0.5.11"
+          
+      - name: Check if lockfile is up to date
+        run: |
+          cd backend_core
+          uv lock --check
+          # Если файл устарел, команда завершится с ошибкой, 
+          # и PR будет помечен красным крестиком.
