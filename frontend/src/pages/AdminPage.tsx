@@ -1,17 +1,16 @@
 import { useState } from 'react';
 import { Layout } from '../components/Layout';
+import { Header } from '../components/Header';
 import { usePlugins } from '../plugins/PluginContext';
 import { PluginRenderer } from '../plugins/PluginRenderer';
 import { UsersPanel } from '../features/admin/UsersPanel';
 
-export function AdminPage({ onLogout }: { onLogout: () => void }) {
+export function AdminPage({ userName, onLogout }: { userName: string; onLogout: () => void }) {
   const [activeTab, setActiveTab] = useState('users');
   const { plugins } = usePlugins();
 
-  // Базовые вкладки ядра
   const coreTabs = [{ id: 'users', label: 'Пользователи' }];
   
-  // Вкладки от плагинов
   const pluginTabs = plugins
     .filter(p => p.frontend_admin_tab)
     .map(p => ({ id: p.id, label: p.frontend_admin_tab!.label, url: p.frontend_admin_tab!.component_url }));
@@ -21,9 +20,9 @@ export function AdminPage({ onLogout }: { onLogout: () => void }) {
   return (
     <Layout
       sidebar={
-        <div className="p-4">
-          <h1 className="font-bold text-lg mb-6">Админка</h1>
-          <div className="space-y-1">
+        <div className="p-4 flex flex-col h-full">
+          <h1 className="font-bold text-lg mb-6">ConturAI Admin</h1>
+          <div className="space-y-1 flex-1">
             {allTabs.map(t => (
               <button
                 key={t.id}
@@ -34,15 +33,17 @@ export function AdminPage({ onLogout }: { onLogout: () => void }) {
               </button>
             ))}
           </div>
-          <button onClick={onLogout} className="text-gray-400 hover:text-white mt-8 text-sm">Выйти</button>
+          <button onClick={onLogout} className="text-gray-400 hover:text-white mt-4 text-sm text-left">Выйти</button>
         </div>
       }
-      header={<div className="h-14 px-6 bg-white border-b flex items-center font-medium">Управление</div>}
+      header={
+        // Используем Header для навигации
+        <Header userName={userName} isAdmin={true} onLogout={onLogout} />
+      }
     >
       <div className="p-6 h-full overflow-y-auto">
         {activeTab === 'users' && <UsersPanel />}
         
-        {/* РЕНДЕР ВКЛАДОК ПЛАГИНОВ */}
         {pluginTabs.map(tab => 
           activeTab === tab.id ? <PluginRenderer key={tab.id} url={tab.url} /> : null
         )}

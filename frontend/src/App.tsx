@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom'; // Убрали BrowserRouter
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './pages/Login';
 import { ChatPage } from './pages/ChatPage';
 import { AdminPage } from './pages/AdminPage';
@@ -36,14 +36,30 @@ export default function App() {
     <ToastProvider>
       <PluginProvider>
         <Routes>
-          {/* Если токена нет — показываем только логин */}
-          {!token ? (
+          {!token || !user ? (
             <Route path="*" element={<Login onLogin={() => setToken(localStorage.getItem('token'))} />} />
           ) : (
             <>
-              <Route path="/chat" element={<ChatPage onLogout={() => { localStorage.clear(); setToken(null); setUser(null); }} />} />
-              {(user?.role === 'admin' || user?.role === 'editor') && (
-                <Route path="/admin" element={<AdminPage onLogout={() => { localStorage.clear(); setToken(null); setUser(null); }} />} />
+              <Route 
+                path="/chat" 
+                element={
+                  <ChatPage 
+                    userName={user.user_name || user.login} 
+                    isAdmin={user.role === 'admin' || user.role === 'editor'} 
+                    onLogout={() => { localStorage.clear(); setToken(null); setUser(null); }} 
+                  />
+                } 
+              />
+              {(user.role === 'admin' || user.role === 'editor') && (
+                <Route 
+                  path="/admin" 
+                  element={
+                    <AdminPage 
+                      userName={user.user_name || user.login}
+                      onLogout={() => { localStorage.clear(); setToken(null); setUser(null); }} 
+                    />
+                  } 
+                />
               )}
               <Route path="*" element={<Navigate to="/chat" replace />} />
             </>

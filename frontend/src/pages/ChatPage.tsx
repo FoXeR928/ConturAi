@@ -1,13 +1,20 @@
 import { useState, useEffect } from 'react';
 import { Layout } from '../components/Layout';
+import { Header } from '../components/Header'; // <-- Импортируем наш Header
 import { chatsApi, Chat } from '../api/chats';
 import { usePlugins } from '../plugins/PluginContext';
 import { PluginRenderer } from '../plugins/PluginRenderer';
 import { getToken } from '../api/http';
 import { Button } from '../ui/Button';
-import { ChatWindow } from '../features/chat/ChatWindow'; // <-- Импорт
+import { ChatWindow } from '../features/chat/ChatWindow';
 
-export function ChatPage({ onLogout }: { onLogout: () => void }) {
+interface ChatPageProps {
+  userName: string;
+  isAdmin: boolean;
+  onLogout: () => void;
+}
+
+export function ChatPage({ userName, isAdmin, onLogout }: ChatPageProps) {
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChat, setActiveChat] = useState<string | null>(null);
   const { plugins } = usePlugins();
@@ -41,8 +48,13 @@ export function ChatPage({ onLogout }: { onLogout: () => void }) {
         </div>
       }
       header={
-        <div className="h-14 flex items-center justify-between px-6 bg-white border-b border-gray-200 shrink-0">
-          <span className="font-medium">Чат</span>
+        <div className="flex items-center justify-between bg-white border-b border-gray-200 pr-6">
+          {/* Используем наш Header, который сам покажет вкладку админки */}
+          <div className="flex-1">
+            <Header userName={userName} isAdmin={isAdmin} onLogout={onLogout} />
+          </div>
+          
+          {/* СЛОТ ДЛЯ ПЛАГИНОВ В ШАПКЕ ЧАТА */}
           <div className="flex gap-2">
             {plugins.filter(p => p.frontend_chat_button).map(p => (
               <PluginRenderer key={p.id} url={p.frontend_chat_button!} props={{ chatId: activeChat, token: getToken() }} />
@@ -52,7 +64,7 @@ export function ChatPage({ onLogout }: { onLogout: () => void }) {
       }
     >
       {activeChat ? (
-        <ChatWindow chatId={activeChat} /> // <-- Используем компонент
+        <ChatWindow chatId={activeChat} /> 
       ) : (
         <div className="flex h-full items-center justify-center text-gray-400">
           Выберите чат или создайте новый
