@@ -13,6 +13,10 @@ import (
 	"time"
 )
 
+// ==============================================================================
+// УТИЛИТЫ
+// ==============================================================================
+
 func runCmd(dir string, name string, args ...string) error {
 	cmd := exec.Command(name, args...)
 	cmd.Dir = dir
@@ -51,13 +55,16 @@ func findProjectRoot() string {
 	}
 	dir := filepath.Dir(exePath)
 
+	// 1. Если exe в корне
 	if _, err := os.Stat(filepath.Join(dir, "templates")); err == nil {
 		return dir
 	}
+	// 2. Если exe в папке bin
 	parentDir := filepath.Dir(dir)
 	if _, err := os.Stat(filepath.Join(parentDir, "templates")); err == nil {
 		return parentDir
 	}
+	// 3. Если запущен из текущей директории
 	currentDir, _ := os.Getwd()
 	if _, err := os.Stat(filepath.Join(currentDir, "templates")); err == nil {
 		return currentDir
@@ -65,18 +72,13 @@ func findProjectRoot() string {
 	return dir
 }
 
-// Проверка структуры проекта перед установкой
 func checkProjectStructure(projectDir string) {
-	// Проверяем бэкенд
 	if _, err := os.Stat(filepath.Join(projectDir, "backend_core", "pyproject.toml")); os.IsNotExist(err) {
-		fmt.Println("\n[ERROR] Не найдена папка 'backend_core' или файл 'pyproject.toml' внутри неё!")
+		fmt.Println("\n[ERROR] Не найдена папка 'backend_core' или файл 'pyproject.toml'!")
 		os.Exit(1)
 	}
-	
-	// Проверяем фронтенд (ИЗМЕНЕНО: папка frontend)
 	if _, err := os.Stat(filepath.Join(projectDir, "frontend", "package.json")); os.IsNotExist(err) {
-		fmt.Println("\n[ERROR] Не найдена папка 'frontend' или файл 'package.json' внутри неё!")
-		fmt.Println("Убедитесь, что исходный код фронтенда лежит в папке 'frontend'.")
+		fmt.Println("\n[ERROR] Не найдена папка 'frontend' или файл 'package.json'!")
 		os.Exit(1)
 	}
 }
@@ -84,19 +86,11 @@ func checkProjectStructure(projectDir string) {
 func ensureLockFile(projectDir string) {
 	backendDir := filepath.Join(projectDir, "backend_core")
 	lockFile := filepath.Join(backendDir, "uv.lock")
-	pyprojectFile := filepath.Join(backendDir, "pyproject.toml")
-
 	if _, err := os.Stat(lockFile); err == nil {
-		return
-	}
-	
-	if _, err := os.Stat(pyprojectFile); os.IsNotExist(err) {
 		return
 	}
 
 	fmt.Println("\n[WARN] Файл uv.lock не найден. Генерируем автоматически...")
-	fmt.Println("[INFO] Это может занять около минуты...")
-
 	err := runCmd(projectDir, "docker", "run", "--rm",
 		"-v", fmt.Sprintf("%s:/app", backendDir),
 		"-w", "/app",
@@ -106,10 +100,33 @@ func ensureLockFile(projectDir string) {
 
 	if err != nil {
 		fmt.Println("\n[ERROR] Не удалось сгенерировать uv.lock.")
-		fmt.Println("Убедитесь, что Docker имеет доступ к интернету.")
 		os.Exit(1)
 	}
 	fmt.Println("[OK] uv.lock успешно создан.")
+}
+
+func setupEnv(projectDir string, force bool) {
+	envPath := filepath.Join(projectDir, ".env")
+	examplePath := filepath.Join(projectDir, "templates", ".env.example")
+
+	if !force {
+		if _, err := os.Stat(envPath); err == nil {
+			fmt.Println("[INFO] Файл .env уже существует. Используем текущие настройки.")
+			return
+		}
+	}
+
+	fmt.Println("[INFO] Создание нового .env...")
+	password := generatePassword(24)
+	content, err := os.ReadFile(examplePath)
+	if err != nil {
+		fmt.Printf("\n[ERROR] Не найден шаблон: %s\n", examplePath)
+		os.Exit(1)
+	}
+
+	newContent := strings.Replace(string(content), "DB_PASSWORD=CHANGE_ME", "DB_PASSWORD="+password, 1)
+	os.WriteFile(envPath, []byte(newContent), 0644)
+	fmt.Println("[OK] Файл .env создан.")
 }
 
 func setupCompose(projectDir string) {
@@ -117,12 +134,9 @@ func setupCompose(projectDir string) {
 	templatePath := filepath.Join(projectDir, "templates", "docker-compose.yml")
 
 	if _, err := os.Stat(composePath); err == nil {
-		fmt.Println("[INFO] Файл docker-compose.yml уже существует.")
-		return
+		return // Уже есть
 	}
 
-	fmt.Println("[INFO] Создание docker-compose.yml из шаблона...")
-	
 	srcFile, err := os.Open(templatePath)
 	if err != nil {
 		fmt.Printf("\n[ERROR] Не найден шаблон: %s\n", templatePath)
@@ -137,36 +151,128 @@ func setupCompose(projectDir string) {
 	}
 	defer dstFile.Close()
 
-	_, err = io.Copy(dstFile, srcFile)
-	if err != nil {
-		fmt.Println("[ERROR] Ошибка при копировании файла.")
-		os.Exit(1)
-	}
+	io.Copy(dstFile, srcFile)
 	fmt.Println("[OK] docker-compose.yml создан.")
 }
 
-func setupEnv(projectDir string) {
-	envPath := filepath.Join(projectDir, ".env")
-	examplePath := filepath.Join(projectDir, "templates", ".env.example")
+// ==============================================================================
+// БИЗНЕС-ЛОГИКА (УСТАНОВКА, ОБНОВЛЕНИЕ, ПЕРЕУСТАНОВКА)
+// ==============================================================================
 
-	if _, err := os.Stat(envPath); err == nil {
-		fmt.Println("[INFO] Файл .env уже существует. Используем текущие настройки.")
+func doInstall(projectDir string) {
+	fmt.Println("\n--- НАЧАЛО УСТАНОВКИ ---")
+	ensureLockFile(projectDir)
+	setupEnv(projectDir, false)
+	setupCompose(projectDir)
+
+	fmt.Println("\n[INFO] Сборка Docker-образов (это может занять время)...")
+	if !dc(projectDir, "build") {
 		return
 	}
 
-	fmt.Println("[INFO] Создание нового .env с безопасным паролем...")
-	password := generatePassword(24)
-	
-	content, err := os.ReadFile(examplePath)
-	if err != nil {
-		fmt.Printf("\n[ERROR] Не найден шаблон: %s\n", examplePath)
-		os.Exit(1)
+	fmt.Println("\n[INFO] Запуск Базы Данных...")
+	dc(projectDir, "up", "-d", "postgres")
+
+	fmt.Println("[INFO] Ожидание запуска базы данных (10 секунд)...")
+	time.Sleep(10 * time.Second)
+
+	fmt.Println("\n[INFO] Инициализация БД и создание администратора...")
+	dc(projectDir, "run", "--rm", "backend", "python", "scripts/manage.py", "init-db")
+	dc(projectDir, "run", "--rm", "backend", "python", "scripts/manage.py", "reset-admin")
+
+	fmt.Println("\n[INFO] Запуск всех сервисов...")
+	if !dc(projectDir, "up", "-d") {
+		return
 	}
 
-	newContent := strings.Replace(string(content), "DB_PASSWORD=CHANGE_ME", "DB_PASSWORD="+password, 1)
-	os.WriteFile(envPath, []byte(newContent), 0644)
-	fmt.Println("[OK] Файл .env создан в корне проекта.")
+	fmt.Println("\n==================================================")
+	fmt.Println("  УСТАНОВКА ЗАВЕРШЕНА!")
+	fmt.Println("  Веб-интерфейс: http://localhost:3000")
+	fmt.Println("  Swagger API:   http://localhost:8000/docs")
+	fmt.Println("==================================================")
 }
+
+func doUpdate(projectDir string) {
+	fmt.Println("\n--- ОБНОВЛЕНИЕ (сохранение данных) ---")
+	if _, err := os.Stat(filepath.Join(projectDir, ".env")); os.IsNotExist(err) {
+		fmt.Println("[ERROR] Файл .env не найден. Сначала выполните Установку.")
+		return
+	}
+
+	ensureLockFile(projectDir)
+
+	fmt.Println("\n[INFO] Пересборка контейнеров...")
+	dc(projectDir, "down", "--remove-orphans")
+	dc(projectDir, "build")
+	dc(projectDir, "up", "-d", "postgres")
+
+	fmt.Println("[INFO] Ожидание БД (10 секунд)...")
+	time.Sleep(10 * time.Second)
+
+	fmt.Println("\n[INFO] Применение миграций БД...")
+	dc(projectDir, "run", "--rm", "backend", "python", "scripts/manage.py", "migrate")
+
+	fmt.Println("\n[INFO] Запуск всех сервисов...")
+	dc(projectDir, "up", "-d")
+
+	fmt.Println("\n[SUCCESS] Обновление завершено! Сервисы перезапущены.")
+}
+
+func doReinstall(projectDir string) {
+	fmt.Println("\n--- ПОЛНАЯ ПЕРЕУСТАНОВКА (СБРОС БД) ---")
+	fmt.Print("ВНИМАНИЕ! Это удалит все данные, БД и .env. Продолжить? (y/N): ")
+	
+	reader := bufio.NewReader(os.Stdin)
+	confirm, _ := reader.ReadString('\n')
+	if strings.ToLower(strings.TrimSpace(confirm)) != "y" {
+		fmt.Println("Отменено.")
+		return
+	}
+
+	fmt.Println("\n[INFO] Удаление контейнеров и томов...")
+	dc(projectDir, "down", "-v", "--remove-orphans")
+
+	fmt.Println("[INFO] Удаление .env...")
+	os.Remove(filepath.Join(projectDir, ".env"))
+
+	doInstall(projectDir)
+}
+
+// ==============================================================================
+// МЕНЮ MANAGER.PY
+// ==============================================================================
+
+func menuManage(projectDir string) {
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		fmt.Println("\n--- Команды manage.py ---")
+		fmt.Println("  1) init-db (Создать таблицы)")
+		fmt.Println("  2) reset-admin (Сбросить пароль админа)")
+		fmt.Println("  3) migrate (Применить миграции)")
+		fmt.Println("  0) Назад в главное меню")
+		fmt.Print("Номер [0]: ")
+
+		choice, _ := reader.ReadString('\n')
+		choice = strings.TrimSpace(choice)
+
+		switch choice {
+		case "1":
+			dc(projectDir, "run", "--rm", "backend", "python", "scripts/manage.py", "init-db")
+		case "2":
+			dc(projectDir, "run", "--rm", "backend", "python", "scripts/manage.py", "reset-admin")
+		case "3":
+			dc(projectDir, "run", "--rm", "backend", "python", "scripts/manage.py", "migrate")
+		case "0":
+			return
+		default:
+			fmt.Println("Неверный выбор.")
+		}
+	}
+}
+
+// ==============================================================================
+// ГЛАВНОЕ МЕНЮ
+// ==============================================================================
 
 func main() {
 	fmt.Println("==================================================")
@@ -179,46 +285,40 @@ func main() {
 	}
 
 	projectDir := findProjectRoot()
+	checkProjectStructure(projectDir)
 	fmt.Printf("[INFO] Рабочая директория: %s\n", projectDir)
 
-	checkProjectStructure(projectDir)
-
-	ensureLockFile(projectDir)
-	setupEnv(projectDir)
-	setupCompose(projectDir)
-
-	// 1. Собираем образы
-	fmt.Println("\n[INFO] Сборка Docker-образов (Бэкенд + Фронтенд)...")
-	fmt.Println("[INFO] Первая сборка может занять несколько минут...")
-	if !dc(projectDir, "build") {
-		os.Exit(1)
-	}
-
-	// 2. Запускаем ТОЛЬКО базу данных
-	fmt.Println("\n[INFO] Запуск Базы Данных...")
-	dc(projectDir, "up", "-d", "postgres")
-
-	fmt.Println("[INFO] Ожидание запуска базы данных (10 секунд)...")
-	time.Sleep(10 * time.Second)
-
-	// 3. Инициализируем БД
-	fmt.Println("\n[INFO] Создание таблиц и администратора...")
-	runCmd(projectDir, "docker", "compose", "run", "--rm", "backend", "python", "scripts/manage.py", "init-db")
-	runCmd(projectDir, "docker", "compose", "run", "--rm", "backend", "python", "scripts/manage.py", "reset-admin")
-
-	// 4. Запускаем всё остальное
-	fmt.Println("\n[INFO] Запуск Бэкенда и Фронтенда...")
-	if !dc(projectDir, "up", "-d") {
-		os.Exit(1)
-	}
-
-	fmt.Println("\n==================================================")
-	fmt.Println("  УСТАНОВКА ЗАВЕРШЕНА!")
-	fmt.Println("  Веб-интерфейс: http://localhost:3000")
-	fmt.Println("  Swagger API:   http://localhost:8000/docs")
-	fmt.Println("==================================================")
-	
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("Нажмите Enter для выхода...")
-	reader.ReadString('\n')
+
+	for {
+		fmt.Println("\nГлавное меню:")
+		fmt.Println("  1) Установка с нуля")
+		fmt.Println("  2) Обновление (сохранить данные)")
+		fmt.Println("  3) Полная переустановка (сброс БД)")
+		fmt.Println("  4) Команды manage.py")
+		fmt.Println("  0) Выход")
+		fmt.Print("Номер [1]: ")
+
+		choice, _ := reader.ReadString('\n')
+		choice = strings.TrimSpace(choice)
+		if choice == "" {
+			choice = "1"
+		}
+
+		switch choice {
+		case "1":
+			doInstall(projectDir)
+		case "2":
+			doUpdate(projectDir)
+		case "3":
+			doReinstall(projectDir)
+		case "4":
+			menuManage(projectDir)
+		case "0":
+			fmt.Println("До свидания!")
+			os.Exit(0)
+		default:
+			fmt.Println("Неверный выбор.")
+		}
+	}
 }
