@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"crypto/rand"
 	"fmt"
+	"io"
 	"math/big"
 	"os"
 	"os/exec"
@@ -12,7 +13,6 @@ import (
 	"time"
 )
 
-// Запуск команды в конкретной директории
 func runCmd(dir string, name string, args ...string) error {
 	cmd := exec.Command(name, args...)
 	cmd.Dir = dir
@@ -22,7 +22,6 @@ func runCmd(dir string, name string, args ...string) error {
 	return cmd.Run()
 }
 
-// Обертка для docker compose
 func dc(projectDir string, args ...string) bool {
 	composeFile := filepath.Join(projectDir, "docker-compose.yml")
 	fullArgs := append([]string{"compose", "-f", composeFile}, args...)
@@ -34,7 +33,6 @@ func dc(projectDir string, args ...string) bool {
 	return true
 }
 
-// Генерация пароля
 func generatePassword(length int) string {
 	const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	result := make([]byte, length)
@@ -45,63 +43,68 @@ func generatePassword(length int) string {
 	return string(result)
 }
 
-// АВТОГЕНЕРАЦИЯ UV.LOCK
-func ensureLockFile(projectDir string) {
-	backendDir := filepath.Join(projectDir, "backend_core")
-	lockFile := filepath.Join(backendDir, "uv.lock")
-	pyprojectFile := filepath.Join(backendDir, "pyproject.toml")
-
-	// Если лок-файл есть, ничего не делаем
-	if _, err := os.Stat(lockFile); err == nil {
-		return
-	}
-
-	// Если нет pyproject.toml, то это не наш проект
-	if _, err := os.Stat(pyprojectFile); os.IsNotExist(err) {
-		fmt.Println("[ERROR] Не найден backend_core/pyproject.toml!")
-		os.Exit(1)
-	}
-
-	fmt.Println("\n[WARN] Файл uv.lock не найден. Генерируем автоматически...")
-	fmt.Println("[INFO] Это может занять около минуты...")
-
-	// Запускаем временный контейнер для генерации
-	err := runCmd(projectDir, "docker", "run", "--rm",
-		"-v", fmt.Sprintf("%s:/app", backendDir),
-		"-w", "/app",
-		"-e", "UV_PROJECT_ENVIRONMENT=/tmp/uv-venv",
-		"python:3.12-slim",
-		"sh", "-c", "pip install --quiet uv==0.5.11 && uv lock")
-
+func findProjectRoot() string {
+	exePath, err := os.Executable()
 	if err != nil {
-		fmt.Println("\n[ERROR] Не удалось сгенерировать uv.lock.")
-		fmt.Println("Проверьте интернет-соединение и доступ Docker к PyPI.")
-		os.Exit(1)
+		dir, _ := os.Getwd()
+		return dir
 	}
-	fmt.Println("[OK] uv.lock успешно создан.")
+	dir := filepath.Dir(exePath)
+
+	// Проверяем, есть ли docker-compose.yml или папка templates
+	if _, err := os.Stat(filepath.Join(dir, "templates")); err == nil {
+		return dir
+	}
+
+	parentDir := filepath.Dir(dir)
+	if _, err := os.Stat(filepath.Join(parentDir, "templates")); err == nil {
+		return parentDir
+	}
+
+	return dir
 }
 
-// Создание .env
-func setupEnv(projectDir string) {
-	envPath := filepath.Join(projectDir, ".env")
-	examplePath := filepath.Join(projectDir, ".env.example")
+// КОПИРОВАНИЕ ШАБЛОНА DOCKER-COMPOSE
+func setupCompose(projectDir string) {
+	composePath := filepath.Join(projectDir, "docker-compose.yml")
+	templatePath := filepath.Join(projectDir, "templates", "docker-compose.yml")
 
-	if _, err := os.Stat(envPath); err == nil {
-		fmt.Println("[INFO] Файл .env уже существует. Используем текущие настройки.")
+	// Если конфиг уже есть, не перезаписываем (чтобы не сломать настройки)
+	if _, err := os.Stat(composePath); err == nil {
+		fmt.Println("[INFO] Файл docker-compose.yml уже существует.")
 		return
 	}
 
-	fmt.Println("[INFO] Создание нового .env с безопасным паролем...")
-	password := generatePassword(24)
-	content, err := os.ReadFile(examplePath)
+	fmt.Println("[INFO] Создание docker-compose.yml из шаблона...")
+	
+	srcFile, err := os.Open(templatePath)
 	if err != nil {
-		fmt.Println("[ERROR] Не найден .env.example!")
+		fmt.Printf("\n[ERROR] Не найден шаблон: %s\n", templatePath)
 		os.Exit(1)
 	}
+	defer srcFile.Close()
 
-	newContent := strings.Replace(string(content), "DB_PASSWORD=CHANGE_ME", "DB_PASSWORD="+password, 1)
-	os.WriteFile(envPath, []byte(newContent), 0644)
-	fmt.Println("[OK] Файл .env создан.")
+	dstFile, err := os.Create(composePath)
+	if err != nil {
+		fmt.Printf("\n[ERROR] Не удалось создать %s\n", composePath)
+		os.Exit(1)
+	}
+	defer dstFile.Close()
+
+	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		fmt.Println("[ERROR] Ошибка при копировании файла.")
+		os.Exit(1)
+	}
+	fmt.Println("[OK] docker-compose.yml создан.")
+}
+
+func ensureLockFile(projectDir string) {
+	// ... (код из предыдущего сообщения)
+}
+
+func setupEnv(projectDir string) {
+	// ... (код из предыдущего сообщения, который берет шаблон из templates/.env.example)
 }
 
 func main() {
@@ -110,27 +113,25 @@ func main() {
 	fmt.Println("==================================================")
 
 	if err := runCmd(".", "docker", "info"); err != nil {
-		fmt.Println("\n[ERROR] Docker не запущен. Пожалуйста, запустите Docker Desktop.")
+		fmt.Println("\n[ERROR] Docker не запущен.")
 		os.Exit(1)
 	}
 
-	exePath, _ := os.Executable()
-	projectDir := filepath.Dir(exePath)
+	projectDir := findProjectRoot()
+	fmt.Printf("[INFO] Рабочая директория: %s\n", projectDir)
 
-	// 1. Проверяем/генерируем uv.lock
 	ensureLockFile(projectDir)
-
-	// 2. Создаем .env
 	setupEnv(projectDir)
+	
+	// ВЫЗЫВАЕМ НОВУЮ ФУНКЦИЮ
+	setupCompose(projectDir)
 
-	// 3. Сборка
 	fmt.Println("\n[INFO] Сборка и запуск Бэкенда и Базы Данных...")
 	dc(projectDir, "down", "--remove-orphans")
 	if !dc(projectDir, "up", "-d", "--build") {
 		os.Exit(1)
 	}
 
-	// 4. Ждем БД и инициализируем
 	fmt.Println("\n[INFO] Ожидание запуска базы данных (10 секунд)...")
 	time.Sleep(10 * time.Second)
 
