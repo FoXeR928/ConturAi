@@ -1,0 +1,62 @@
+name: conturai
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: conturai_postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-conturai_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-conturai}
+      POSTGRES_DB: ${DB_NAME:-conturai_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: conturai_backend
+    env_file: .env
+    environment:
+      DB_HOST: postgres
+      DATA_DIR: /app/data
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/status || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    volumes:
+      - app_data:/app/data
+      - ./plugins:/app/plugins        # Папка для плагинов
+      - /var/run/docker.sock:/var/run/docker.sock  # Сокет для управления vLLM (если плагин захочет запустить контейнер)
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: conturai_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  app_data:

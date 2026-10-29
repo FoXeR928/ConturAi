@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any, AsyncGenerator
 
 class BasePlugin(ABC):
     """Базовый класс для всех плагинов."""
@@ -18,6 +19,7 @@ class BaseParser(BasePlugin):
         """Извлекает текст."""
         pass
 
+
 class BaseRAGProvider(BasePlugin):
     """Интерфейс для плагинов поиска по документам (RAG)."""
     
@@ -34,4 +36,23 @@ class BaseRAGProvider(BasePlugin):
     @abstractmethod
     def format_context(self, docs: list[Any]) -> str:
         """Склеивает найденные чанки в единый текст для промпта."""
+        pass
+
+
+class BaseLLMProvider(BasePlugin):
+    """Интерфейс для плагинов генерации текста (vLLM, Ollama, OpenAI)."""
+    
+    @abstractmethod
+    async def generate(self, messages: list[dict], **kwargs) -> str:
+        """Обычная генерация (возвращает строку целиком)."""
+        pass
+
+    @abstractmethod
+    async def generate_stream(self, messages: list[dict], **kwargs) -> AsyncGenerator[str, None]:
+        """Стриминг (возвращает куски текста по мере генерации)."""
+        pass
+    
+    @abstractmethod
+    async def check_health(self) -> bool:
+        """Проверка, доступен ли сервер с моделью."""
         pass
