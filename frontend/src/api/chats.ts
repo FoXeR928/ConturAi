@@ -1,17 +1,45 @@
-import { request } from './http';
+import { api } from './http';
 
-export interface Chat { id: string; name: string; created_at: string; }
-export interface Message { id: string; chat_role: 'user'|'assistant'; text: string; created_at: string; }
+export interface Chat {
+  id: string;
+  title: string;
+  created_at: string;
+}
+
+export interface Message {
+  id: number;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  created_at: string;
+}
+
+export interface SendMessageResponse {
+  user_message: Message;
+  assistant_message: Message;
+}
 
 export const chatsApi = {
-  getChats: () => request<{ chats: Chat[] }>('/chats/get'),
-  createChat: (name: string) => request<{ chat_id: string }>('/chats/create', { method: 'POST', body: JSON.stringify({ name }) }),
-  getMessages: (chatId: string) => request<{ chat_name: string, messages_history: Message[], total: number }>(`/chats/messages/get?chat_id=${chatId}`),
-  
-  // ДОБАВЛЕНО: отправка сообщения
-  createMessage: (chatId: string, text: string) => 
-    request(`/chats/messages/create?chat_id=${chatId}`, { 
-      method: 'POST', 
-      body: JSON.stringify({ text }) 
+  list: (): Promise<Chat[]> => api('/chats'),
+
+  create: (title: string): Promise<Chat> =>
+    api('/chats', {
+      method: 'POST',
+      body: JSON.stringify({ title }),
+    }),
+
+  remove: (chatId: string): Promise<void> =>
+    api(`/chats/${chatId}`, { method: 'DELETE' }),
+
+  messages: (chatId: string): Promise<Message[]> =>
+    api(`/chats/${chatId}/messages`),
+
+  send: (
+    chatId: string,
+    pluginId: string,
+    content: string,
+  ): Promise<SendMessageResponse> =>
+    api(`/chats/${chatId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ plugin_id: pluginId, content }),
     }),
 };

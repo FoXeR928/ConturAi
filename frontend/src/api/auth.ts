@@ -1,21 +1,41 @@
-import { request, clearAuth } from './http';
+import { api, getToken, setToken, clearToken } from './http';
 
-export async function login(username: string, password: string, rememberMe: boolean) {
-  const form = new URLSearchParams();
-  form.append('username', username);
-  form.append('password', password);
-  form.append('expires_use', rememberMe ? 'true' : 'false');
-
-  const res = await fetch('/api/auth/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: form,
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Ошибка входа');
-  
-  localStorage.setItem('token', data.access_token);
-  return data;
+export interface LoginPayload {
+  login: string;
+  password: string;
 }
 
-export function logout() { clearAuth(); }
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+}
+
+export interface MeResponse {
+  id: string;
+  login: string;
+  display_name: string | null;
+  role: 'user' | 'editor' | 'admin';
+}
+
+export const authApi = {
+  async login(payload: LoginPayload): Promise<MeResponse> {
+    const tokens = await api<TokenResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    setToken(tokens.access_token);
+    return authApi.me();
+  },
+
+  me(): Promise<MeResponse> {
+    return api<MeResponse>('/auth/me');
+  },
+
+  logout(): void {
+    clearToken();
+  },
+
+  isAuthenticated(): boolean {
+    return getToken() !== null;
+  },
+};

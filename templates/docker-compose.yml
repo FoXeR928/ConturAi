@@ -1,65 +1,74 @@
-name: conturai-core
-
 services:
-  postgres:
-    image: pgvector/pgvector:pg16
-    container_name: conturai_postgres
+  db:
+    image: postgres:16-alpine
+    container_name: conturai_db
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: ${DB_USER:-conturai_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-conturai}
-      POSTGRES_DB: ${DB_NAME:-conturai_db}
-    ports:
-      - "5432:5432"
+      POSTGRES_DB: conturai
+      POSTGRES_USER: conturai
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-conturai_secret}
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./backend/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U conturai -d conturai"]
       interval: 5s
       timeout: 5s
       retries: 10
-    restart: unless-stopped
+    networks:
+      - conturai
 
   backend:
     build:
-      context: ./backend_core
-      dockerfile: Dockerfile
+      context: ./backend
     container_name: conturai_backend
-    env_file: .env
-    environment:
-      DB_HOST: postgres
-      DATA_DIR: /app/data
-    ports:
-      - "8000:8000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/status || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
-    volumes:
-      - app_data:/app/data
-      - models:/models
-      - ./plugins:/app/plugins
-      - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://conturai:${DB_PASSWORD:-conturai_secret}@db:5432/conturai
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    volumes:
+      - ./backend/plugins:/app/plugins:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - |
+          import urllib.request, sys
+          try:
+              with urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=2) as r:
+                  sys.exit(0 if r.status == 200 else 1)
+          except Exception:
+              sys.exit(1)
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - conturai
 
-  # --- НОВЫЙ СЕРВИС: ФРОНТЕНД ---
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
     container_name: conturai_frontend
-    ports:
-      - "3000:80"
+    restart: unless-stopped
     depends_on:
       backend:
         condition: service_healthy
-    restart: unless-stopped
+    ports:
+      - "8080:80"
+    networks:
+      - conturai
 
 volumes:
   pgdata:
-  app_data:
-  models:
+
+networks:
+  conturai:
+    driver: bridge

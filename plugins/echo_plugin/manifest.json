@@ -1,0 +1,36 @@
+{
+  "id": "echo_plugin",
+  "name": "Echo",
+  "description": "Демонстрационный плагин: возвращает переданное сообщение с префиксом.",
+  "version": "1.0.0",
+  "kind": "internal",
+  "is_active": true,
+  "settings_schema": {
+    "prefix": {
+      "type": "text",
+      "label": "Префикс",
+      "description": "Строка, добавляемая перед ответом",
+      "default": "Echo: ",
+      "required": true
+    },
+    "repeat": {
+      "type": "slider",
+      "label": "Повторов",
+      "description": "Сколько раз повторить ответ",
+      "default": 1,
+      "min": 1,
+      "max": 5,
+      "step": 1
+    },
+    "style": {
+      "type": "select",
+      "label": "Стиль",
+      "default": "plain",
+      "options": [
+        {"label": "Обычный", "value": "plain"},
+        {"label": "Верхний регистр", "value": "upper"},
+        {"label": "Нижний регистр", "value": "lower"}
+      ]
+    }
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "id": "llm_vllm",
+  "name": "vLLM (OpenAI-совместимый)",
+  "version": "1.2.0",
+  "type": "remote",
+  "interface": "openai-compatible",
+  "provides": ["llm"],
+  "base_path": "/v1",
+  "model": "local-model",
+
+  "deployment": "docker",
+  "external_url": null,
+
+  "depends_on": ["models_downloader"],
+  "model_path": "/models/Qwen2.5-1.5B-Instruct",
+
+  "docker_image": "vllm/vllm-openai:latest",
+  "container_name": "conturai_plugin_vllm",
+  "ports": { "8000/tcp": 8080 },
+  "host_port": 8080,
+  "internal_port": 8000,
+  "health_endpoint": "/health",
+  "health_timeout": 600,
+  "ipc_mode": "host",
+  "volumes": ["conturai_models:/models:ro"],
+  "environment": {
+    "HF_HUB_OFFLINE": "1",
+    "TRANSFORMERS_OFFLINE": "1"
+  },
+  "command": [
+    "--model", "/models/Qwen2.5-1.5B-Instruct",
+    "--served-model-name", "local-model",
+    "--max-model-len", "2048",
+    "--gpu-memory-utilization", "0.85"
+  ],
+  "device_requests": [
+    { "count": -1, "capabilities": [["gpu"]] }
+  ],
+
+  "config_schema": {
+    "deployment": {
+      "type": "select",
+      "label": "Режим работы",
+      "options": ["docker", "external"],
+      "default": "docker"
+    },
+    "external_url": {
+      "type": "string",
+      "label": "URL внешнего сервера (только для external)",
+      "default": "",
+      "placeholder": "http://192.168.1.10:8000"
+    },
+    "model": {
+      "type": "string",
+      "label": "served-model-name",
+      "default": "local-model"
+    },
+    "base_path": {
+      "type": "string",
+      "label": "Base path API",
+      "default": "/v1"
+    },
+    "docker_image": {
+      "type": "string",
+      "label": "Docker-образ",
+      "default": "vllm/vllm-openai:latest",
+      "show_if": { "deployment": "docker" }
+    },
+    "model_path": {
+      "type": "string",
+      "label": "Путь к модели",
+      "default": "/models/Qwen2.5-1.5B-Instruct",
+      "show_if": { "deployment": "docker" }
+    },
+    "command": {
+      "type": "list",
+      "label": "Команда запуска",
+      "default": ["--model", "/models/Qwen2.5-1.5B-Instruct", "--max-model-len", "2048"],
+      "show_if": { "deployment": "docker" }
+    },
+    "host_port": {
+      "type": "int",
+      "label": "Порт на хосте",
+      "default": 8080,
+      "show_if": { "deployment": "docker" }
+    },
+    "environment": {
+      "type": "dict",
+      "label": "ENV",
+      "default": { "HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1" },
+      "show_if": { "deployment": "docker" }
+    },
+    "volumes": {
+      "type": "list",
+      "label": "Volumes",
+      "default": ["conturai_models:/models:ro"],
+      "show_if": { "deployment": "docker" }
+    },
+    "device_requests": {
+      "type": "list",
+      "label": "GPU",
+      "default": [{ "count": -1, "capabilities": [["gpu"]] }],
+      "show_if": { "deployment": "docker" }
+    }
+  }
+}

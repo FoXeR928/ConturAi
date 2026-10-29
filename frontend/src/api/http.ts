@@ -1,28 +1,42 @@
-const API_BASE = '/api';
+const TOKEN_KEY = 'conturai_token';
 
-export const getToken = () => localStorage.getItem('token');
-export const clearAuth = () => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('me');
-};
+export function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
 
-export async function request<T = any>(path: string, options: RequestInit = {}): Promise<T> {
+export function setToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function clearToken(): void {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+interface ApiError {
+  detail?: string;
+}
+
+export async function api<T>(
+  path: string,
+  init: RequestInit = {},
+): Promise<T> {
+  const headers = new Headers(init.headers);
+  headers.set('Content-Type', 'application/json');
   const token = getToken();
-  const headers: Record<string, string> = { ...(options.headers as any) };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-  if (!(options.body instanceof FormData) && options.body) headers['Content-Type'] = 'application/json';
+  if (token) headers.set('Authorization', `Bearer ${token}`);
 
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
-  const text = await res.text();
-  
-  let data: any = {};
-  if (text) {
-    try { data = JSON.parse(text); } catch { throw new Error(`Ошибка сервера: HTTP ${res.status}`); }
+  const response = await fetch(`/api${path}`, { ...init, headers });
+  if (response.status === 401) {
+    clearToken();
+    if (window.location.pathname !== '/login') {
+      window.location.href = '/login';
+    }
+    throw new Error('Требуется авторизация');
   }
-
-  if (!res.ok) {
-    if (res.status === 401) { clearAuth(); window.location.href = '/'; }
-    throw new Error(data.message || `HTTP ${res.status}`);
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as ApiError;
+    throw new Error(body.detail ?? `HTTP ${response.status}`);
   }
-  return data as T;
+  if (response.status === 204) return undefined as T;
+  return (await response.json()) as T;
 }

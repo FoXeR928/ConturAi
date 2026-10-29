@@ -1,0 +1,20 @@
+{
+  "id": "models_downloader",
+  "name": "Менеджер моделей",
+  "version": "1.0.0",
+  "type": "local",
+  "interface": "custom",
+  "provides": ["model_manager"],
+  "health_endpoint": "/health",
+  "health_timeout": 30,
+  "environment": {
+    "MODELS_DIR": "/models"
+  },
+  "config_schema": {
+    "MODELS_DIR": {
+      "type": "string",
+      "label": "Директория моделей",
+      "default": "/models"
+    }
+  }
+}
