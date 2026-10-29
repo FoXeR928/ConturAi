@@ -1,20 +1,14 @@
 import { request } from './http';
 
-export interface PluginInfo {
+export interface PluginItem {
   id: string;
   name: string;
-  version: string;
-  description: string;
-  icon: string;
-  type: string;
-  is_enabled: boolean;
+  // URL на JS-файл плагина для фронтенда
+  frontend_chat_button?: string;
+  frontend_admin_tab?: { label: string; component_url: string };
 }
 
 export const pluginsApi = {
-  getPlugins: () => request<{result: boolean, plugins: PluginInfo[]}>('/plugins/list'),
-  togglePlugin: (pluginId: string, enabled: boolean) => 
-    request(`/plugins/${pluginId}/toggle`, {
-      method: 'PATCH',
-      body: JSON.stringify({ enabled }),
-    }),
+  getActivePlugins: () => request<{ plugins: PluginItem[] }>('/plugins/active'),
+  togglePlugin: (id: string) => request(`/plugins/toggle?id=${id}`, { method: 'PATCH' }),
 };

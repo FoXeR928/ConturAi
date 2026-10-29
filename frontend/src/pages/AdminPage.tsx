@@ -1,142 +1,51 @@
-import { useState, useEffect } from 'react'
-import { Puzzle } from 'lucide-react';;
+import { useState } from 'react';
 import { Layout } from '../components/Layout';
-import { Header } from '../components/Header';
-import { healthApi } from '../api/health';
-
-// Импорт всех панелей
+import { usePlugins } from '../plugins/PluginContext';
+import { PluginRenderer } from '../plugins/PluginRenderer';
 import { UsersPanel } from '../features/admin/UsersPanel';
-import { PromptsPanel } from '../features/admin/PromptsPanel';
-import { LlmConfigsPanel } from '../features/admin/LlmConfigsPanel';
-import { DocsPanel } from '../features/admin/DocsPanel';
-import { DeletedChatsPanel } from '../features/admin/DeletedChatsPanel';
-import { DatabasePanel } from '../features/admin/DatabasePanel';
-import { FewShotsPanel } from '../features/admin/FewShotsPanel';
-import { SystemStatsPanel } from '../features/admin/SystemStatsPanel';
-import { DownloadRequestsPanel } from '../features/admin/DownloadRequestsPanel';
-import { AuditPanel } from '../features/admin/AuditPanel';
-import { TagsPanel } from '../features/admin/TagsPanel';
-import { PluginsPanel } from '../features/admin/PluginsPanel';
 
-// Импорт иконок для меню
-import { 
-  Users, Terminal, Settings, FileText, Trash, Tag, 
-  Database, Brain, Download, Activity, ClipboardList 
-} from 'lucide-react';
+export function AdminPage({ onLogout }: { onLogout: () => void }) {
+  const [activeTab, setActiveTab] = useState('users');
+  const { plugins } = usePlugins();
 
-// ==============================================================================
-// БЛОК 1: ОПИСАНИЕ ТИПОВ И КОНФИГУРАЦИЯ ВКЛАДОК
-// ==============================================================================
+  // Базовые вкладки ядра
+  const coreTabs = [{ id: 'users', label: 'Пользователи' }];
+  
+  // Вкладки от плагинов
+  const pluginTabs = plugins
+    .filter(p => p.frontend_admin_tab)
+    .map(p => ({ id: p.id, label: p.frontend_admin_tab!.label, url: p.frontend_admin_tab!.component_url }));
 
-type Tab = 
-  | 'users' | 'prompts' | 'llm' | 'docs' | 'chats' | 'tags' 
-  | 'system' | 'downloads' | 'audit' | 'few-shots' | 'database' | 'plugins';
-
-// Конфигурация меню: связываем ID вкладки, читаемое название и иконку
-const TABS: { id: Tab; label: string; icon: any }[] = [
-  { id: 'users', label: 'Пользователи', icon: Users },
-  { id: 'prompts', label: 'Промты', icon: Terminal },
-  { id: 'llm', label: 'Параметры LLM', icon: Settings },
-  { id: 'docs', label: 'Документы', icon: FileText },
-  { id: 'tags', label: 'Теги', icon: Tag },
-  { id: 'chats', label: 'Корзина чатов', icon: Trash },
-  { id: 'database', label: 'Базы данных', icon: Database },
-  { id: 'few-shots', label: 'База знаний (Few-Shot)', icon: Brain },
-  { id: 'downloads', label: 'Запросы на скачивание', icon: Download },
-  { id: 'audit', label: 'Журнал событий', icon: ClipboardList },
-  { id: 'system', label: 'Мониторинг', icon: Activity },
-  { id: 'plugins', label: 'Плагины', icon: Puzzle },
-];
-
-// ==============================================================================
-// БЛОК 2: КОМПОНЕНТ СТРАНИЦЫ
-// ==============================================================================
-
-export function AdminPage({ userName, onLogout }: { userName?: string; onLogout: () => void; }) {
-  // Состояние активной вкладки (по умолчанию — Пользователи)
-  const [tab, setTab] = useState<Tab>('users');
-
-  // Состояние для версии
-  const [version, setVersion] = useState('');
-
-  // Запрашиваем версию при загрузке
-  useEffect(() => {
-    healthApi.getStatus()
-      .then(res => setVersion(res.version))
-      .catch(() => setVersion(''));
-  }, []);
+  const allTabs = [...coreTabs, ...pluginTabs];
 
   return (
     <Layout
-      // ========================================================================
-      // БЛОК 3: БОКОВОЕ МЕНЮ (SIDEBAR)
-      // ========================================================================
       sidebar={
-        <div className="flex flex-col h-full bg-gray-900 text-white">
-          {/* Заголовок админки */}
-          <div className="p-5 border-b border-gray-800 shrink-0">
-            <div className="text-xl font-bold tracking-wide text-gray-100 flex items-center gap-2">
-              ConturAI
-            </div>
-            <div className="text-xs text-gray-500 mt-1 uppercase font-semibold tracking-wider">
-              Панель управления
-            </div>
+        <div className="p-4">
+          <h1 className="font-bold text-lg mb-6">Админка</h1>
+          <div className="space-y-1">
+            {allTabs.map(t => (
+              <button
+                key={t.id}
+                onClick={() => setActiveTab(t.id)}
+                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${activeTab === t.id ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-800'}`}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
-
-          {/* Навигация */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-thin scrollbar-thumb-gray-700">
-            {TABS.map((t) => {
-              const Icon = t.icon;
-              const isActive = tab === t.id;
-              
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setTab(t.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                    isActive 
-                      ? 'bg-blue-600 text-white shadow-md' 
-                      : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
-                  }`}
-                >
-                  <Icon size={18} className={isActive ? 'text-white' : 'text-gray-500'} />
-                  {t.label}
-                </button>
-              );
-            })}
-          </div>
-          
-          {/* БЛОК ВЕРСИИ (Футер сайдбара) */}
-          <div className="p-4 border-t border-gray-800 text-center text-xs text-gray-500 shrink-0">
-            ConturAI {version ? `v${version}` : ''}
-          </div>
+          <button onClick={onLogout} className="text-gray-400 hover:text-white mt-8 text-sm">Выйти</button>
         </div>
       }
-      
-      // ========================================================================
-      // БЛОК 4: ШАПКА
-      // ========================================================================
-      header={<Header userName={userName} isAdmin onLogout={onLogout} />}
+      header={<div className="h-14 px-6 bg-white border-b flex items-center font-medium">Управление</div>}
     >
-      
-      {/* ======================================================================
-          БЛОК 5: ОБЛАСТЬ КОНТЕНТА (РЕНДЕР ПАНЕЛЕЙ)
-          ====================================================================== */}
-      <div className="h-full overflow-y-auto p-4 sm:p-6 bg-gray-50">
-        <div className="max-w-7xl mx-auto">
-          {tab === 'users' && <UsersPanel />}
-          {tab === 'prompts' && <PromptsPanel />}
-          {tab === 'llm' && <LlmConfigsPanel />}
-          {tab === 'docs' && <DocsPanel />}
-          {tab === 'tags' && <TagsPanel />}
-          {tab === 'chats' && <DeletedChatsPanel />}
-          {tab === 'database' && <DatabasePanel />}
-          {tab === 'few-shots' && <FewShotsPanel />}
-          {tab === 'downloads' && <DownloadRequestsPanel />}
-          {tab === 'audit' && <AuditPanel />}
-          {tab === 'system' && <SystemStatsPanel />}
-          {tab === 'plugins' && <PluginsPanel />}
-        </div>
+      <div className="p-6 h-full overflow-y-auto">
+        {activeTab === 'users' && <UsersPanel />}
+        
+        {/* РЕНДЕР ВКЛАДОК ПЛАГИНОВ */}
+        {pluginTabs.map(tab => 
+          activeTab === tab.id ? <PluginRenderer key={tab.id} url={tab.url} /> : null
+        )}
       </div>
     </Layout>
   );
