@@ -6,11 +6,21 @@ export interface RegisterPayload {
   endpoint_url: string;
 }
 
+export interface HealthCheck {
+  status: 'ok' | 'down';
+  latency_ms: number | null;
+}
+
+export interface ActionResponse {
+  result: boolean;
+  action_id: string;
+}
+
 export const pluginsApi = {
-  list: (): Promise<PluginView[]> => api('/plugins'),
+  list: (): Promise<PluginView[]> => api<PluginView[]>('/plugins'),
 
   toggle: (pluginId: string, isActive: boolean): Promise<PluginView> =>
-    api(`/plugins/${pluginId}/toggle`, {
+    api<PluginView>(`/plugins/${pluginId}/toggle`, {
       method: 'PATCH',
       body: JSON.stringify({ is_active: isActive }),
     }),
@@ -19,28 +29,28 @@ export const pluginsApi = {
     pluginId: string,
     settings: PluginSettings,
   ): Promise<PluginView> =>
-    api(`/plugins/${pluginId}/settings`, {
+    api<PluginView>(`/plugins/${pluginId}/settings`, {
       method: 'PATCH',
       body: JSON.stringify({ settings }),
     }),
 
   register: (payload: RegisterPayload): Promise<PluginView> =>
-    api('/plugins/register', {
+    api<PluginView>('/plugins/register', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
 
   remove: (pluginId: string): Promise<void> =>
-    api(`/plugins/${pluginId}`, { method: 'DELETE' }),
+    api<void>(`/plugins/${pluginId}`, { method: 'DELETE' }),
 
-  health: (
-    pluginId: string,
-  ): Promise<{ status: 'ok' | 'down'; latency_ms: number | null }> =>
-    api(`/plugins/${pluginId}/health`),
+  health: (pluginId: string): Promise<HealthCheck> =>
+    api<HealthCheck>(`/plugins/${pluginId}/health`),
 
   runAction: (
     pluginId: string,
     actionId: string,
-  ): Promise<{ result: boolean; action_id: string }> =>
-    api(`/plugins/${pluginId}/actions/${actionId}`, { method: 'POST' }),
+  ): Promise<ActionResponse> =>
+    api<ActionResponse>(`/plugins/${pluginId}/actions/${actionId}`, {
+      method: 'POST',
+    }),
 };

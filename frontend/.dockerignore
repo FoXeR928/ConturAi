@@ -1,4 +1,9 @@
-node_modules/
-dist/
-.vite/
+node_modules
+dist
+.vite
+.env
+.env.*
 npm-debug.log*
+*.log
+.git
+.gitignore

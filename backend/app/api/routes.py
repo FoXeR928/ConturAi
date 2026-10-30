@@ -95,7 +95,9 @@ async def delete_plugin(
         raise ApiError("CONFLICT", str(exc), status=409) from exc
 
 
-@router.post("/plugins/{plugin_id}/actions/{action_id}", status_code=200)
+@router.post(
+    "/plugins/{plugin_id}/actions/{action_id}", status_code=200,
+)
 async def run_plugin_action(
     plugin_id: str,
     action_id: str,
