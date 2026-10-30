@@ -37,4 +37,10 @@ export const pluginsApi = {
     pluginId: string,
   ): Promise<{ status: 'ok' | 'down'; latency_ms: number | null }> =>
     api(`/plugins/${pluginId}/health`),
+
+  runAction: (
+    pluginId: string,
+    actionId: string,
+  ): Promise<{ result: boolean; action_id: string }> =>
+    api(`/plugins/${pluginId}/actions/${actionId}`, { method: 'POST' }),
 };

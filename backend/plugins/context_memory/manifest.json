@@ -1,0 +1,30 @@
+{
+  "id": "context_memory",
+  "name": "Контекст и память",
+  "description": "Загружает историю сообщений чата в PipelineContext",
+  "version": "1.0.0",
+  "api_version": "1",
+  "kind": "internal",
+  "is_active": true,
+  "priority": 10,
+  "provides_stream": false,
+  "execution_timeout": 15,
+  "max_concurrent": 8,
+  "settings_schema": {
+    "max_messages": {
+      "type": "slider",
+      "label": "Максимум сообщений в истории",
+      "default": 20,
+      "min": 1,
+      "max": 100,
+      "step": 1
+    },
+    "max_chars": {
+      "type": "number",
+      "label": "Максимум символов",
+      "default": 8000,
+      "min": 500,
+      "max": 50000
+    }
+  }
+}

@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, AsyncGenerator
 
-from app.schemas.plugin import ChatMessage, PluginManifest
+from app.schemas.plugin import PipelineContext, PluginManifest
 
 
 class BasePlugin(ABC):
@@ -19,18 +19,25 @@ class BasePlugin(ABC):
         self.settings = settings
 
     @abstractmethod
-    async def execute(self, prompt: str, history: list[ChatMessage]) -> str:
+    async def execute(self, ctx: PipelineContext) -> PipelineContext:
+        """Основная логика плагина. Модифицирует и возвращает ctx."""
         ...
 
     async def execute_stream(
-        self, prompt: str, history: list[ChatMessage],
+        self, ctx: PipelineContext,
     ) -> AsyncGenerator[str, None]:
-        """По умолчанию — фоллбэк на execute() одним чанком."""
-        yield await self.execute(prompt, history)
+        """Стриминговая версия. По умолчанию — вызывает execute и отдаёт одним чанком."""
+        ctx = await self.execute(ctx)
+        if ctx.answer:
+            yield ctx.answer
+
+    async def reconfigure(self) -> None:
+        """Вызывается после update_settings. Плагин решает, что делать
+        (например, пересоздать контейнер vLLM)."""
+        return None
 
     async def check_health(self) -> bool:
         return True
 
     async def shutdown(self) -> None:
-        """Опционально: освобождение ресурсов при остановке ядра."""
         return None

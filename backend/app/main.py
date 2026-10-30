@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import secrets
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -14,11 +15,19 @@ from app.auth.security import hash_password
 from app.core.config import settings
 from app.core.errors import install_error_handlers
 from app.db.database import Database
-from app.plugins.context import PluginContext
+from app.plugins.context import PluginSystemContext
 from app.plugins.registry import PluginRegistry
 from app.stores.chat_store import ChatStore
 from app.stores.plugin_store import PluginStore
 from app.stores.user_store import UserStore
+
+try:
+    import docker
+    from docker import DockerClient
+    _DOCKER_AVAILABLE = True
+except ImportError:
+    _DOCKER_AVAILABLE = False
+    DockerClient = None  # type: ignore
 
 
 logging.basicConfig(
@@ -45,7 +54,6 @@ async def _ensure_admin(user_store: UserStore) -> None:
     logger.warning("=" * 60)
     logger.warning("Создан администратор. Логин: admin")
     logger.warning("Пароль: %s", password)
-    logger.warning("Сохраните пароль — он показывается один раз.")
     logger.warning("=" * 60)
 
 
@@ -60,8 +68,27 @@ async def lifespan(app: FastAPI):
     await _ensure_admin(user_store)
 
     client = httpx.AsyncClient()
-    context = PluginContext(database_url=settings.database_url)
-    registry = PluginRegistry(PLUGINS_DIR, plugin_store, client, context)
+
+    docker_client = None
+    if _DOCKER_AVAILABLE:
+        try:
+            docker_client = docker.from_env()
+            docker_client.ping()
+            logger.info("Docker SDK подключён")
+        except Exception as exc:
+            logger.warning("Docker SDK недоступен: %s", exc)
+            docker_client = None
+    else:
+        logger.warning("Модуль docker не установлен — managed-плагины недоступны")
+
+    sys_ctx = PluginSystemContext(
+        database_url=settings.database_url,
+        http_client=client,
+        docker_client=docker_client,
+        docker_network=os.getenv("DOCKER_NETWORK", "conturai_conturai"),
+    )
+
+    registry = PluginRegistry(PLUGINS_DIR, plugin_store, client, sys_ctx)
     await registry.load()
     await registry.start_health_loop(settings.external_plugin_health_interval)
 
@@ -71,6 +98,7 @@ async def lifespan(app: FastAPI):
     app.state.chat_store = chat_store
     app.state.registry = registry
     app.state.http_client = client
+    app.state.docker_client = docker_client
 
     try:
         yield
@@ -80,7 +108,7 @@ async def lifespan(app: FastAPI):
         await db.close()
 
 
-app = FastAPI(title="ConturAI Core", version="2.0.0", lifespan=lifespan)
+app = FastAPI(title="ConturAI Core", version="3.0.0", lifespan=lifespan)
 
 if settings.cors_origins:
     app.add_middleware(

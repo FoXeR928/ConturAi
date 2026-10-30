@@ -21,10 +21,4 @@ class MessageOut(BaseModel):
 
 
 class SendMessageRequest(BaseModel):
-    plugin_id: str
     content: str = Field(..., min_length=1)
-
-
-class SendMessageResponse(BaseModel):
-    user_message: MessageOut
-    assistant_message: MessageOut

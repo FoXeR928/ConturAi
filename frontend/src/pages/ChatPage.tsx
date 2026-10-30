@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Chat, Message, chatsApi } from '../api/chats';
-import { pluginsApi } from '../api/plugins';
 import { authApi } from '../api/auth';
 import { ApiError } from '../api/http';
 import { Markdown } from '../components/Markdown';
 import { useToast } from '../components/ToastProvider';
-import type { PluginView } from '../types/plugin';
+import type { PipelineTraceItem } from '../types/plugin';
 
 export function ChatPage() {
   const navigate = useNavigate();
@@ -14,12 +13,11 @@ export function ChatPage() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [plugins, setPlugins] = useState<PluginView[]>([]);
-  const [pluginId, setPluginId] = useState('');
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [typing, setTyping] = useState(false);
   const [streamingText, setStreamingText] = useState('');
+  const [lastTrace, setLastTrace] = useState<PipelineTraceItem[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -28,14 +26,6 @@ export function ChatPage() {
 
   useEffect(() => {
     void reloadChats();
-    pluginsApi
-      .list()
-      .then((list) => {
-        setPlugins(list);
-        const first = list.find((p) => p.manifest.is_active);
-        if (first) setPluginId(first.manifest.id);
-      })
-      .catch(() => undefined);
     authApi
       .me()
       .then((me) => setIsAdmin(me.role === 'admin'))
@@ -45,12 +35,14 @@ export function ChatPage() {
   useEffect(() => {
     if (!activeChatId) {
       setMessages([]);
+      setLastTrace([]);
       return;
     }
     chatsApi
       .messages(activeChatId)
       .then(setMessages)
       .catch(() => setMessages([]));
+    setLastTrace([]);
   }, [activeChatId]);
 
   useEffect(() => {
@@ -73,13 +65,14 @@ export function ChatPage() {
   };
 
   const send = async () => {
-    if (!activeChatId || !pluginId || !input.trim() || busy) return;
+    if (!activeChatId || !input.trim() || busy) return;
 
     const content = input.trim();
     setInput('');
     setBusy(true);
     setTyping(true);
     setStreamingText('');
+    setLastTrace([]);
 
     const optimisticUser: Message = {
       id: Date.now(),
@@ -95,7 +88,6 @@ export function ChatPage() {
     try {
       await chatsApi.sendStream(
         activeChatId,
-        pluginId,
         content,
         {
           onDelta: (delta) => setStreamingText((prev) => prev + delta),
@@ -117,6 +109,7 @@ export function ChatPage() {
             ]);
             setStreamingText('');
             setTyping(false);
+            setLastTrace(info.trace);
           },
           onError: (msg) => {
             show(msg, 'error');
@@ -252,34 +245,49 @@ export function ChatPage() {
                     <Markdown>{streamingText}</Markdown>
                   ) : (
                     <span className="text-slate-400 animate-pulse">
-                      Печатает...
+                      Обработка пайплайна...
                     </span>
                   )}
                 </div>
               )}
               {messages.length === 0 && !typing && (
                 <p className="text-center text-sm text-slate-400">
-                  Начните диалог
+                  Начните диалог — запрос пройдёт через все активные плагины.
                 </p>
+              )}
+              {lastTrace.length > 0 && !typing && (
+                <details className="text-xs text-slate-400 mt-2">
+                  <summary className="cursor-pointer hover:text-slate-600">
+                    Пайплайн: {lastTrace.length} шаг(ов)
+                  </summary>
+                  <ul className="mt-2 space-y-0.5 pl-4">
+                    {lastTrace.map((t, i) => (
+                      <li key={i}>
+                        <span
+                          className={
+                            t.ok ? 'text-emerald-600' : 'text-rose-600'
+                          }
+                        >
+                          {t.ok ? '✓' : '✗'}
+                        </span>{' '}
+                        {t.plugin_name}{' '}
+                        <span className="text-slate-400">
+                          ({t.duration_ms} ms)
+                        </span>
+                        {t.error && (
+                          <span className="text-rose-500 ml-1">
+                            — {t.error}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
               )}
               <div ref={bottomRef} />
             </div>
             <div className="p-4 bg-white border-t border-slate-200
                             space-y-2">
-              <select
-                value={pluginId}
-                onChange={(e) => setPluginId(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border
-                           border-slate-300 text-sm"
-              >
-                {plugins
-                  .filter((p) => p.manifest.is_active)
-                  .map((p) => (
-                    <option key={p.manifest.id} value={p.manifest.id}>
-                      {p.manifest.name}
-                    </option>
-                  ))}
-              </select>
               <div className="flex gap-2">
                 <input
                   value={input}
@@ -308,7 +316,7 @@ export function ChatPage() {
                 ) : (
                   <button
                     onClick={() => void send()}
-                    disabled={busy || !input.trim() || !pluginId}
+                    disabled={busy || !input.trim()}
                     className="px-4 py-2 rounded-lg bg-indigo-600 text-white
                                text-sm hover:bg-indigo-700
                                disabled:opacity-60"

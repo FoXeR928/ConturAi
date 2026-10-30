@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 from typing import Any, AsyncGenerator
 
 from fastapi import APIRouter, Depends, Request
@@ -16,30 +17,52 @@ from app.schemas.chat import (
     ChatOut,
     MessageOut,
     SendMessageRequest,
-    SendMessageResponse,
 )
-from app.schemas.plugin import ChatMessage
+from app.schemas.plugin import (
+    ChatMessage,
+    PipelineContext,
+    PipelineTraceItem,
+)
 
 
 router = APIRouter(prefix="/api/v1/chats", tags=["chats"])
 
 
-async def _build_history(
-    chat_store: Any, chat_id: str, max_chars: int,
-) -> list[ChatMessage]:
-    rows = await chat_store.list_messages(chat_id, limit=200)
-    history: list[ChatMessage] = []
-    total = 0
-    for row in reversed(rows):
-        if row["role"] not in ("user", "assistant", "system"):
-            continue
-        content = row["content"]
-        if total + len(content) > max_chars:
-            break
-        history.append(ChatMessage(role=row["role"], content=content))
-        total += len(content)
-    history.reverse()
-    return history
+async def _run_pipeline(
+    plugins: list[Any],
+    ctx: PipelineContext,
+) -> tuple[PipelineContext, list[PipelineTraceItem]]:
+    trace: list[PipelineTraceItem] = []
+    for plugin in plugins:
+        manifest = plugin.get_manifest()
+        started = time.monotonic()
+        try:
+            ctx = await asyncio.wait_for(
+                plugin.execute(ctx),
+                timeout=float(manifest.execution_timeout),
+            )
+            duration = int((time.monotonic() - started) * 1000)
+            trace.append(
+                PipelineTraceItem(
+                    plugin_id=manifest.id,
+                    plugin_name=manifest.name,
+                    duration_ms=duration,
+                    ok=True,
+                )
+            )
+        except asyncio.TimeoutError:
+            raise ApiError(
+                "PLUGIN_TIMEOUT",
+                f"Плагин {manifest.id} не ответил за {manifest.execution_timeout}s",
+                status=504,
+            ) from None
+        except Exception as exc:
+            raise ApiError(
+                "PLUGIN_ERROR",
+                f"Плагин {manifest.id}: {exc}",
+                status=502,
+            ) from exc
+    return ctx, trace
 
 
 @router.get("", response_model=list[ChatOut])
@@ -85,23 +108,13 @@ async def list_messages(
     return [MessageOut(**r) for r in await store.list_messages(chat_id)]
 
 
-def _check_plugin(registry: Any, plugin_id: str) -> Any:
-    plugin = registry.get(plugin_id)
-    if plugin is None:
-        raise ApiError("NOT_FOUND", "Плагин не найден", status=404)
-    manifest = plugin.get_manifest()
-    if not manifest.is_active:
-        raise ApiError("PLUGIN_INACTIVE", "Плагин отключен", status=409)
-    return plugin
-
-
-@router.post("/{chat_id}/messages", response_model=SendMessageResponse)
+@router.post("/{chat_id}/messages")
 async def send_message(
     chat_id: str,
     payload: SendMessageRequest,
     request: Request,
     user: dict[str, Any] = Depends(get_current_user),
-) -> SendMessageResponse:
+) -> dict[str, Any]:
     chat_store = request.app.state.chat_store
     registry = request.app.state.registry
 
@@ -113,46 +126,53 @@ async def send_message(
 
     if await chat_store.get(chat_id, user["id"]) is None:
         raise ApiError("NOT_FOUND", "Чат не найден", status=404)
-    plugin = _check_plugin(registry, payload.plugin_id)
-    manifest = plugin.get_manifest()
+
+    plugins = registry.active_pipeline()
+    if not plugins:
+        raise ApiError(
+            "NO_PLUGINS",
+            "Нет активных плагинов — некому обработать сообщение",
+            status=503,
+        )
 
     lock = registry.get_chat_lock(chat_id)
     async with lock:
-        history = await _build_history(
-            chat_store, chat_id, manifest.max_history_chars,
-        )
         user_msg_id = await chat_store.add_message(
             chat_id, "user", payload.content,
         )
-        sem = registry.get_semaphore(payload.plugin_id)
-        async with sem:
-            try:
-                answer = await asyncio.wait_for(
-                    plugin.execute(payload.content, history),
-                    timeout=float(manifest.execution_timeout),
-                )
-            except asyncio.TimeoutError:
-                raise ApiError(
-                    "PLUGIN_TIMEOUT", "Плагин не ответил вовремя", status=504,
-                ) from None
-            except Exception as exc:
-                raise ApiError(
-                    "PLUGIN_ERROR", f"Ошибка плагина: {exc}", status=502,
-                ) from exc
+
+        ctx = PipelineContext(
+            prompt=payload.content,
+            metadata={"chat_id": chat_id, "user_id": user["id"]},
+        )
+        ctx, trace = await _run_pipeline(plugins, ctx)
+
+        if not ctx.answer:
+            raise ApiError(
+                "NO_ANSWER",
+                "Ни один плагин не сформировал ответ (проверьте, включён ли LLM-плагин)",
+                status=502,
+            )
+
         assistant_msg_id = await chat_store.add_message(
-            chat_id, "assistant", answer,
+            chat_id, "assistant", ctx.answer,
         )
 
-    return SendMessageResponse(
-        user_message=MessageOut(
-            id=user_msg_id, role="user",
-            content=payload.content, created_at="",
-        ),
-        assistant_message=MessageOut(
-            id=assistant_msg_id, role="assistant",
-            content=answer, created_at="",
-        ),
-    )
+    return {
+        "user_message": {
+            "id": user_msg_id,
+            "role": "user",
+            "content": payload.content,
+            "created_at": "",
+        },
+        "assistant_message": {
+            "id": assistant_msg_id,
+            "role": "assistant",
+            "content": ctx.answer,
+            "created_at": "",
+        },
+        "trace": [t.model_dump() for t in trace],
+    }
 
 
 @router.post("/{chat_id}/messages/stream")
@@ -173,45 +193,97 @@ async def stream_message(
 
     if await chat_store.get(chat_id, user["id"]) is None:
         raise ApiError("NOT_FOUND", "Чат не найден", status=404)
-    plugin = _check_plugin(registry, payload.plugin_id)
-    manifest = plugin.get_manifest()
+
+    plugins = registry.active_pipeline()
+    if not plugins:
+        raise ApiError("NO_PLUGINS", "Нет активных плагинов", status=503)
 
     async def event_stream() -> AsyncGenerator[bytes, None]:
         lock = registry.get_chat_lock(chat_id)
         collected: list[str] = []
-        user_msg_id = 0
         disconnected = False
+        trace: list[PipelineTraceItem] = []
+        user_msg_id = 0
 
         try:
             async with lock:
-                history = await _build_history(
-                    chat_store, chat_id, manifest.max_history_chars,
-                )
                 user_msg_id = await chat_store.add_message(
                     chat_id, "user", payload.content,
                 )
-                sem = registry.get_semaphore(payload.plugin_id)
-                async with sem:
-                    async def _consume() -> AsyncGenerator[str, None]:
-                        async for delta in plugin.execute_stream(
-                            payload.content, history,
-                        ):
-                            if await request.is_disconnected():
-                                raise asyncio.CancelledError()
-                            collected.append(delta)
-                            yield delta
+                ctx = PipelineContext(
+                    prompt=payload.content,
+                    metadata={"chat_id": chat_id, "user_id": user["id"]},
+                )
 
-                    async for delta in _consume():
-                        chunk = json.dumps(
-                            {"delta": delta}, ensure_ascii=False,
+                for plugin in plugins:
+                    manifest = plugin.get_manifest()
+                    started = time.monotonic()
+
+                    if manifest.provides_stream:
+                        async def _consume(pl=plugin):
+                            async for chunk in pl.execute_stream(ctx):
+                                if await request.is_disconnected():
+                                    raise asyncio.CancelledError()
+                                collected.append(chunk)
+                                line = json.dumps(
+                                    {"delta": chunk}, ensure_ascii=False,
+                                )
+                                yield f"data: {line}\n\n".encode("utf-8")
+
+                        async for chunk_bytes in _consume():
+                            yield chunk_bytes
+                        duration = int((time.monotonic() - started) * 1000)
+                        trace.append(
+                            PipelineTraceItem(
+                                plugin_id=manifest.id,
+                                plugin_name=manifest.name,
+                                duration_ms=duration,
+                                ok=True,
+                            )
                         )
-                        yield f"data: {chunk}\n\n".encode("utf-8")
+                    else:
+                        try:
+                            ctx = await asyncio.wait_for(
+                                plugin.execute(ctx),
+                                timeout=float(manifest.execution_timeout),
+                            )
+                            duration = int((time.monotonic() - started) * 1000)
+                            trace.append(
+                                PipelineTraceItem(
+                                    plugin_id=manifest.id,
+                                    plugin_name=manifest.name,
+                                    duration_ms=duration,
+                                    ok=True,
+                                )
+                            )
+                        except Exception as exc:
+                            duration = int((time.monotonic() - started) * 1000)
+                            trace.append(
+                                PipelineTraceItem(
+                                    plugin_id=manifest.id,
+                                    plugin_name=manifest.name,
+                                    duration_ms=duration,
+                                    ok=False,
+                                    error=str(exc),
+                                )
+                            )
+                            raise
+
+                if not ctx.answer and collected:
+                    ctx.answer = "".join(collected)
+
+                if not ctx.answer:
+                    raise RuntimeError("Пайплайн не сформировал ответ")
 
                 assistant_id = await chat_store.add_message(
-                    chat_id, "assistant", "".join(collected),
+                    chat_id, "assistant", ctx.answer,
                 )
                 done = json.dumps(
-                    {"done": True, "assistant_message_id": assistant_id},
+                    {
+                        "done": True,
+                        "assistant_message_id": assistant_id,
+                        "trace": [t.model_dump() for t in trace],
+                    },
                     ensure_ascii=False,
                 )
                 yield f"data: {done}\n\n".encode("utf-8")
@@ -234,9 +306,7 @@ async def stream_message(
                     )
                 except Exception:
                     pass
-            error = json.dumps(
-                {"error": str(exc)}, ensure_ascii=False,
-            )
+            error = json.dumps({"error": str(exc)}, ensure_ascii=False)
             yield f"data: {error}\n\n".encode("utf-8")
         finally:
             if not disconnected:
@@ -245,8 +315,5 @@ async def stream_message(
     return StreamingResponse(
         event_stream(),
         media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-        },
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )

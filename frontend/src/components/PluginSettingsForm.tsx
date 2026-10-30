@@ -3,6 +3,7 @@ import { pluginsApi } from '../api/plugins';
 import { ApiError } from '../api/http';
 import { useToast } from './ToastProvider';
 import type {
+  PluginAction,
   PluginSettings,
   PluginView,
   SelectOption,
@@ -24,6 +25,7 @@ export function PluginSettingsForm({
     plugin.manifest.is_active,
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [actionBusy, setActionBusy] = useState<string | null>(null);
   const { show } = useToast();
 
   useEffect(() => {
@@ -74,6 +76,29 @@ export function PluginSettingsForm({
     }
   };
 
+  const handleAction = async (action: PluginAction): Promise<void> => {
+    if (
+      action.confirm &&
+      !confirm(
+        `${action.label}?\n${action.description ?? ''}`.trim(),
+      )
+    ) {
+      return;
+    }
+    setActionBusy(action.id);
+    try {
+      await pluginsApi.runAction(plugin.manifest.id, action.id);
+      show(`Готово: ${action.label}`, 'success');
+    } catch (err) {
+      show(
+        err instanceof ApiError ? err.message : 'Ошибка действия',
+        'error',
+      );
+    } finally {
+      setActionBusy(null);
+    }
+  };
+
   const formDisabled = !isActive;
 
   return (
@@ -116,9 +141,9 @@ export function PluginSettingsForm({
             {plugin.manifest.description || 'Без описания'}
           </p>
           <p className="text-xs text-slate-400 mt-1">
-            v{plugin.manifest.version} · {plugin.manifest.kind} · id:{' '}
-            {plugin.manifest.id}
-            {plugin.manifest.streaming && ' · streaming'}
+            v{plugin.manifest.version} · {plugin.manifest.kind} ·
+            priority: {plugin.manifest.priority}
+            {plugin.manifest.provides_stream && ' · streaming'}
           </p>
         </div>
         <ToggleSwitch checked={isActive} onChange={handleToggle} />
@@ -160,6 +185,34 @@ export function PluginSettingsForm({
           </button>
         </div>
       </div>
+
+      {plugin.manifest.actions.length > 0 && (
+        <div className="border-t border-slate-200 pt-4">
+          <h3 className="text-xs font-semibold text-slate-500
+                         uppercase tracking-wide mb-3">
+            Действия
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {plugin.manifest.actions.map((action) => (
+              <button
+                key={action.id}
+                type="button"
+                onClick={() => handleAction(action)}
+                disabled={actionBusy !== null}
+                className="px-3 py-1.5 rounded-lg bg-slate-100
+                           text-slate-700 text-sm font-medium
+                           hover:bg-slate-200 disabled:opacity-60
+                           transition-colors"
+                title={action.description ?? undefined}
+              >
+                {actionBusy === action.id
+                  ? `${action.label}...`
+                  : action.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

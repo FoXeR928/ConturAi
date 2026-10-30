@@ -28,8 +28,10 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       CORS_ORIGINS: ${CORS_ORIGINS:-}
+      DOCKER_NETWORK: conturai_conturai
     volumes:
       - ./backend/plugins:/app/plugins:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       db:
         condition: service_healthy

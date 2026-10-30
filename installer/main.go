@@ -73,8 +73,8 @@ func findProjectRoot() string {
 }
 
 func checkProjectStructure(projectDir string) {
-	if _, err := os.Stat(filepath.Join(projectDir, "backend_core", "pyproject.toml")); os.IsNotExist(err) {
-		fmt.Println("\n[ERROR] Не найдена папка 'backend_core' или файл 'pyproject.toml'!")
+	if _, err := os.Stat(filepath.Join(projectDir, "backend", "pyproject.toml")); os.IsNotExist(err) {
+		fmt.Println("\n[ERROR] Не найдена папка 'backend' или файл 'pyproject.toml'!")
 		os.Exit(1)
 	}
 	if _, err := os.Stat(filepath.Join(projectDir, "frontend", "package.json")); os.IsNotExist(err) {
@@ -84,7 +84,7 @@ func checkProjectStructure(projectDir string) {
 }
 
 func ensureLockFile(projectDir string) {
-	backendDir := filepath.Join(projectDir, "backend_core")
+	backendDir := filepath.Join(projectDir, "backend")
 	lockFile := filepath.Join(backendDir, "uv.lock")
 	if _, err := os.Stat(lockFile); err == nil {
 		return

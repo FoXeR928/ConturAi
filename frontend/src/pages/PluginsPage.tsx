@@ -81,6 +81,12 @@ export function PluginsPage() {
     }
   };
 
+  const sorted = [...plugins].sort(
+    (a, b) => a.manifest.priority - b.manifest.priority,
+  );
+
+  const activePipelines = sorted.filter((p) => p.manifest.is_active);
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-3xl mx-auto px-6 py-10 space-y-6">
@@ -90,7 +96,16 @@ export function PluginsPage() {
               Плагины
             </h1>
             <p className="text-sm text-slate-500 mt-1">
-              Управление встроенными и внешними модулями системы.
+              Пайплайн:{' '}
+              {activePipelines.length === 0 ? (
+                <span className="text-rose-600">пусто</span>
+              ) : (
+                <span className="font-mono text-slate-700">
+                  {activePipelines
+                    .map((p) => p.manifest.name)
+                    .join(' → ')}
+                </span>
+              )}
             </p>
           </div>
           <button
@@ -115,7 +130,7 @@ export function PluginsPage() {
               <input
                 value={endpointUrl}
                 onChange={(e) => setEndpointUrl(e.target.value)}
-                placeholder="http://vllm:8000"
+                placeholder="http://my-plugin:8000"
                 className="w-full px-3 py-2 rounded-lg border
                            border-slate-300 text-sm font-mono
                            focus:outline-none focus:ring-2
@@ -131,30 +146,12 @@ export function PluginsPage() {
                 onChange={(e) => setManifestJson(e.target.value)}
                 rows={10}
                 placeholder={`{
-  "id": "llm_vllm",
-  "name": "vLLM",
+  "id": "my_plugin",
+  "name": "My Plugin",
   "kind": "external",
   "api_version": "1",
-  "streaming": true,
-  "settings_schema": {
-    "model": {
-      "type": "select",
-      "label": "Модель",
-      "default": "qwen",
-      "options": [
-        {"label": "Qwen 1.5B", "value": "qwen"},
-        {"label": "Qwen 7B",   "value": "qwen-7b"}
-      ]
-    },
-    "temperature": {
-      "type": "slider",
-      "label": "Температура",
-      "default": 0.7,
-      "min": 0,
-      "max": 2,
-      "step": 0.1
-    }
-  }
+  "priority": 50,
+  "settings_schema": {}
 }`}
                 className="w-full px-3 py-2 rounded-lg border
                            border-slate-300 text-xs font-mono
@@ -184,14 +181,15 @@ export function PluginsPage() {
           <p className="text-sm text-slate-500">Загрузка...</p>
         )}
 
-        {!isLoading && plugins.length === 0 && (
+        {!isLoading && sorted.length === 0 && (
           <div className="rounded-lg bg-white border border-slate-200
                           p-8 text-center text-slate-500 text-sm">
-            Нет зарегистрированных плагинов.
+            Нет зарегистрированных плагинов. Проверьте папку{' '}
+            <code className="font-mono">backend/plugins/</code>.
           </div>
         )}
 
-        {plugins.map((plugin) => (
+        {sorted.map((plugin) => (
           <div key={plugin.manifest.id} className="space-y-2">
             <PluginSettingsForm
               plugin={plugin}

@@ -1,0 +1,42 @@
+{
+  "id": "web_search",
+  "name": "Веб-поиск",
+  "description": "Обогащает промпт результатами из интернета",
+  "version": "1.0.0",
+  "api_version": "1",
+  "kind": "internal",
+  "is_active": false,
+  "priority": 30,
+  "provides_stream": false,
+  "execution_timeout": 20,
+  "max_concurrent": 4,
+  "settings_schema": {
+    "enabled": {
+      "type": "boolean",
+      "label": "Использовать веб-поиск",
+      "default": true
+    },
+    "provider": {
+      "type": "select",
+      "label": "Провайдер",
+      "default": "mock",
+      "options": [
+        { "label": "Mock (демо, без сети)", "value": "mock" },
+        { "label": "Brave Search API", "value": "brave" }
+      ]
+    },
+    "api_key": {
+      "type": "text",
+      "label": "API-ключ (для Brave)",
+      "default": ""
+    },
+    "results_count": {
+      "type": "slider",
+      "label": "Сколько результатов",
+      "default": 3,
+      "min": 1,
+      "max": 10,
+      "step": 1
+    }
+  }
+}

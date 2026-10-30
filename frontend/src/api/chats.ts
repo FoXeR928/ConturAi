@@ -1,4 +1,5 @@
 import { api, getToken, ApiError } from './http';
+import type { PipelineTraceItem } from '../types/plugin';
 
 export interface Chat {
   id: string;
@@ -16,11 +17,13 @@ export interface Message {
 export interface SendMessageResponse {
   user_message: Message;
   assistant_message: Message;
+  trace: PipelineTraceItem[];
 }
 
 export interface StreamDone {
   done: true;
   assistant_message_id: number;
+  trace: PipelineTraceItem[];
 }
 
 export interface StreamCallbacks {
@@ -46,19 +49,14 @@ export const chatsApi = {
   messages: (chatId: string): Promise<Message[]> =>
     api(`/chats/${chatId}/messages`),
 
-  send: (
-    chatId: string,
-    pluginId: string,
-    content: string,
-  ): Promise<SendMessageResponse> =>
+  send: (chatId: string, content: string): Promise<SendMessageResponse> =>
     api(`/chats/${chatId}/messages`, {
       method: 'POST',
-      body: JSON.stringify({ plugin_id: pluginId, content }),
+      body: JSON.stringify({ content }),
     }),
 
   async sendStream(
     chatId: string,
-    pluginId: string,
     content: string,
     callbacks: StreamCallbacks,
     signal: AbortSignal,
@@ -72,7 +70,7 @@ export const chatsApi = {
       {
         method: 'POST',
         headers,
-        body: JSON.stringify({ plugin_id: pluginId, content }),
+        body: JSON.stringify({ content }),
         signal,
       },
     );
@@ -106,15 +104,19 @@ export const chatsApi = {
         if (raw === '[DONE]') return;
         try {
           const obj = JSON.parse(raw);
-          if (obj.delta) callbacks.onDelta(obj.delta as string);
-          else if (obj.done) {
+          if (typeof obj.delta === 'string') {
+            callbacks.onDelta(obj.delta);
+          } else if (obj.done === true) {
             callbacks.onDone({
               done: true,
               assistant_message_id: obj.assistant_message_id,
+              trace: obj.trace ?? [],
             });
-          } else if (obj.error) callbacks.onError(obj.error as string);
+          } else if (typeof obj.error === 'string') {
+            callbacks.onError(obj.error);
+          }
         } catch {
-          // игнорируем нераспарсенное
+          // ignore malformed
         }
       }
     }

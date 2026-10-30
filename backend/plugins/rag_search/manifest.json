@@ -1,0 +1,40 @@
+{
+  "id": "rag_search",
+  "name": "RAG База знаний",
+  "description": "Поиск по документам с тегами, обогащение промпта",
+  "version": "1.0.0",
+  "api_version": "1",
+  "kind": "internal",
+  "is_active": false,
+  "priority": 20,
+  "provides_stream": false,
+  "execution_timeout": 30,
+  "max_concurrent": 4,
+  "settings_schema": {
+    "enabled": {
+      "type": "boolean",
+      "label": "Использовать RAG",
+      "default": true
+    },
+    "top_k": {
+      "type": "slider",
+      "label": "Сколько документов искать",
+      "default": 5,
+      "min": 1,
+      "max": 20,
+      "step": 1
+    },
+    "tags": {
+      "type": "text",
+      "label": "Теги для фильтрации (через запятую)",
+      "default": "",
+      "description": "Пусто = все документы"
+    },
+    "database_url": {
+      "type": "text",
+      "label": "Строка подключения к RAG-базе",
+      "default": "",
+      "description": "Пусто = БД ядра"
+    }
+  }
+}

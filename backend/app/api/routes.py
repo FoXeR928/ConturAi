@@ -95,6 +95,24 @@ async def delete_plugin(
         raise ApiError("CONFLICT", str(exc), status=409) from exc
 
 
+@router.post("/plugins/{plugin_id}/actions/{action_id}", status_code=200)
+async def run_plugin_action(
+    plugin_id: str,
+    action_id: str,
+    request: Request,
+    _: dict[str, Any] = Depends(get_admin_user),
+) -> dict[str, Any]:
+    try:
+        await _registry(request).run_action(plugin_id, action_id)
+    except KeyError as exc:
+        raise ApiError("NOT_FOUND", str(exc), status=404) from exc
+    except ValueError as exc:
+        raise ApiError("VALIDATION_ERROR", str(exc), status=422) from exc
+    except Exception as exc:
+        raise ApiError("ACTION_FAILED", str(exc), status=502) from exc
+    return {"result": True, "action_id": action_id}
+
+
 @router.get(
     "/plugins/{plugin_id}/health", response_model=HealthResponse,
 )
