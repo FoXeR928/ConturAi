@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ConturAi manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+        .pulse-dot { animation: pulse 1.6s ease-in-out infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+        .logs-pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.45; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+
+    <!-- Header -->
+    <header class="border-b border-slate-800 bg-slate-950/70 backdrop-blur sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-bold">C</div>
+                <div>
+                    <h1 class="text-lg font-semibold leading-tight">ConturAi <span class="text-indigo-400">manager</span></h1>
+                    <p class="text-xs text-slate-400">Установщик и панель управления</p>
+                </div>
+            </div>
+            <div id="docker-info" class="text-right text-xs text-slate-400"></div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+
+        <!-- Установка / Bootstrap -->
+        <section id="install-screen" class="hidden">
+            <div class="max-w-2xl mx-auto text-center">
+                <div class="bg-slate-800/40 border border-slate-700 rounded-2xl p-10 shadow-xl">
+                    <div class="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-3xl">⚙️</div>
+                    <h2 class="text-2xl font-bold mb-3">Установка ConturAi</h2>
+                    <p class="text-slate-400 mb-8">
+                        Разверните ядро системы: базу данных, бэкенд и фронтенд в изолированной сети <code class="bg-slate-900 px-2 py-0.5 rounded text-indigo-300">conturai-mesh-net</code>.
+                    </p>
+
+                    <button id="btn-install"
+                        class="w-full md:w-auto px-8 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-semibold text-lg transition">
+                        🚀 Запустить установку (Bootstrap)
+                    </button>
+
+                    <div id="install-progress" class="hidden mt-8 text-left">
+                        <div class="flex justify-between text-sm mb-2">
+                            <span id="install-message" class="text-slate-300">Инициализация…</span>
+                            <span id="install-percent" class="text-indigo-400 font-mono">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-900 rounded-full h-2.5 overflow-hidden border border-slate-700">
+                            <div id="install-bar" class="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all" style="width:0%"></div>
+                        </div>
+                    </div>
+
+                    <div id="install-error" class="hidden mt-6 p-4 bg-red-950/50 border border-red-800 rounded-lg text-red-300 text-sm text-left"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dashboard -->
+        <section id="dashboard" class="hidden">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-semibold">Контейнеры ядра</h2>
+                <div class="flex items-center gap-2 text-xs text-slate-400">
+                    <span class="w-2 h-2 rounded-full bg-green-400 pulse-dot"></span>
+                    обновление в реальном времени
+                </div>
+            </div>
+
+            <div id="containers-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8"></div>
+
+            <div id="logs-panel" class="hidden bg-slate-950 border border-slate-800 rounded-xl overflow-hidden">
+                <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-slate-900/60">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm text-slate-400">Логи:</span>
+                        <span id="logs-container-name" class="text-sm font-mono text-indigo-300"></span>
+                    </div>
+                    <button id="logs-close" class="text-xs text-slate-400 hover:text-slate-200">Закрыть ✕</button>
+                </div>
+                <pre id="logs-content" class="logs-pre p-4 h-80 overflow-auto text-slate-300 whitespace-pre-wrap"></pre>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
