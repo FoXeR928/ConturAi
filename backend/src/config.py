@@ -14,9 +14,13 @@ class Settings(BaseSettings):
     admin_password: str = "admin123"
 
     database_url: str = "sqlite+aiosqlite:///./data/conturai.db"
-    plugins_dir: str = "/plugins"
+    plugins_dir: str = "./plugins"
 
-    conturai_manager_url: str = "http://conturai-manager:8080"
+    conturai_manager_url: str = "http://127.0.0.1:8080"
+
+    # "docker" — endpoint = http://{container_name}:{internal_port}
+    # "local"  — endpoint = http://localhost:{host_port}
+    plugin_endpoint_mode: str = "docker"
 
     cors_origins: str = "*"
 

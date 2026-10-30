@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from src.config import settings
 from src.routes.installer_api import router as installer_router
 
 logging.basicConfig(
@@ -16,7 +17,7 @@ logger = logging.getLogger("conturai.manager")
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
-app = FastAPI(title="ConturAi manager", version="0.1.0")
+app = FastAPI(title="ConturAi manager", version="0.2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -29,18 +30,17 @@ app.include_router(installer_router)
 
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-else:
-    logger.warning("static dir not found: %s", STATIC_DIR)
 
 
 @app.get("/")
 async def index():
-    index_file = STATIC_DIR / "index.html"
-    if not index_file.exists():
-        return {"error": "index.html not found"}
-    return FileResponse(str(index_file))
+    f = STATIC_DIR / "index.html"
+    return FileResponse(str(f)) if f.exists() else {"error": "index.html missing"}
 
 
 @app.on_event("startup")
-async def _on_startup():
-    logger.info("ConturAi manager started, static dir=%s", STATIC_DIR)
+async def _startup():
+    logger.info(
+        "ConturAi manager started | local_mode=%s | port=%s",
+        settings.local_mode, settings.manager_port,
+    )

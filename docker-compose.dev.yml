@@ -1,0 +1,25 @@
+# Только то, что должно быть в Docker при локальной разработке.
+# Backend / Frontend / Manager запускаются как процессы на хосте.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: conturai-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: conturai_user
+      POSTGRES_PASSWORD: conturai_secret_change_me
+      POSTGRES_DB: conturai_db
+    volumes:
+      - conturai-pg-data:/var/lib/postgresql/data
+    networks:
+      - conturai-mesh-net
+
+volumes:
+  conturai-pg-data:
+
+networks:
+  conturai-mesh-net:
+    name: conturai-mesh-net
+    external: false

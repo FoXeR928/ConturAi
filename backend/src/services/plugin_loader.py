@@ -1,7 +1,6 @@
 """
-Двухуровневая активация плагинов:
-  Уровень 1 — контейнер (через ConturAi manager, HTTP).
-  Уровень 2 — логика в процессе ядра (on_activate + provider).
+Изменения относительно предыдущей версии отмечены в activate_plugin():
+учтён PLUGIN_ENDPOINT_MODE для выбора endpoint URL контейнера плагина.
 """
 from __future__ import annotations
 
@@ -12,6 +11,7 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from ..config import settings
 from ..interfaces.llm_spec import ContextPipeline, InferenceProvider
 from ..interfaces.plugin_spec import NexusPlugin
 from .manager_client import ManagerClient
@@ -21,30 +21,22 @@ logger = logging.getLogger("conturai.backend.plugins")
 
 class PluginRecord:
     __slots__ = (
-        "id",
-        "manifest",
-        "plugin",
-        "status",
-        "endpoint_url",
-        "error",
-        "settings",
-        "_installed",
+        "id", "manifest", "plugin", "status",
+        "endpoint_url", "error", "settings", "_installed",
     )
 
     def __init__(self, plugin_id: str, manifest: dict, plugin: NexusPlugin) -> None:
-        self.id: str = plugin_id
-        self.manifest: dict = manifest
-        self.plugin: NexusPlugin = plugin
-        self.status: str = "inactive"
+        self.id = plugin_id
+        self.manifest = manifest
+        self.plugin = plugin
+        self.status = "inactive"
         self.endpoint_url: Optional[str] = None
         self.error: Optional[str] = None
         self.settings: dict = {}
-        self._installed: bool = False
+        self._installed = False
 
 
 class PluginRegistry:
-    """Реестр всех обнаруженных плагинов + операции жизненного цикла."""
-
     def __init__(self, plugins_dir: str, manager: ManagerClient) -> None:
         self.plugins_dir = Path(plugins_dir)
         self.manager = manager
@@ -67,13 +59,11 @@ class PluginRegistry:
     def _discover_one(self, folder: Path) -> None:
         manifest_path = folder / "manifest.json"
         if not manifest_path.exists():
-            logger.debug("skip %s (no manifest.json)", folder.name)
             return
 
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         plugin_id = manifest.get("id") or folder.name
-        main_file = manifest.get("main", "main.py")
-        main_path = folder / main_file
+        main_path = folder / manifest.get("main", "main.py")
         if not main_path.exists():
             raise RuntimeError(f"main file missing: {main_path}")
 
@@ -88,9 +78,6 @@ class PluginRegistry:
         sys.path.insert(0, str(folder))
         try:
             spec.loader.exec_module(module)
-        except Exception:
-            sys.modules.pop(module_name, None)
-            raise
         finally:
             sys.path[:] = old_path
 
@@ -98,7 +85,7 @@ class PluginRegistry:
         if plugin_cls is None:
             raise RuntimeError(f"no NexusPlugin subclass in {folder.name}")
 
-        plugin = plugin_cls()  # type: ignore[call-arg]
+        plugin = plugin_cls()
         if not plugin.id:
             plugin.id = plugin_id
         if not plugin.name:
@@ -106,14 +93,12 @@ class PluginRegistry:
         plugin.version = manifest.get("version", plugin.version)
 
         self._plugins[plugin.id] = PluginRecord(plugin.id, manifest, plugin)
-        logger.info(
-            "discovered plugin: %s [%s]", plugin.id, manifest.get("type", "local")
-        )
+        logger.info("discovered plugin: %s [%s]", plugin.id, manifest.get("type", "local"))
 
     @staticmethod
     def _find_plugin_class(module) -> Optional[type]:
-        for attr_name in dir(module):
-            obj = getattr(module, attr_name)
+        for attr in dir(module):
+            obj = getattr(module, attr)
             if (
                 isinstance(obj, type)
                 and issubclass(obj, NexusPlugin)
@@ -135,7 +120,6 @@ class PluginRegistry:
         try:
             endpoint_url: Optional[str] = None
 
-            # УРОВЕНЬ 1 — инфраструктура (только для remote)
             if manifest.get("type") == "remote":
                 container_name = manifest.get(
                     "container_name", f"conturai-plugin-{plugin_id}"
@@ -143,17 +127,15 @@ class PluginRegistry:
                 volumes = manifest.get("volumes")
                 volumes_map: Optional[Dict[str, str]] = None
                 if isinstance(volumes, list):
-                    # ["host:/container:ro"] -> {"host": "/container"}
                     volumes_map = {}
-                    for spec_str in volumes:
-                        parts = spec_str.split(":")
+                    for s in volumes:
+                        parts = s.split(":")
                         if len(parts) >= 2:
-                            host, container = parts[0], parts[1]
-                            volumes_map[host] = container
+                            volumes_map[parts[0]] = parts[1]
                 elif isinstance(volumes, dict):
                     volumes_map = dict(volumes)
 
-                await self.manager.deploy_plugin(
+                deploy_resp = await self.manager.deploy_plugin(
                     name=container_name,
                     image=manifest["docker_image"],
                     env=manifest.get("environment"),
@@ -162,10 +144,23 @@ class PluginRegistry:
                     volumes=volumes_map,
                     gpus=bool(manifest.get("gpu", False)),
                 )
-                internal_port = int(manifest.get("internal_port", 8000))
-                endpoint_url = f"http://{container_name}:{internal_port}"
 
-            # УРОВЕНЬ 2 — логика в ядре
+                internal_port = int(manifest.get("internal_port", 8000))
+
+                if settings.plugin_endpoint_mode == "local":
+                    host_port = deploy_resp.get("host_port")
+                    if not host_port and manifest.get("ports"):
+                        host_port = next(iter(manifest["ports"].values()), None)
+                    if not host_port:
+                        raise RuntimeError(
+                            f"Плагин {plugin_id} не публикует порт на хост — "
+                            f"невозможно обратиться из локального backend. "
+                            f"Добавьте ports в manifest.json."
+                        )
+                    endpoint_url = f"http://localhost:{host_port}"
+                else:
+                    endpoint_url = f"http://{container_name}:{internal_port}"
+
             if not rec._installed:
                 await rec.plugin.on_install()
                 rec._installed = True
@@ -205,15 +200,13 @@ class PluginRegistry:
             try:
                 await self.manager.stop_plugin_container(container_name)
             except Exception as exc:
-                logger.warning(
-                    "stop container %s failed: %s", container_name, exc
-                )
+                logger.warning("stop %s failed: %s", container_name, exc)
 
         rec.status = "inactive"
         rec.endpoint_url = None
         logger.info("plugin deactivated: %s", plugin_id)
 
-    # ---- Доступ для чата --------------------------------------------------
+    # ---- Chat-доступ ------------------------------------------------------
 
     def get_inference_provider(self) -> Optional[InferenceProvider]:
         for rec in self._plugins.values():
@@ -226,12 +219,12 @@ class PluginRegistry:
         for rec in self._plugins.values():
             if rec.status != "active":
                 continue
-            middleware = rec.plugin.get_context_middleware()
-            if middleware is not None:
-                pipeline.add(middleware)
+            mw = rec.plugin.get_context_middleware()
+            if mw is not None:
+                pipeline.add(mw)
         return pipeline
 
-    # ---- Admin helpers ----------------------------------------------------
+    # ---- Admin ------------------------------------------------------------
 
     def get(self, plugin_id: str) -> Optional[PluginRecord]:
         return self._plugins.get(plugin_id)
