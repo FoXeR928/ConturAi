@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '../api/auth';
+import { ApiError } from '../api/http';
 
 export function LoginPage() {
   const [login, setLogin] = useState('');
@@ -16,8 +17,8 @@ export function LoginPage() {
     try {
       const me = await authApi.login({ login, password });
       navigate(me.role === 'admin' ? '/plugins' : '/chat');
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Ошибка входа');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Ошибка входа');
     } finally {
       setBusy(false);
     }
@@ -34,9 +35,7 @@ export function LoginPage() {
           ConturAI
         </h1>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-slate-700">
-            Логин
-          </label>
+          <label className="text-sm font-medium text-slate-700">Логин</label>
           <input
             type="text"
             value={login}
@@ -48,9 +47,7 @@ export function LoginPage() {
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-slate-700">
-            Пароль
-          </label>
+          <label className="text-sm font-medium text-slate-700">Пароль</label>
           <input
             type="password"
             value={password}

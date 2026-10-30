@@ -9,9 +9,10 @@ import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import auth, chats, routes
+from app.api import auth, chats, proxy, routes, users
 from app.auth.security import hash_password
 from app.core.config import settings
+from app.core.errors import install_error_handlers
 from app.db.database import Database
 from app.plugins.context import PluginContext
 from app.plugins.registry import PluginRegistry
@@ -62,6 +63,7 @@ async def lifespan(app: FastAPI):
     context = PluginContext(database_url=settings.database_url)
     registry = PluginRegistry(PLUGINS_DIR, plugin_store, client, context)
     await registry.load()
+    await registry.start_health_loop(settings.external_plugin_health_interval)
 
     app.state.db = db
     app.state.plugin_store = plugin_store
@@ -73,19 +75,25 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
+        await registry.shutdown()
         await client.aclose()
         await db.close()
 
 
-app = FastAPI(title="ConturAI Core", version="1.2.0", lifespan=lifespan)
+app = FastAPI(title="ConturAI Core", version="2.0.0", lifespan=lifespan)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+if settings.cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=list(settings.cors_origins),
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+install_error_handlers(app)
 
 app.include_router(auth.router)
+app.include_router(users.router)
 app.include_router(chats.router)
 app.include_router(routes.router)
+app.include_router(proxy.router)

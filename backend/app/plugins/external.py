@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any
+import json
+from typing import Any, AsyncGenerator
 
 import httpx
 
@@ -28,14 +29,58 @@ class ExternalPlugin(BasePlugin):
                 "history": [m.model_dump() for m in history],
                 "settings": self.settings,
             },
-            timeout=120.0,
+            timeout=float(self.manifest.execution_timeout),
         )
         response.raise_for_status()
         data = response.json()
         result = data.get("response")
         if not isinstance(result, str):
             raise RuntimeError(
-                f"Плагин {self.manifest.id}: ответ должен содержать "
-                f"строковое поле 'response'",
+                f"Плагин {self.manifest.id}: ответ должен содержать 'response'"
             )
         return result
+
+    async def execute_stream(
+        self, prompt: str, history: list[ChatMessage],
+    ) -> AsyncGenerator[str, None]:
+        if not self.manifest.streaming:
+            yield await self.execute(prompt, history)
+            return
+
+        payload = {
+            "prompt": prompt,
+            "history": [m.model_dump() for m in history],
+            "settings": self.settings,
+        }
+        async with self._client.stream(
+            "POST",
+            f"{self.endpoint_url}/chat/stream",
+            json=payload,
+            timeout=None,
+        ) as response:
+            if response.status_code == 404:
+                yield await self.execute(prompt, history)
+                return
+            response.raise_for_status()
+            async for line in response.aiter_lines():
+                if not line.startswith("data: "):
+                    continue
+                raw = line[6:]
+                if raw == "[DONE]":
+                    return
+                try:
+                    obj = json.loads(raw)
+                except json.JSONDecodeError:
+                    continue
+                delta = obj.get("delta")
+                if isinstance(delta, str) and delta:
+                    yield delta
+
+    async def check_health(self) -> bool:
+        try:
+            response = await self._client.post(
+                f"{self.endpoint_url}/health", timeout=5.0,
+            )
+            return response.status_code == 200
+        except Exception:
+            return False

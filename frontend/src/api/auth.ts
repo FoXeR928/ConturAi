@@ -15,6 +15,7 @@ export interface MeResponse {
   login: string;
   display_name: string | null;
   role: 'user' | 'editor' | 'admin';
+  is_active: boolean;
 }
 
 export const authApi = {
@@ -29,6 +30,16 @@ export const authApi = {
 
   me(): Promise<MeResponse> {
     return api<MeResponse>('/auth/me');
+  },
+
+  changeMyPassword(
+    old_password: string,
+    new_password: string,
+  ): Promise<void> {
+    return api('/auth/me/password', {
+      method: 'PATCH',
+      body: JSON.stringify({ old_password, new_password }),
+    });
   },
 
   logout(): void {

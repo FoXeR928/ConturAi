@@ -2,9 +2,14 @@
   "id": "echo_plugin",
   "name": "Echo",
   "description": "Демонстрационный плагин: возвращает переданное сообщение с префиксом.",
-  "version": "1.0.0",
+  "version": "1.1.0",
+  "api_version": "1",
   "kind": "internal",
   "is_active": true,
+  "streaming": true,
+  "max_history_chars": 4000,
+  "execution_timeout": 30,
+  "max_concurrent": 4,
   "settings_schema": {
     "prefix": {
       "type": "text",

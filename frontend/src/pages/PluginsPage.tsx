@@ -1,23 +1,34 @@
 import { useEffect, useState } from 'react';
 import { pluginsApi } from '../api/plugins';
+import { ApiError } from '../api/http';
 import { PluginSettingsForm } from '../components/PluginSettingsForm';
+import { useToast } from '../components/ToastProvider';
 import type { PluginView } from '../types/plugin';
 
 export function PluginsPage() {
   const [plugins, setPlugins] = useState<PluginView[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showRegister, setShowRegister] = useState(false);
+  const [endpointUrl, setEndpointUrl] = useState('');
+  const [manifestJson, setManifestJson] = useState('');
+  const [registering, setRegistering] = useState(false);
+  const { show } = useToast();
+
+  const load = async (): Promise<void> => {
+    try {
+      setPlugins(await pluginsApi.list());
+    } catch (err) {
+      show(
+        err instanceof ApiError ? err.message : 'Ошибка загрузки',
+        'error',
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    pluginsApi
-      .list()
-      .then(setPlugins)
-      .catch((err: unknown) =>
-        setError(
-          err instanceof Error ? err.message : 'Ошибка загрузки',
-        ),
-      )
-      .finally(() => setIsLoading(false));
+    void load();
   }, []);
 
   const handleUpdate = (updated: PluginView): void => {
@@ -28,30 +39,152 @@ export function PluginsPage() {
     );
   };
 
+  const handleRegister = async (): Promise<void> => {
+    setRegistering(true);
+    try {
+      const manifest = JSON.parse(manifestJson) as Record<string, unknown>;
+      const created = await pluginsApi.register({
+        manifest,
+        endpoint_url: endpointUrl.trim(),
+      });
+      handleUpdate(created);
+      show(`Плагин "${created.manifest.name}" подключён`, 'success');
+      setShowRegister(false);
+      setEndpointUrl('');
+      setManifestJson('');
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+          ? err.message
+          : 'Ошибка регистрации';
+      show(message, 'error');
+    } finally {
+      setRegistering(false);
+    }
+  };
+
+  const handleDelete = async (plugin: PluginView): Promise<void> => {
+    if (!confirm(`Отключить плагин "${plugin.manifest.name}"?`)) return;
+    try {
+      await pluginsApi.remove(plugin.manifest.id);
+      setPlugins((prev) =>
+        prev.filter((p) => p.manifest.id !== plugin.manifest.id),
+      );
+      show('Плагин удалён', 'success');
+    } catch (err) {
+      show(
+        err instanceof ApiError ? err.message : 'Ошибка удаления',
+        'error',
+      );
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-3xl mx-auto px-6 py-10 space-y-6">
-        <header>
-          <h1 className="text-2xl font-semibold text-slate-900">
-            Плагины
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Управление встроенными и внешними модулями системы.
-          </p>
+        <header className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-slate-900">
+              Плагины
+            </h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Управление встроенными и внешними модулями системы.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowRegister((v) => !v)}
+            className="px-4 py-2 rounded-lg bg-slate-900 text-white
+                       text-sm font-medium hover:bg-slate-800"
+          >
+            {showRegister ? 'Отмена' : '+ Подключить внешний'}
+          </button>
         </header>
+
+        {showRegister && (
+          <div className="bg-white rounded-lg border border-slate-200
+                          shadow-sm p-6 space-y-4">
+            <h2 className="text-sm font-semibold text-slate-900">
+              Подключить внешний плагин
+            </h2>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-slate-600">
+                Endpoint URL
+              </label>
+              <input
+                value={endpointUrl}
+                onChange={(e) => setEndpointUrl(e.target.value)}
+                placeholder="http://vllm:8000"
+                className="w-full px-3 py-2 rounded-lg border
+                           border-slate-300 text-sm font-mono
+                           focus:outline-none focus:ring-2
+                           focus:ring-indigo-500"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-slate-600">
+                Манифест (JSON)
+              </label>
+              <textarea
+                value={manifestJson}
+                onChange={(e) => setManifestJson(e.target.value)}
+                rows={10}
+                placeholder={`{
+  "id": "llm_vllm",
+  "name": "vLLM",
+  "kind": "external",
+  "api_version": "1",
+  "streaming": true,
+  "settings_schema": {
+    "model": {
+      "type": "select",
+      "label": "Модель",
+      "default": "qwen",
+      "options": [
+        {"label": "Qwen 1.5B", "value": "qwen"},
+        {"label": "Qwen 7B",   "value": "qwen-7b"}
+      ]
+    },
+    "temperature": {
+      "type": "slider",
+      "label": "Температура",
+      "default": 0.7,
+      "min": 0,
+      "max": 2,
+      "step": 0.1
+    }
+  }
+}`}
+                className="w-full px-3 py-2 rounded-lg border
+                           border-slate-300 text-xs font-mono
+                           focus:outline-none focus:ring-2
+                           focus:ring-indigo-500"
+              />
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={handleRegister}
+                disabled={
+                  registering ||
+                  !endpointUrl.trim() ||
+                  !manifestJson.trim()
+                }
+                className="px-4 py-2 rounded-lg bg-indigo-600 text-white
+                           text-sm font-medium hover:bg-indigo-700
+                           disabled:opacity-60"
+              >
+                {registering ? 'Подключение...' : 'Подключить'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {isLoading && (
           <p className="text-sm text-slate-500">Загрузка...</p>
         )}
 
-        {error && (
-          <div className="rounded-lg bg-rose-50 border border-rose-200
-                          p-4 text-sm text-rose-700">
-            {error}
-          </div>
-        )}
-
-        {!isLoading && plugins.length === 0 && !error && (
+        {!isLoading && plugins.length === 0 && (
           <div className="rounded-lg bg-white border border-slate-200
                           p-8 text-center text-slate-500 text-sm">
             Нет зарегистрированных плагинов.
@@ -59,11 +192,23 @@ export function PluginsPage() {
         )}
 
         {plugins.map((plugin) => (
-          <PluginSettingsForm
-            key={plugin.manifest.id}
-            plugin={plugin}
-            onChange={handleUpdate}
-          />
+          <div key={plugin.manifest.id} className="space-y-2">
+            <PluginSettingsForm
+              plugin={plugin}
+              onChange={handleUpdate}
+            />
+            {plugin.manifest.kind === 'external' && (
+              <div className="flex justify-end">
+                <button
+                  onClick={() => handleDelete(plugin)}
+                  className="text-xs text-rose-600 hover:text-rose-700
+                             font-medium"
+                >
+                  Отключить внешний плагин
+                </button>
+              </div>
+            )}
+          </div>
         ))}
       </div>
     </div>

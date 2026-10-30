@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field
 
 
 FieldType = Literal["select", "slider", "number", "text", "boolean"]
+HealthStatus = Literal["ok", "down", "unknown"]
+PluginKind = Literal["internal", "external"]
 
 
 class SettingsFieldSchema(BaseModel):
@@ -21,20 +23,24 @@ class SettingsFieldSchema(BaseModel):
 
 
 class PluginManifest(BaseModel):
-    id: str = Field(
-        ..., min_length=1, max_length=64, pattern=r"^[a-z0-9_\-]+$",
-    )
+    id: str = Field(..., min_length=1, max_length=64, pattern=r"^[a-z0-9_\-]+$")
     name: str
     description: str = ""
     version: str = "1.0.0"
-    kind: Literal["internal", "external"]
+    api_version: str = "1"
+    kind: PluginKind
     is_active: bool = True
+    streaming: bool = False
+    max_history_chars: int = 8000
+    execution_timeout: int = 120
+    max_concurrent: int = 4
     settings_schema: dict[str, SettingsFieldSchema] = Field(default_factory=dict)
 
 
 class PluginView(BaseModel):
     manifest: PluginManifest
     settings: dict[str, Any]
+    health_status: HealthStatus = "unknown"
 
 
 class ToggleRequest(BaseModel):
@@ -53,3 +59,8 @@ class RegisterExternalRequest(BaseModel):
 class ChatMessage(BaseModel):
     role: Literal["user", "assistant", "system"]
     content: str
+
+
+class HealthResponse(BaseModel):
+    status: HealthStatus
+    latency_ms: int | None = None

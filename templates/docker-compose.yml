@@ -27,6 +27,7 @@ services:
       DATABASE_URL: postgresql://conturai:${DB_PASSWORD:-conturai_secret}@db:5432/conturai
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
     volumes:
       - ./backend/plugins:/app/plugins:ro
     depends_on:
@@ -42,7 +43,7 @@ services:
         - |
           import urllib.request, sys
           try:
-              with urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=2) as r:
+              with urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=2) as r:
                   sys.exit(0 if r.status == 200 else 1)
           except Exception:
               sys.exit(1)
@@ -68,7 +69,6 @@ services:
 
 volumes:
   pgdata:
-
 networks:
   conturai:
     driver: bridge

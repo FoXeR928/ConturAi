@@ -24,6 +24,3 @@ dist/
 .idea/
 .vscode/
 *.swp
-
-#docker
-docker-compose.yml

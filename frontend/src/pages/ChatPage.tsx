@@ -1,60 +1,326 @@
-import { useEffect, useState } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
-import { authApi, MeResponse } from './api/auth';
-import { LoginPage } from './pages/LoginPage';
-import { ChatPage } from './pages/ChatPage';
-import { PluginsPage } from './pages/PluginsPage';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Chat, Message, chatsApi } from '../api/chats';
+import { pluginsApi } from '../api/plugins';
+import { authApi } from '../api/auth';
+import { ApiError } from '../api/http';
+import { Markdown } from '../components/Markdown';
+import { useToast } from '../components/ToastProvider';
+import type { PluginView } from '../types/plugin';
 
-export default function App() {
-  const [user, setUser] = useState<MeResponse | null>(null);
-  const [ready, setReady] = useState(false);
+export function ChatPage() {
+  const navigate = useNavigate();
+  const { show } = useToast();
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [plugins, setPlugins] = useState<PluginView[]>([]);
+  const [pluginId, setPluginId] = useState('');
+  const [input, setInput] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [typing, setTyping] = useState(false);
+  const [streamingText, setStreamingText] = useState('');
+  const abortRef = useRef<AbortController | null>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const reloadChats = async () => setChats(await chatsApi.list());
 
   useEffect(() => {
-    if (!authApi.isAuthenticated()) {
-      setReady(true);
-      return;
-    }
+    void reloadChats();
+    pluginsApi
+      .list()
+      .then((list) => {
+        setPlugins(list);
+        const first = list.find((p) => p.manifest.is_active);
+        if (first) setPluginId(first.manifest.id);
+      })
+      .catch(() => undefined);
     authApi
       .me()
-      .then(setUser)
-      .catch(() => authApi.logout())
-      .finally(() => setReady(true));
+      .then((me) => setIsAdmin(me.role === 'admin'))
+      .catch(() => undefined);
   }, []);
 
-  if (!ready) {
-    return (
-      <div className="min-h-screen flex items-center justify-center
-                      text-slate-400">
-        ...
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!activeChatId) {
+      setMessages([]);
+      return;
+    }
+    chatsApi
+      .messages(activeChatId)
+      .then(setMessages)
+      .catch(() => setMessages([]));
+  }, [activeChatId]);
 
-  const isAdmin = user?.role === 'admin';
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, streamingText]);
+
+  const createChat = async () => {
+    const title = prompt('Название чата:');
+    if (!title) return;
+    const chat = await chatsApi.create(title);
+    await reloadChats();
+    setActiveChatId(chat.id);
+  };
+
+  const removeChat = async (id: string) => {
+    if (!confirm('Удалить чат?')) return;
+    await chatsApi.remove(id);
+    if (activeChatId === id) setActiveChatId(null);
+    await reloadChats();
+  };
+
+  const send = async () => {
+    if (!activeChatId || !pluginId || !input.trim() || busy) return;
+
+    const content = input.trim();
+    setInput('');
+    setBusy(true);
+    setTyping(true);
+    setStreamingText('');
+
+    const optimisticUser: Message = {
+      id: Date.now(),
+      role: 'user',
+      content,
+      created_at: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, optimisticUser]);
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    try {
+      await chatsApi.sendStream(
+        activeChatId,
+        pluginId,
+        content,
+        {
+          onDelta: (delta) => setStreamingText((prev) => prev + delta),
+          onDone: async (info) => {
+            const finalText = await new Promise<string>((resolve) => {
+              setStreamingText((prev) => {
+                resolve(prev);
+                return prev;
+              });
+            });
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: info.assistant_message_id,
+                role: 'assistant',
+                content: finalText,
+                created_at: new Date().toISOString(),
+              },
+            ]);
+            setStreamingText('');
+            setTyping(false);
+          },
+          onError: (msg) => {
+            show(msg, 'error');
+            setTyping(false);
+            setStreamingText('');
+          },
+        },
+        controller.signal,
+      );
+    } catch (err) {
+      if (!(err instanceof DOMException && err.name === 'AbortError')) {
+        show(
+          err instanceof ApiError ? err.message : 'Ошибка отправки',
+          'error',
+        );
+      }
+      setTyping(false);
+      setStreamingText('');
+    } finally {
+      setBusy(false);
+      abortRef.current = null;
+    }
+  };
+
+  const stopStream = () => {
+    abortRef.current?.abort();
+    setBusy(false);
+    setTyping(false);
+  };
+
+  const logout = () => {
+    authApi.logout();
+    navigate('/login');
+  };
 
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      {!user && (
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      )}
-      {user && (
-        <>
-          <Route path="/chat" element={<ChatPage />} />
+    <div className="min-h-screen bg-slate-50 flex">
+      <aside className="w-64 bg-slate-900 text-slate-100 p-4 space-y-3
+                        flex flex-col">
+        <div className="flex items-center justify-between">
+          <span className="font-semibold text-sm">ConturAI</span>
+          <button
+            onClick={logout}
+            className="text-xs text-slate-400 hover:text-white"
+          >
+            Выйти
+          </button>
+        </div>
+        <div className="flex flex-col gap-1">
+          <button
+            onClick={createChat}
+            className="w-full py-2 rounded-lg bg-indigo-600 text-white
+                       text-sm hover:bg-indigo-700"
+          >
+            + Новый чат
+          </button>
           {isAdmin && (
-            <Route path="/plugins" element={<PluginsPage />} />
+            <button
+              onClick={() => navigate('/plugins')}
+              className="w-full py-2 rounded-lg bg-slate-800 text-white
+                         text-sm hover:bg-slate-700"
+            >
+              Плагины
+            </button>
           )}
-          <Route
-            path="*"
-            element={
-              <Navigate
-                to={isAdmin ? '/plugins' : '/chat'}
-                replace
-              />
-            }
-          />
-        </>
-      )}
-    </Routes>
+          <button
+            onClick={() => navigate('/profile')}
+            className="w-full py-2 rounded-lg bg-slate-800 text-white
+                       text-sm hover:bg-slate-700"
+          >
+            Профиль
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto space-y-1">
+          {chats.map((chat) => (
+            <div
+              key={chat.id}
+              className={
+                'flex items-center justify-between px-3 py-2 rounded-lg ' +
+                'text-sm cursor-pointer ' +
+                (activeChatId === chat.id
+                  ? 'bg-slate-800 text-white'
+                  : 'text-slate-400 hover:bg-slate-800/60')
+              }
+              onClick={() => setActiveChatId(chat.id)}
+            >
+              <span className="truncate">{chat.title}</span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void removeChat(chat.id);
+                }}
+                className="text-xs text-slate-500 hover:text-rose-400"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      </aside>
+
+      <main className="flex-1 flex flex-col min-w-0">
+        {!activeChatId && (
+          <div className="flex-1 flex items-center justify-center
+                          text-slate-400 text-sm">
+            Выберите или создайте чат
+          </div>
+        )}
+        {activeChatId && (
+          <>
+            <div className="flex-1 overflow-y-auto p-6 space-y-3">
+              {messages.map((m) => (
+                <div
+                  key={m.id}
+                  className={
+                    'max-w-2xl p-3 rounded-lg text-sm ' +
+                    (m.role === 'user'
+                      ? 'ml-auto bg-indigo-600 text-white'
+                      : 'bg-white border border-slate-200 text-slate-800')
+                  }
+                >
+                  {m.role === 'assistant' ? (
+                    <Markdown>{m.content}</Markdown>
+                  ) : (
+                    <span className="whitespace-pre-wrap">{m.content}</span>
+                  )}
+                </div>
+              ))}
+              {typing && (
+                <div className="max-w-2xl p-3 rounded-lg bg-white border
+                                border-slate-200 text-slate-800 text-sm">
+                  {streamingText ? (
+                    <Markdown>{streamingText}</Markdown>
+                  ) : (
+                    <span className="text-slate-400 animate-pulse">
+                      Печатает...
+                    </span>
+                  )}
+                </div>
+              )}
+              {messages.length === 0 && !typing && (
+                <p className="text-center text-sm text-slate-400">
+                  Начните диалог
+                </p>
+              )}
+              <div ref={bottomRef} />
+            </div>
+            <div className="p-4 bg-white border-t border-slate-200
+                            space-y-2">
+              <select
+                value={pluginId}
+                onChange={(e) => setPluginId(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border
+                           border-slate-300 text-sm"
+              >
+                {plugins
+                  .filter((p) => p.manifest.is_active)
+                  .map((p) => (
+                    <option key={p.manifest.id} value={p.manifest.id}>
+                      {p.manifest.name}
+                    </option>
+                  ))}
+              </select>
+              <div className="flex gap-2">
+                <input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      void send();
+                    }
+                  }}
+                  placeholder="Сообщение..."
+                  disabled={busy}
+                  className="flex-1 px-3 py-2 rounded-lg border
+                             border-slate-300 text-sm
+                             focus:outline-none focus:ring-2
+                             focus:ring-indigo-500"
+                />
+                {typing ? (
+                  <button
+                    onClick={stopStream}
+                    className="px-4 py-2 rounded-lg bg-rose-600 text-white
+                               text-sm font-medium hover:bg-rose-700"
+                  >
+                    Стоп
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => void send()}
+                    disabled={busy || !input.trim() || !pluginId}
+                    className="px-4 py-2 rounded-lg bg-indigo-600 text-white
+                               text-sm hover:bg-indigo-700
+                               disabled:opacity-60"
+                  >
+                    →
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </main>
+    </div>
   );
 }
